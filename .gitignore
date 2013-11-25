@@ -1,0 +1,7 @@
+*~
+*.o
+*.y.h
+*.y.c
+*.l.c
+fffll
+parse*

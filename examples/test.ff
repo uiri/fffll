@@ -1,0 +1,24 @@
+Def("Pow", [x, n], {
+    If((n=2), {
+	  Set(x, Mul(x, x))
+      }, {
+	  Set(x, Mul(x, Pow(x, Add(n, -1))))
+      })
+})
+
+Def("QuitLoop", [], {
+    While(!(x="QUIT"), {
+        Write(stdout, "Type QUIT to exit")
+        Set(x, Read(stdin))
+    })
+})
+
+Def("Print", [x], {
+    Write(stdout, x)
+})
+
+Def("Main", [], {
+    Print(["1", "2", "3", "4"])
+})
+
+Main()

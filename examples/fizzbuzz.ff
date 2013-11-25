@@ -1,0 +1,28 @@
+Def("Mod", [y, x], {
+    Set(z, Mul(-1, x))
+    While(!(y < x), {
+	Set(y, Add(y, z))
+    })
+})
+Def("Main", 
+    [], 
+    {
+	Set(x, 1)
+	While( (x<101), {
+	    If( (Mod(x, 3)=0), {
+		If( (Mod(x, 5)=0), {
+		    Write(stdout, "Fizzbuzz")
+		}, {
+		    Write(stdout, "Fizz")
+		})
+	    }, {
+		If( (Mod(x, 5)=0), {
+		    Write(stdout, "Buzz")
+		}, {
+		    Write(stdout, x)
+		})
+	    })
+	    Set(x, Add(x, 1))
+	})
+})
+Main()

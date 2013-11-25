@@ -1,0 +1,7 @@
+DEF("Print", [x], {
+    Write(stdout, x)
+})
+Def( "Main", [], {
+    Print("What?")
+})
+Main()

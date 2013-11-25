@@ -20,6 +20,9 @@
 #include "fffll.y.h"
 #include "list.h"
 
+#undef YY_BUF_SIZE
+#define YY_BUF_SIZE 128
+
 int lineno = 1;
 extern YYSTYPE yylval;
 extern int yywrap(void) { return 1; }

@@ -7,7 +7,7 @@ int appendToArray(DynArray* da, void* data) {
   if (da->last == da->length) {
     reallocArray(da);
   }
-  da->array[da->last*da->elementsize] = data;
+  da->array[da->last] = data;
   da->last++;
   return 0;
 }
@@ -21,7 +21,7 @@ int freeArray(DynArray* da) {
 void *getElementInArray(DynArray* da, int index) {
   if (index >= da->last)
     return NULL;
-  return da->array[index*da->elementsize];
+  return da->array[index];
 }
 
 DynArray *newArray(int len, size_t size) {
@@ -36,9 +36,7 @@ DynArray *newArray(int len, size_t size) {
 
 int reallocArray(DynArray* da) {
   da->length *= 2;
-  printf("%p\n", (void*)da->array);
   da->array = realloc(da->array, da->length*da->elementsize);
-  printf("%p\n", (void*)da->array);
   return 0;
 }
 
@@ -46,6 +44,6 @@ int setElementInArray(DynArray *da, int index, void* data) {
   if (index < 0 || index >= da->last) {
     return -1;
   }
-  da->array[index*da->elementsize] = data;
+  da->array[index] = data;
   return 0;
 }

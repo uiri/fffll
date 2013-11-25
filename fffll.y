@@ -180,6 +180,9 @@ void yyerror(const char *msg) {
    }
    return 0;
  }
+
+ List* varlist;
+ DynArray* globalvars;
  
  typedef struct varval VarVal;
 
@@ -198,13 +201,11 @@ void yyerror(const char *msg) {
    vv->val = val;
    vv->type = 'w';
    val->refcount++;
-   printf("%d\n", vv->refcount);
    return vv;
  }
 
  int freeVarVal(VarVal* vv) {
    vv->refcount--;
-   printf("%d\n", vv->refcount);
    if (vv->refcount < 1) {
      vv->val->refcount--;
      freeValue(vv->val);
@@ -213,9 +214,6 @@ void yyerror(const char *msg) {
    }
    return 0;
  }
-
- List* varlist;
- DynArray* globalvars;
 
  typedef struct funcdef FuncDef;
 
@@ -255,18 +253,26 @@ void yyerror(const char *msg) {
  int funcnum;
  FuncDef **funcdeftable;
 
- int hashName(char* name, int l) {
+ int hashName(char* name) {
    int i, s;
    s = 0;
    for(i=0;name[i] != 0;i++)
      s += name[i];
-   return s%l;
+   return s%funcnum;
+ }
+
+ int insertFunction(FuncDef* fd) {
+   int i;
+   i = hashName(fd->name);
+   while (funcdeftable[i] != NULL) i++;
+   funcdeftable[i] = fd;
+   return 0;
  }
 
  FuncDef *getFunction(char *name) {
    FuncDef* fd;
    int i, j, l;
-   i = hashName(name, funcnum);
+   i = hashName(name);
    l = strlen(name);
    while (i++) {
      fd = funcdeftable[i];
@@ -370,10 +376,31 @@ void yyerror(const char *msg) {
  }
 
  int scope(FuncDef* fd, List* arglist) {
+   DynArray* da;
+   List* fdname, *al;
+   fdname = fd->arguments;
+   al = arglist;
+   da = newArray(5, sizeof(VarVal));
+   appendToArray(da, globalvars->array[0]);
+   appendToArray(da, globalvars->array[1]);
+   appendToArray(da, globalvars->array[2]);
+   while (fdname != NULL && al != NULL) {
+     appendToArray(da, newVarVal(fdname->data, al->data));
+     fdname = fdname->next;
+     al = al->next;
+   }
+   *varlist = addToListBeginning(varlist, da);
    return 0;
  }
 
  int descope() {
+   DynArray* da;
+   int i;
+   da = varlist->data;
+   for (i=0;i<da->last;i++) {
+     freeVarVal(da->array[i]);
+   }
+   varlist = deleteFromListBeginning(varlist);
    return 0;
  }
 
@@ -384,6 +411,21 @@ void yyerror(const char *msg) {
    val = evaluateStatements(fd->statements);
    descope();
    return val;
+ }
+
+ Value* defDef(FuncDef* fd, List* arglist) {
+   FuncDef *newfd;
+   List *arg;
+   newfd = malloc(sizeof(FuncDef));
+   arg = arglist;
+   newfd->name = arg->data;
+   arg = arg->next;
+   newfd->arguments = arg->data;
+   arg = arg->next;
+   newfd->statements = arg->data;
+   newfd->evaluate = &evaluateFuncDef;
+   insertFunction(fd);
+   return (Value*)arglist->data;
  }
 
  List* lastParseTree;
@@ -536,8 +578,6 @@ int main(int argc, char** argv) {
   char* constants;
   char* str[3] ={ "stdin", "stdout", "stderr" };
   int i, j, l;
-  Value* v;
-  VarVal* vv;
   if (argc != 2) {
     printf("This program takes exactly one argument. The file to interpret\n");
     return 1;
@@ -561,9 +601,12 @@ int main(int argc, char** argv) {
     }
     l++;
   }
-  stdinp = &stdin;
-  stdoutp = &stdout;
-  stderrp = &stderr;
+  stdinp = malloc(sizeof(stdin));
+  *stdinp = stdin;
+  stdoutp = malloc(sizeof(stdout));
+  *stdoutp = stdout;
+  stderrp = malloc(sizeof(stderr));
+  *stderrp = stderr;
   NullList = newList();
   *NullList = EmptyList;
   fp = fopen(argv[1], "r");
@@ -571,17 +614,10 @@ int main(int argc, char** argv) {
   funcnum = 10;
   varlist = newList();
   globalvars = newArray(3, sizeof(VarVal));
-  v = newValue('f', stdinp);
-  vv = newVarVal(constants+10, v);
-  appendToArray(globalvars, vv);
-  v = newValue('f', stdoutp);
-  vv = newVarVal(constants+16, v);
-  appendToArray(globalvars, vv);
-  v = newValue('f', stderrp);
-  vv = newVarVal(constants+23, v);
-  appendToArray(globalvars, vv);
+  appendToArray(globalvars, newVarVal(constants+10, newValue('f', stdinp)));
+  appendToArray(globalvars, newVarVal(constants+16, newValue('f', stdoutp)));
+  appendToArray(globalvars, newVarVal(constants+23, newValue('f', stderrp)));
   yyparse();
-  vv = getElementInArray(globalvars, 2);
   funcnum *= 4;
   funcdeftable = calloc(funcnum, sizeof(FuncDef));
   for (i=0;i<funcnum;i++) {
@@ -591,8 +627,7 @@ int main(int argc, char** argv) {
   }
   free(funcdeftable);
   for (i=0;i<globalvars->last;i++) {
-    vv = getElementInArray(globalvars, i);
-    freeVarVal(vv);
+    freeVarVal(globalvars->array[i]);
   }
   freeArray(globalvars);
   freeList(varlist);

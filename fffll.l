@@ -33,12 +33,22 @@ extern void yyerror(const char* msg);
 %option nounput
 %%
 
-\"[^\"]+\"		{
-			  yylval.symbol = yytext;
+\"[^\"]*\"		{
+			  int i, l;
+			  char* funcname;
+			  l = strlen(yytext);
+			  l--;
+			  funcname = malloc(l);
+			  l--;
+			  for (i=0;i<l;i++) {
+			    funcname[i] = yytext[i+1];
+			  }
+			  funcname[i] = '\0';
+			  yylval.symbol = funcname;
 			  return STR;
 			}
 [,;()[\]\{\}<>=&|!]	{ return yytext[0]; }
--?[0-9]+		{
+-?[0-9]+(\.[0-9]+)?	{
 			  yylval.num = atof((char*)yytext);
 			  return NUM;
 			}
@@ -58,7 +68,18 @@ extern void yyerror(const char* msg);
 			  return FUNC;
 			}
 [a-z][A-Za-z0-9]*	{
-			  yylval.symbol = yytext;
+			  int i, l;
+			  char* funcname;
+			  l = strlen(yytext);
+			  funcname = malloc(l+1);
+			  for (i=0;i<l;i++) {
+			    if (64 < yytext[i] && yytext[i] < 90) {
+			      yytext[i] += 32;
+			    }
+			    funcname[i] = yytext[i];
+			  }
+			  funcname[l] = '\0';
+			  yylval.symbol = funcname;
 			  return VAR;
 			}
 [ \t]			;
@@ -68,6 +89,6 @@ extern void yyerror(const char* msg);
 				yyterminate();
 			}
 .			{
-			  printf("Illegal character %d", yytext[0]);
+			  printf("Illegal character %d ", yytext[0]);
 			  yyerror(":(");
 			}

@@ -7,6 +7,7 @@ Def("Pow", [x, n], {
 })
 
 Def("QuitLoop", [], {
+    Set(x, "")
     While(!(x="QUIT"), {
         Write(stdout, "Type QUIT to exit")
         Set(x, Read(stdin))
@@ -18,7 +19,8 @@ Def("Print", [x], {
 })
 
 Def("Main", [], {
-    Print(["1", "2", "3", "4"])
+    Quitloop()
+    Print([1, 2.2, 3, 4.36])
 })
 
 Main()

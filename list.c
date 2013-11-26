@@ -130,6 +130,10 @@ List addToListBeginning(List *list, void *data) {
 List addToListEnd(List *list, void *data) {
   List *headptr;
   headptr = list;
+  if (list->data == NULL) {
+    list->data = data;
+    return *headptr;
+  }
   while(list->next != NULL)
     list = list->next;
   list->next = malloc(sizeof(List)+8);
@@ -265,6 +269,7 @@ List deleteFromListLastData(List *list, void *data) {
 int freeList(List *list) {
   List *headptr;
   headptr = list;
+  if (list == NULL) return 0;
   if (list->next == NULL) {
     free(list);
     return 0;

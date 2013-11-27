@@ -57,21 +57,6 @@ void yyerror(const char *msg) {
    List* arglist;
  };
 
- List* evaluateList(List* l) {
-   List* r;
-   r = newList();
-   while (l != NULL) {
-     if (((Value*)l->data)->type == 'b') {
-       ((Value*)l->data)->refcount++;
-       addToListEnd(r, l->data);
-     } else {
-       addToListEnd(r, evaluateValue((Value*)l->data));
-     }
-     l = l->next;
-   }
-   return r;
- }
-
  int freeValueList(List* r) {
    int i, l;
    l = lengthOfList(r);
@@ -276,6 +261,26 @@ void yyerror(const char *msg) {
    return vv;
  }
 
+ List* evaluateList(List* l) {
+   List* r;
+   VarVal* vv;
+   r = newList();
+   while (l != NULL) {
+     if (((Value*)l->data)->type == 'b') {
+       ((Value*)l->data)->refcount++;
+       addToListEnd(r, l->data);
+     } else {
+       if (((Value*)l->data)->type == 'v') {
+	 vv = varValFromName(((Variable*)l->data)->name);
+	 vv->val->refcount++;
+       }
+       addToListEnd(r, evaluateValue((Value*)l->data));
+     }
+     l = l->next;
+   }
+   return r;
+ }
+
  typedef struct funcdef FuncDef;
 
  struct funcdef {
@@ -369,14 +374,8 @@ void yyerror(const char *msg) {
 
  Value* evaluateFuncVal(FuncVal* fv) {
    FuncDef* fd;
-   Value* v;
    fd = getFunction(fv->name);
-   v = (*fd->evaluate)(fd, fv->arglist);
-   /* This kind of sort of works as a solution to a reference counting bug. But not really :( */
-   if (fd == varAllocDefs[0] || fd == varAllocDefs[1] || fd == varAllocDefs[2]) {
-     v->refcount--;
-   }
-   return v;
+   return (*fd->evaluate)(fd, fv->arglist);
  }
 
  double evaluateValueAsBool(Value* v) {
@@ -402,6 +401,7 @@ void yyerror(const char *msg) {
      u = evaluateFuncVal((FuncVal*)v);
      if (u == NULL) return INFINITY;
      i = evaluateValueAsBool(u);
+     freeValue(u);
      return i;
    }
    if (v->type == 'd') {
@@ -495,13 +495,14 @@ void yyerror(const char *msg) {
    if (v->type == 'c') {
      v = evaluateFuncVal((FuncVal*)v);
      return v;
-   } 
-   if (v->type == 'b') {
-     v = (Value*)evaluateBoolExpr((BoolExpr*)v);
-   } else if (v->type == 'v') {
+   }
+   if (v->type == 'v') {
      vv = varValFromName(((Variable*)v)->name);
      if (vv == NULL) return NULL;
-     v = vv->val;
+     return vv->val;
+   }
+   if (v->type == 'b') {
+     v = (Value*)evaluateBoolExpr((BoolExpr*)v);
    }
    v->refcount++;
    return v;
@@ -527,6 +528,12 @@ void yyerror(const char *msg) {
        return 1;
      }
      appendToArray(da, newVarVal(((Variable*)fdname->data)->name, v));
+     if (((Value*)al->data)->type == 'c') {
+       fd = getFunction(((FuncVal*)al->data)->name);
+       if (fd == varAllocDefs[0] || fd == varAllocDefs[1] || fd == varAllocDefs[2]) {
+	 freeValue(v);
+       }
+     }
      fdname = fdname->next;
      al = al->next;
    }
@@ -534,12 +541,19 @@ void yyerror(const char *msg) {
    return 0;
  }
 
- int descope() {
+ int descope(Value* v) {
    DynArray* da;
    int i;
+   VarVal *vv;
    da = varlist->data;
    for (i=0;i<da->last;i++) {
-     freeVarVal(da->array[i]);
+     vv = da->array[i];
+     if (vv->val != v) {
+       freeVarVal(vv);
+     } else {
+       v->refcount--;
+       free(vv);
+     }
    }
    freeArray(da);
    varlist = deleteFromListBeginning(varlist);
@@ -701,8 +715,7 @@ void yyerror(const char *msg) {
    Value* val;
    if (scope(fd, arglist)) return NULL;
    val = evaluateStatements(fd->statements);
-   val->refcount++;
-   descope();
+   descope(val);
    return val;
  }
 
@@ -779,6 +792,7 @@ void yyerror(const char *msg) {
      return NULL;
    }
    v = falsevalue;
+   v->refcount++;
    for (be = evaluateBoolExpr(arglist->data);
 	be != NULL && be->lasteval;
 	be = evaluateBoolExpr(arglist->data)) {
@@ -820,7 +834,6 @@ void yyerror(const char *msg) {
      return NULL;     
    }
    fp = v->data;
-   freeValue(v);
    k = 32;
    j = 0;
    s = calloc(k, 1);
@@ -869,7 +882,6 @@ void yyerror(const char *msg) {
      return NULL;     
    }
    fp = *(FILE**)v->data;
-   freeValue(v);
    l = 32;
    s = malloc(l);
    i = 0;
@@ -881,14 +893,12 @@ void yyerror(const char *msg) {
      s[i++] = c;
    }
    s[i] = '\0';
-   v = newValue('s', s);
-   return v;
+   return newValue('s', s);
  }
  
  Value *addDef(FuncDef *fd, List* arglist) {
    double *n, d;
    int i,l;
-   Value* v;
    arglist = evaluateList(arglist);
    l = lengthOfList(arglist);
    n = malloc(sizeof(double));
@@ -903,14 +913,12 @@ void yyerror(const char *msg) {
      *n += d;
    }
    freeValueList(arglist);
-   v = newValue('n', n);
-   return v;
+   return newValue('n', n);
  }
 
  Value *mulDef(FuncDef *fd, List* arglist) {
    double *n, d;
    int i,l;
-   Value* v;
    arglist = evaluateList(arglist);
    l = lengthOfList(arglist);
    n = malloc(sizeof(double));
@@ -925,8 +933,7 @@ void yyerror(const char *msg) {
      *n *= d;
    }
    freeValueList(arglist);
-   v = newValue('n', n);
-   return v;
+   return newValue('n', n);
  }
 
  List* lastParseTree;
@@ -1100,7 +1107,7 @@ int main(int argc, char** argv) {
   FILE *fp;
   char* str[17] = { "=", "<", ">", "&", "|", "stdin", "stdout", "stderr", "DEF", "SET", "IF", "WHILE", "WRITE", "READ", "ADD", "MUL", "RETURN"};
   int i, j, k, l;
-  Value* stdfiles[3];
+  Value* stdfiles[3], *v;
   if (argc != 2) {
     printf("This program takes exactly one argument. The file to interpret\n");
     return 1;
@@ -1159,7 +1166,8 @@ int main(int argc, char** argv) {
   varAllocDefs[0] = getFunction("ADD");
   varAllocDefs[1] = getFunction("MUL");
   varAllocDefs[2] = getFunction("READ");
-  evaluateStatements(lastParseTree);
+  v = evaluateStatements(lastParseTree);
+  freeValue(v);
   for (i=0;i<funcnum;i++) {
     if (funcdeftable[i] != NULL) {
       freeFuncDef(funcdeftable[i]);

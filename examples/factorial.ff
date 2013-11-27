@@ -5,4 +5,4 @@ Def( "Fac", [n], {
         Set(m, Mul(n, Fac(Add(n, -1))))
     })
 })
-Write(stdout, Fac(5))
+Write(stdout, Fac(15))

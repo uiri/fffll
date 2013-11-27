@@ -62,6 +62,7 @@ void yyerror(const char *msg) {
    r = newList();
    while (l != NULL) {
      if (((Value*)l->data)->type == 'b') {
+       /* printf("line 65 INC %p\n", l->data); */
        ((Value*)l->data)->refcount++;
        addToListEnd(r, l->data);
      } else {
@@ -75,8 +76,9 @@ void yyerror(const char *msg) {
  int freeValueList(List* r) {
    int i, l;
    l = lengthOfList(r);
-   for (i=0;i<l;i++)
+   for (i=0;i<l;i++) {
      freeValue(dataInListAtPosition(r, i));
+   }
    freeList(r);
    return 0;
  }
@@ -169,8 +171,9 @@ void yyerror(const char *msg) {
 
  int freeValue(Value* val) {
    val->refcount--;
+   /* printf("Free Var: %p %d\n", (void*)val, val->refcount); */
    if (val->refcount < 1) {
-     if ((val->type == 'l' && val->data != NULL) || val->type == 'd') {
+     if (val->type == 'l' || val->type == 'd') {
        freeValueList(val->data);
      }
      if (val->type == 'n' || val->type == 's') {
@@ -219,6 +222,7 @@ void yyerror(const char *msg) {
    vv->name = name;
    vv->val = val;
    vv->type = 'w';
+   /* printf("line 225 INC %p\n", (void*)val); */
    val->refcount++;
    return vv;
  }
@@ -226,7 +230,6 @@ void yyerror(const char *msg) {
  int freeVarVal(VarVal* vv) {
    vv->refcount--;
    if (vv->refcount < 1) {
-     vv->val->refcount--;
      freeValue(vv->val);
      free(vv);
      return 1;
@@ -253,7 +256,6 @@ void yyerror(const char *msg) {
    for(;i<va->last;i++) {
      vv = va->array[i];
      if (l == strlen(vv->name)) {
-       /* printf("VARVAL: %s\n", vv->name); */
        for (j=0;j<l;j++) {
 	 if (name[j] != vv->name[j])
 	   break;
@@ -299,17 +301,8 @@ void yyerror(const char *msg) {
  }
 
  int freeFuncDef(FuncDef* fd) {
-   int i, l;
    if (fd->name < constants || constants+lenconstants < fd->name) {
      free(fd->name);
-   }
-   l = lengthOfList(fd->statements);
-   for (i=0;i<l;i++) {
-     freeFuncVal(dataInListAtPosition(fd->statements, i));
-   }
-   l = lengthOfList(fd->arguments);
-   for (i=0;i<l;i++) {
-     freeValue(dataInListAtPosition(fd->arguments, i));
    }
    free(fd);
    return 0;
@@ -317,6 +310,7 @@ void yyerror(const char *msg) {
 
  int funcnum;
  FuncDef **funcdeftable;
+ FuncDef *varAllocDefs[3];
 
  int hashName(char* name) {
    int i, s;
@@ -331,7 +325,6 @@ void yyerror(const char *msg) {
    i = hashName(fd->name);
    while (funcdeftable[i] != NULL) i++;
    funcdeftable[i] = fd;
-   /* printf("INSERT: %d %s\n", i, fd->name); */
    return 0;
  }
 
@@ -342,7 +335,6 @@ void yyerror(const char *msg) {
    l = strlen(name);
    for (j=0;j!=l;i++) {
      fd = funcdeftable[i];
-     /* printf("GET: %d %s\n", i, name); */
      if (strlen(fd->name) == l) {
        for (j=0;j<l;j++) {
 	 if (fd->name[j] != name[j])
@@ -361,25 +353,33 @@ void yyerror(const char *msg) {
  }
 
  Value *evaluateStatements(List* sl) {
-   Value* s;
+   Value* s, *t;
    int i,l;
    l = lengthOfList(sl);
    s = falsevalue;
-   s->refcount++;
+   t = falsevalue;
    for (i=0;i<l;i++) {
-     freeValue(s);
-     s = dataInListAtPosition(sl, i);
-     s = evaluateValue(s);
-     if (s == NULL) return NULL;
+     t = dataInListAtPosition(sl, i);
+     t = evaluateValue(t);
+     if (t == NULL) {
+       return NULL;
+     }
+     if (t != falsevalue)
+       s = t;
    }
    return s;
  }
 
  Value* evaluateFuncVal(FuncVal* fv) {
    FuncDef* fd;
+   Value* v;
    fd = getFunction(fv->name);
-   /* printf("EVAL FUNC: %s\n", fv->name); */
-   return (*fd->evaluate)(fd, fv->arglist);
+   v = (*fd->evaluate)(fd, fv->arglist);
+   /* This kind of sort of works as a solution to a reference counting bug. But not really :( */
+   if (fd == varAllocDefs[0] || fd == varAllocDefs[1] || fd == varAllocDefs[2]) {
+     v->refcount--;
+   }
+   return v;
  }
 
  double evaluateValueAsBool(Value* v) {
@@ -423,7 +423,6 @@ void yyerror(const char *msg) {
    double j, k, **n, *o;
    char* c;
    List* stack;
-   Value* v;
    stack = newList();
    l = lengthOfList(be->stack);
    m = -1;
@@ -431,8 +430,7 @@ void yyerror(const char *msg) {
    i = 0;
    while (i<l) {
      n[++m] = calloc(1, sizeof(double));
-     v = dataInListAtPosition(be->stack, i++);
-     j = evaluateValueAsBool(v);
+     j = evaluateValueAsBool((Value*)dataInListAtPosition(be->stack, i++));
      if (j == INFINITY) {
        m++;
        for (i=0;i<m;i++) {
@@ -472,6 +470,11 @@ void yyerror(const char *msg) {
    i = 0;
    while (i<l) {
      j = *(double*)dataInListAtPosition(stack, i++);
+     if (i==l) {
+       o = (double*)dataInListAtPosition(stack, i++);
+       if (j) *o = 1; else *o = 0;
+       break;
+     }
      c = dataInListAtPosition(stack, i++);
      o = dataInListAtPosition(stack, i);
      k = *o;
@@ -493,7 +496,8 @@ void yyerror(const char *msg) {
  Value *evaluateValue(Value* v) {
    VarVal* vv;
    if (v->type == 'c') {
-     return evaluateFuncVal((FuncVal*)v);
+     v = evaluateFuncVal((FuncVal*)v);
+     return v;
    } 
    if (v->type == 'b') {
      v = (Value*)evaluateBoolExpr((BoolExpr*)v);
@@ -502,7 +506,7 @@ void yyerror(const char *msg) {
      if (vv == NULL) return NULL;
      v = vv->val;
    }
-   if (v == NULL) return NULL;
+   /* printf("line 505 INC %p\n", (void*)v); */
    v->refcount++;
    return v;
  }
@@ -514,9 +518,9 @@ void yyerror(const char *msg) {
    fdname = fd->arguments;
    al = arglist;
    da = newArray(5, sizeof(VarVal));
-   ((VarVal*)globalvars->array[0])->refcount++;
-   ((VarVal*)globalvars->array[1])->refcount++;
-   ((VarVal*)globalvars->array[2])->refcount++;
+   ((Value*)globalvars->array[0])->refcount++;
+   ((Value*)globalvars->array[1])->refcount++;
+   ((Value*)globalvars->array[2])->refcount++;
    appendToArray(da, globalvars->array[0]);
    appendToArray(da, globalvars->array[1]);
    appendToArray(da, globalvars->array[2]);
@@ -539,7 +543,7 @@ void yyerror(const char *msg) {
    int i;
    da = varlist->data;
    for (i=0;i<da->last;i++) {
-     /* printf("%s\n", ((VarVal*)da->array[i])->name); */
+     /* printf("Descope\n"); */
      freeVarVal(da->array[i]);
    }
    freeArray(da);
@@ -566,6 +570,7 @@ void yyerror(const char *msg) {
      u = (Value*)evaluateFuncVal((FuncVal*)v);
      if (u == NULL) return INFINITY;
      d = valueToDouble(u);
+     /* printf("line 569 %p \n", (void*)u); */
      freeValue(u);
      return d;
    }
@@ -576,6 +581,7 @@ void yyerror(const char *msg) {
      for (i=0;i<l;i++) {
        u = evaluateValue(dataInListAtPosition(v->data, i));
        d = valueToDouble(u);
+       /* printf("line 580 %p \n", (void*)u); */
        freeValue(u);
        if (d < 0) return d;
        n += d;
@@ -586,6 +592,7 @@ void yyerror(const char *msg) {
      u = evaluateValue(v);
      if (u == NULL) return INFINITY;
      n = valueToDouble(u);
+     /* printf("line 591 %p \n", (void*)u); */
      freeValue(u);
    }
    return n;
@@ -653,6 +660,8 @@ void yyerror(const char *msg) {
        u = evaluateValue(dataInListAtPosition(v->data, i));
        if (u == NULL) return NULL;
        t = valueToString(u);
+       /* printf("line 659 %p \n", (void*)u); */
+       freeValue(u);
        if (t == NULL) return NULL;
        m = strlen(t);
        s = realloc(s, k+m+2);
@@ -662,7 +671,6 @@ void yyerror(const char *msg) {
        s[k+++j] = ',';
        s[k+j] = '\0';
        k += m;
-       freeValue(u);
        free(t);
      }
      s[--k] = ']';
@@ -674,12 +682,17 @@ void yyerror(const char *msg) {
      u = evaluateFuncVal((FuncVal*)v);
      if (u == NULL) return NULL;
      t = valueToString(u);
+     /* printf("line 681 %p \n", (void*)u); */
      freeValue(u);
      if (t == NULL) return NULL;
    }
    if (v->type == 'd') {
      freet = 1;
-     t = valueToString(evaluateStatements(v->data));
+     u = evaluateStatements(v->data);
+     if (u == NULL) return NULL;
+     t = valueToString(u);
+     /* printf("line 690 %p \n", (void*)u); */
+     freeValue(u);
      if (t == NULL) return NULL;
    }
    if (v->type == 's') {
@@ -699,6 +712,8 @@ void yyerror(const char *msg) {
    Value* val;
    if (scope(fd, arglist)) return NULL;
    val = evaluateStatements(fd->statements);
+   /* printf("line 710 INC %p\n", (void*)val); */
+   val->refcount++;
    descope();
    return val;
  }
@@ -720,27 +735,31 @@ void yyerror(const char *msg) {
    }
    insertFunction(newFuncDef(name, ((Value*)arglist->next->data)->data,
 			     ((Value*)arglist->next->next->data)->data));
+   /* printf("line 733 INC %p\n", arglist->data); */
    ((Value*)arglist->data)->refcount++;
    return (Value*)arglist->data;
  }
 
  Value *setDef(FuncDef *fd, List* arglist) {
    VarVal* vv;
-   Value* v;
+   Value* v, *u;
    if (lengthOfList(arglist) < 2) {
      printf("Not enough arguments for SET\n");
      return NULL;
    }
-   v = evaluateValue(arglist->next->data);
+   u = arglist->next->data;
+   v = evaluateValue(u);
    if (v == NULL) {
      return NULL;
    }
    vv = getVarValFromName(((Variable*)arglist->data)->name);
    if (vv != NULL) {
+     /* printf("line 752 %p \n", (void*)vv->val); */
      freeValue(vv->val);
      vv->val = v;
    } else {
      vv = newVarVal(((Variable*)arglist->data)->name, v);
+     v->refcount--;
      appendToVarList(vv);
    }
    return vv->val;
@@ -756,13 +775,13 @@ void yyerror(const char *msg) {
    }
    be = evaluateBoolExpr(arglist->data);
    if (be == NULL) return NULL;
-   if (be->lasteval)
+   if (be->lasteval) {
      return evaluateStatements((List*)((Value*)arglist->next->data)->data);
+   }
    if (l > 2) {
      arglist = arglist->next;
      return evaluateStatements((List*)((Value*)arglist->next->data)->data);
    }
-   falsevalue->refcount++;
    return falsevalue;
  }
 
@@ -781,7 +800,6 @@ void yyerror(const char *msg) {
      if (v == NULL) return NULL;
    }
    if (be == NULL) return NULL;
-   if (v == falsevalue) v->refcount++;
    return v;
  }
 
@@ -796,6 +814,8 @@ void yyerror(const char *msg) {
      return NULL;
    }
    v = evaluateStatements(((Value*)arglist->data)->data);
+   /* printf("line 818 INC %p\n", (void*)v); */
+   v->refcount++;
    return v;
  }
 
@@ -815,6 +835,7 @@ void yyerror(const char *msg) {
      return NULL;     
    }
    fp = v->data;
+   /* printf("line 840 %p \n", (void*)v); */
    freeValue(v);
    k = 32;
    j = 0;
@@ -843,7 +864,8 @@ void yyerror(const char *msg) {
    if (o == 2 || j == -1)
      s[j] = '\n';
    fputs(s, *fp);
-   return newValue('s', s);
+   free(s);
+   return falsevalue;
  }
 
  Value *readDef(FuncDef *fd, List* arglist) {
@@ -863,6 +885,7 @@ void yyerror(const char *msg) {
      return NULL;     
    }
    fp = *(FILE**)v->data;
+   /* printf("line 890 %p \n", (void*)v); */
    freeValue(v);
    l = 32;
    s = malloc(l);
@@ -875,24 +898,21 @@ void yyerror(const char *msg) {
      s[i++] = c;
    }
    s[i] = '\0';
-   return newValue('s', s);
+   v = newValue('s', s);
+   return v;
  }
-
-Value *addDef(FuncDef *fd, List* arglist) {
+ 
+ Value *addDef(FuncDef *fd, List* arglist) {
    double *n, d;
    int i,l;
+   Value* v;
    arglist = evaluateList(arglist);
    l = lengthOfList(arglist);
    n = malloc(sizeof(double));
-   *n = valueToDouble(arglist->data);
-   if (*n == INFINITY) {
-     freeValueList(arglist);
-     free(n);
-     return NULL;
-   }
-   for (i=1;i<l;i++) {
+   *n = 0.0;
+   for (i=0;i<l;i++) {
      d = valueToDouble(dataInListAtPosition(arglist, i));
-     if (d < 0) {
+     if (d == INFINITY) {
        freeValueList(arglist);
        free(n);
        return NULL;
@@ -900,25 +920,32 @@ Value *addDef(FuncDef *fd, List* arglist) {
      *n += d;
    }
    freeValueList(arglist);
-   return newValue('n', n);
+   v = newValue('n', n);
+   /* printf("ADDDEF %p\n", (void*)v); */
+   return v;
  }
 
  Value *mulDef(FuncDef *fd, List* arglist) {
    double *n, d;
    int i,l;
+   Value* v;
    arglist = evaluateList(arglist);
    l = lengthOfList(arglist);
    n = malloc(sizeof(double));
-   *n = valueToDouble(arglist->data);
-   if (*n == INFINITY)
-     return NULL;
-   for (i=1;i<l;i++) {
+   *n = 1.0;
+   for (i=0;i<l;i++) {
      d = valueToDouble(dataInListAtPosition(arglist, i));
-     if (d < 0) return NULL;
+     if (d == INFINITY) {
+       freeValueList(arglist);
+       free(n);
+       return NULL;
+     }
      *n *= d;
    }
    freeValueList(arglist);
-   return newValue('n', n);
+   v = newValue('n', n);
+   /* printf("MULDEF %p\n", (void*)v); */
+   return v;
  }
 
  List* lastParseTree;
@@ -1048,10 +1075,11 @@ value	: STR			{
 				}
 	| VAR			{
 				  int i, j, k, l;
-				  char* n;
+				  char* n, *vn;
 				  l = lengthOfList(varnames);
 				  k = strlen($1);
 				  j = 0;
+				  vn = $1;
 				  for (i=0;i<l;i++) {
 				    n = dataInListAtPosition(varnames, i);
 				    if (n != NULL && k == strlen(n)) {
@@ -1065,7 +1093,7 @@ value	: STR			{
 				      }
 				    }
 				  }
-				  if (j == k)
+				  if ($1 == vn)
 				    addToListBeginning(varnames, $1);
 				  $$ = (Value*)newVariable($1);
 				}
@@ -1089,9 +1117,9 @@ value	: STR			{
 
 int main(int argc, char** argv) {
   FILE *fp;
-  Value* v;
   char* str[17] = { "=", "<", ">", "&", "|", "stdin", "stdout", "stderr", "DEF", "SET", "IF", "WHILE", "WRITE", "READ", "ADD", "MUL", "RETURN"};
   int i, j, k, l;
+  Value* stdfiles[3];
   if (argc != 2) {
     printf("This program takes exactly one argument. The file to interpret\n");
     return 1;
@@ -1128,9 +1156,12 @@ int main(int argc, char** argv) {
   varnames = newList();
   varlist = newList();
   globalvars = newArray(3, sizeof(VarVal));
-  appendToArray(globalvars, newVarVal(constants+10, newValue('f', stdinp)));
-  appendToArray(globalvars, newVarVal(constants+16, newValue('f', stdoutp)));
-  appendToArray(globalvars, newVarVal(constants+24, newValue('f', stderrp)));
+  stdfiles[0] = newValue('f', stdinp);
+  stdfiles[1] = newValue('f', stdoutp);
+  stdfiles[2] = newValue('f', stderrp);
+  appendToArray(globalvars, newVarVal(constants+10, stdfiles[0]));
+  appendToArray(globalvars, newVarVal(constants+16, stdfiles[1]));
+  appendToArray(globalvars, newVarVal(constants+24, stdfiles[2]));
   addToListBeginning(varlist, globalvars);
   yyparse();
   funcnum *= 4;
@@ -1144,17 +1175,20 @@ int main(int argc, char** argv) {
   newBuiltinFuncDef(constants+62, &addDef);
   newBuiltinFuncDef(constants+66, &mulDef);
   newBuiltinFuncDef(constants+70, &retDef);
-  v = evaluateStatements(lastParseTree);
-  if (v != NULL) {
-    freeValue(v);
-  }
-  /*for (i=0;i<funcnum;i++) {
+  varAllocDefs[0] = getFunction("ADD");
+  varAllocDefs[1] = getFunction("MUL");
+  varAllocDefs[2] = getFunction("READ");
+  evaluateStatements(lastParseTree);
+  for (i=0;i<funcnum;i++) {
     if (funcdeftable[i] != NULL) {
       freeFuncDef(funcdeftable[i]);
     }
   }
   free(funcdeftable);
-  freeValueList(lastParseTree);*/
+  /*freeValueList(lastParseTree);*/
+  for (i=0;i<3;i++) {
+    freeValue(stdfiles[i]);
+  }
   for (i=0;i<globalvars->last;i++) {
     freeVarVal(globalvars->array[i]);
   }

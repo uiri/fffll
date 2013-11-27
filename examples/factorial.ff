@@ -1,0 +1,8 @@
+Def( "Fac", [n], {
+    If( (n<2), {
+        Set(m, 1)
+    }, {
+        Set(m, Mul(n, Fac(Add(n, -1))))
+    })
+})
+Write(stdout, Fac(5))

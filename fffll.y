@@ -62,7 +62,6 @@ void yyerror(const char *msg) {
    r = newList();
    while (l != NULL) {
      if (((Value*)l->data)->type == 'b') {
-       /* printf("line 65 INC %p\n", l->data); */
        ((Value*)l->data)->refcount++;
        addToListEnd(r, l->data);
      } else {
@@ -171,7 +170,6 @@ void yyerror(const char *msg) {
 
  int freeValue(Value* val) {
    val->refcount--;
-   /* printf("Free Var: %p %d\n", (void*)val, val->refcount); */
    if (val->refcount < 1) {
      if (val->type == 'l' || val->type == 'd') {
        freeValueList(val->data);
@@ -222,7 +220,6 @@ void yyerror(const char *msg) {
    vv->name = name;
    vv->val = val;
    vv->type = 'w';
-   /* printf("line 225 INC %p\n", (void*)val); */
    val->refcount++;
    return vv;
  }
@@ -506,7 +503,6 @@ void yyerror(const char *msg) {
      if (vv == NULL) return NULL;
      v = vv->val;
    }
-   /* printf("line 505 INC %p\n", (void*)v); */
    v->refcount++;
    return v;
  }
@@ -543,7 +539,6 @@ void yyerror(const char *msg) {
    int i;
    da = varlist->data;
    for (i=0;i<da->last;i++) {
-     /* printf("Descope\n"); */
      freeVarVal(da->array[i]);
    }
    freeArray(da);
@@ -570,7 +565,6 @@ void yyerror(const char *msg) {
      u = (Value*)evaluateFuncVal((FuncVal*)v);
      if (u == NULL) return INFINITY;
      d = valueToDouble(u);
-     /* printf("line 569 %p \n", (void*)u); */
      freeValue(u);
      return d;
    }
@@ -581,7 +575,6 @@ void yyerror(const char *msg) {
      for (i=0;i<l;i++) {
        u = evaluateValue(dataInListAtPosition(v->data, i));
        d = valueToDouble(u);
-       /* printf("line 580 %p \n", (void*)u); */
        freeValue(u);
        if (d < 0) return d;
        n += d;
@@ -592,7 +585,6 @@ void yyerror(const char *msg) {
      u = evaluateValue(v);
      if (u == NULL) return INFINITY;
      n = valueToDouble(u);
-     /* printf("line 591 %p \n", (void*)u); */
      freeValue(u);
    }
    return n;
@@ -660,7 +652,6 @@ void yyerror(const char *msg) {
        u = evaluateValue(dataInListAtPosition(v->data, i));
        if (u == NULL) return NULL;
        t = valueToString(u);
-       /* printf("line 659 %p \n", (void*)u); */
        freeValue(u);
        if (t == NULL) return NULL;
        m = strlen(t);
@@ -682,7 +673,6 @@ void yyerror(const char *msg) {
      u = evaluateFuncVal((FuncVal*)v);
      if (u == NULL) return NULL;
      t = valueToString(u);
-     /* printf("line 681 %p \n", (void*)u); */
      freeValue(u);
      if (t == NULL) return NULL;
    }
@@ -691,7 +681,6 @@ void yyerror(const char *msg) {
      u = evaluateStatements(v->data);
      if (u == NULL) return NULL;
      t = valueToString(u);
-     /* printf("line 690 %p \n", (void*)u); */
      freeValue(u);
      if (t == NULL) return NULL;
    }
@@ -712,7 +701,6 @@ void yyerror(const char *msg) {
    Value* val;
    if (scope(fd, arglist)) return NULL;
    val = evaluateStatements(fd->statements);
-   /* printf("line 710 INC %p\n", (void*)val); */
    val->refcount++;
    descope();
    return val;
@@ -735,7 +723,6 @@ void yyerror(const char *msg) {
    }
    insertFunction(newFuncDef(name, ((Value*)arglist->next->data)->data,
 			     ((Value*)arglist->next->next->data)->data));
-   /* printf("line 733 INC %p\n", arglist->data); */
    ((Value*)arglist->data)->refcount++;
    return (Value*)arglist->data;
  }
@@ -754,7 +741,6 @@ void yyerror(const char *msg) {
    }
    vv = getVarValFromName(((Variable*)arglist->data)->name);
    if (vv != NULL) {
-     /* printf("line 752 %p \n", (void*)vv->val); */
      freeValue(vv->val);
      vv->val = v;
    } else {
@@ -814,7 +800,6 @@ void yyerror(const char *msg) {
      return NULL;
    }
    v = evaluateStatements(((Value*)arglist->data)->data);
-   /* printf("line 818 INC %p\n", (void*)v); */
    v->refcount++;
    return v;
  }
@@ -835,7 +820,6 @@ void yyerror(const char *msg) {
      return NULL;     
    }
    fp = v->data;
-   /* printf("line 840 %p \n", (void*)v); */
    freeValue(v);
    k = 32;
    j = 0;
@@ -885,7 +869,6 @@ void yyerror(const char *msg) {
      return NULL;     
    }
    fp = *(FILE**)v->data;
-   /* printf("line 890 %p \n", (void*)v); */
    freeValue(v);
    l = 32;
    s = malloc(l);
@@ -921,7 +904,6 @@ void yyerror(const char *msg) {
    }
    freeValueList(arglist);
    v = newValue('n', n);
-   /* printf("ADDDEF %p\n", (void*)v); */
    return v;
  }
 
@@ -944,7 +926,6 @@ void yyerror(const char *msg) {
    }
    freeValueList(arglist);
    v = newValue('n', n);
-   /* printf("MULDEF %p\n", (void*)v); */
    return v;
  }
 

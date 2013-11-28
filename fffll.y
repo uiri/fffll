@@ -163,7 +163,7 @@ void yyerror(const char *msg) {
        free(val->data);
      }
      if (val->type == 'f') {
-       if (val->data != stdinp && val->data != stdoutp && val->data != stderrp) {
+       if (*(FILE**)val->data != stdin && *(FILE**)val->data != stdout && *(FILE**)val->data != stderr) {
 	 fclose(*(FILE**)val->data);
 	 free(val->data);
        }
@@ -497,7 +497,7 @@ void yyerror(const char *msg) {
    Value* v;
    fdname = fd->arguments;
    al = arglist;
-   da = newArray(5, sizeof(VarVal));
+   da = newArray(16, sizeof(VarVal));
    ((Value*)globalvars->array[0])->refcount++;
    ((Value*)globalvars->array[1])->refcount++;
    ((Value*)globalvars->array[2])->refcount++;
@@ -1201,7 +1201,7 @@ int main(int argc, char** argv) {
   funcnames = newList();
   varnames = newList();
   varlist = newList();
-  globalvars = newArray(3, sizeof(VarVal));
+  globalvars = newArray(4, sizeof(VarVal));
   stdfiles[0] = newValue('f', stdinp);
   stdfiles[1] = newValue('f', stdoutp);
   stdfiles[2] = newValue('f', stderrp);
@@ -1240,8 +1240,8 @@ int main(int argc, char** argv) {
   varAllocDefs[2] = getFunction(constants+56); /* READ */
   varAllocDefs[3] = getFunction(constants+62); /* OPEN */
   v = evaluateStatements(lastParseTree);
-  /*if (v != NULL && v != stdfiles[0] && v != stdfiles[1] && v != stdfiles[2])
-    freeValue(v);*/
+  if (v != NULL && v->type != 'f' && v != falsevalue)
+    freeValue(v);
   for (i=0;i<funcnum;i++) {
     if (funcdeftable[i] != NULL) {
       freeFuncDef(funcdeftable[i]);

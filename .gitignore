@@ -5,3 +5,4 @@
 *.l.c
 fffll
 parse*
+massif.out.*

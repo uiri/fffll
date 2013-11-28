@@ -1,0 +1,3 @@
+Set(f, Open("test"))
+Write(f, "cool", "be4n5", "
+")

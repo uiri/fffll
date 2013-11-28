@@ -165,6 +165,7 @@ void yyerror(const char *msg) {
      if (val->type == 'f') {
        if (val->data != stdinp && val->data != stdoutp && val->data != stderrp) {
 	 fclose(*(FILE**)val->data);
+	 free(val->data);
        }
      }
      if (val->type == 'b') {
@@ -816,9 +817,9 @@ void yyerror(const char *msg) {
  }
 
  Value* writeDef(FuncDef *fd, List* arglist) {
-   char* s, *t;
-   int i, j, k, l, m, n, o;
-   FILE** fp;
+   char* s;
+   int i, j, k, l, m;
+   FILE* fp;
    Value* v;
    if (arglist == NULL) {
      printf("Not enough arguments for WRITE\n");
@@ -828,37 +829,28 @@ void yyerror(const char *msg) {
    if (v == NULL) return NULL;
    if (v->type != 'f') {
      printf("WRITE only takes a file as its first argument.\n");
-     return NULL;     
+     return NULL;
    }
-   fp = v->data;
-   k = 32;
-   j = 0;
-   s = calloc(k, 1);
+   fp = *(FILE**)v->data;
    l = lengthOfList(arglist);
-   if (fp == stdoutp || fp == stderrp) {
-     o = 2;
+   m = 0;
+   if (fp == stdout || fp == stderr) {
+     m = 1;
    }
    for (i=1;i<l;i++) {
-     t = valueToString(dataInListAtPosition(arglist, i));
-     if (t == NULL) {
-       free(s);
+     s = valueToString(dataInListAtPosition(arglist, i));
+     if (s == NULL) {
        return NULL;
      }
-     n = strlen(t);
-     if ((n+j+o) > k) {
-       k *= 2;
-       s = realloc(s, k);
+     k = strlen(s);
+     for (j=0;j<k;j++) {
+       fputc(s[j], fp);
      }
-     for (m=0;m<n;m++) {
-       s[j+m] = t[m];
-     }
-     j += n;
-     free(t);
+     free(s);
    }
-   if (o == 2 || j == -1)
-     s[j] = '\n';
-   fputs(s, *fp);
-   free(s);
+   if (m || j == -1)
+     fputc('\n', fp);
+   fseek(fp, 0, SEEK_CUR);
    return falsevalue;
  }
 
@@ -866,7 +858,8 @@ void yyerror(const char *msg) {
    char c;
    char* s;
    FILE* fp;
-   int i, l;
+   double n, l;
+   int i;
    Value* v;
    if (arglist == NULL) {
      printf("Not enough arguments for READ\n");
@@ -879,6 +872,34 @@ void yyerror(const char *msg) {
      return NULL;     
    }
    fp = *(FILE**)v->data;
+   if (feof(fp)) {
+     printf("Attempt to READ past the end of a file.\n");
+     return NULL;
+   }
+   n = 0;
+   if (fp != stdin && fp != stdout && fp != stderr &&
+       lengthOfList(arglist) > 1) {
+     v = evaluateValue(arglist->next->data);
+     if (v->type == 'n') {
+       n = *(double*)v->data;
+       l = n;
+       if (n < 0) {
+	 for (i=-1;l<0;l++) {
+	   do {
+	     i--;
+	     fseek(fp, i, SEEK_END);
+	     c = fgetc(fp);
+	   } while (c != '\n');
+	 }
+       } else {
+	 fseek(fp, 0, SEEK_SET);
+	 for (i=0;i<l;i++) {
+	   for (c=fgetc(fp);c != '\n';c=fgetc(fp));
+	   if (c == EOF) break;
+	 }
+       }
+     }
+   }
    l = 32;
    s = malloc(l);
    i = 0;
@@ -890,7 +911,27 @@ void yyerror(const char *msg) {
      s[i++] = c;
    }
    s[i] = '\0';
+   if (n == -1) {
+     fseek(fp, 0, SEEK_SET);
+   }
+   fseek(fp, 0, SEEK_CUR);
    return newValue('s', s);
+ }
+
+ Value *openDef(FuncDef *fd, List* arglist) {
+   FILE** fp;
+   Value* v;
+   char* s;
+   if (arglist == NULL) {
+     printf("Not enough arguments for OPEN\n");
+   }
+   v = evaluateValue(arglist->data);
+   if (v == NULL) return NULL;
+   s = valueToString(v);
+   fp = malloc(sizeof(FILE*));
+   *fp = fopen(s, "a+");
+   free(s);
+   return newValue('f', fp);
  }
  
  Value *addDef(FuncDef *fd, List* arglist) {
@@ -1119,7 +1160,8 @@ value	: STR			{
 
 int main(int argc, char** argv) {
   FILE *fp;
-  char* str[17] = { "=", "<", ">", "&", "|", "stdin", "stdout", "stderr", "DEF", "SET", "IF", "WHILE", "WRITE", "READ", "ADD", "MUL", "RETURN"};
+  /* REMEMBER TO CHANGE VALUE IN FOR LOOP BELOW */
+  char* str[18] = { "=", "<", ">", "&", "|", "stdin", "stdout", "stderr", "DEF", "SET", "IF", "WHILE", "WRITE", "READ", "OPEN", "ADD", "MUL", "RETURN"};
   int i, j, k, l;
   Value* stdfiles[3], *v;
   if (argc != 2) {
@@ -1129,7 +1171,8 @@ int main(int argc, char** argv) {
   lenconstants = sizeof(str);
   constants = calloc(lenconstants, 1);
   l = 0;
-  for (i=0;i<17;i++) {
+  /* REMEMBER TO CHANGE VALUE IN ARRAY ABOVE */
+  for (i=0;i<18;i++) {
     k = strlen(str[i]);
     for (j=0;j<k;j++) {
       constants[l] = str[i][j];
@@ -1176,8 +1219,9 @@ int main(int argc, char** argv) {
   addToListBeginning(funcnames, constants+50);
   addToListBeginning(funcnames, constants+56);
   addToListBeginning(funcnames, constants+62);
-  addToListBeginning(funcnames, constants+66);
-  addToListBeginning(funcnames, constants+70);
+  addToListBeginning(funcnames, constants+68);
+  addToListBeginning(funcnames, constants+72);
+  addToListBeginning(funcnames, constants+76);
   yyparse();
   funcnum *= 4;
   funcdeftable = calloc(funcnum, sizeof(FuncDef));
@@ -1187,15 +1231,17 @@ int main(int argc, char** argv) {
   newBuiltinFuncDef(constants+44, &whileDef);
   newBuiltinFuncDef(constants+50, &writeDef);
   newBuiltinFuncDef(constants+56, &readDef);
-  newBuiltinFuncDef(constants+62, &addDef);
-  newBuiltinFuncDef(constants+66, &mulDef);
-  newBuiltinFuncDef(constants+70, &retDef);
-  varAllocDefs[0] = getFunction(constants+62); /* ADD */
-  varAllocDefs[1] = getFunction(constants+66); /* MUL */
+  newBuiltinFuncDef(constants+62, &openDef);
+  newBuiltinFuncDef(constants+68, &addDef);
+  newBuiltinFuncDef(constants+72, &mulDef);
+  newBuiltinFuncDef(constants+76, &retDef);
+  varAllocDefs[0] = getFunction(constants+68); /* ADD */
+  varAllocDefs[1] = getFunction(constants+72); /* MUL */
   varAllocDefs[2] = getFunction(constants+56); /* READ */
+  varAllocDefs[3] = getFunction(constants+62); /* OPEN */
   v = evaluateStatements(lastParseTree);
-  if (v != NULL)
-    freeValue(v);
+  /*if (v != NULL && v != stdfiles[0] && v != stdfiles[1] && v != stdfiles[2])
+    freeValue(v);*/
   for (i=0;i<funcnum;i++) {
     if (funcdeftable[i] != NULL) {
       freeFuncDef(funcdeftable[i]);
@@ -1216,7 +1262,7 @@ int main(int argc, char** argv) {
     free(dataInListAtPosition(varnames, i));
   }
   freeList(varnames);
-  l = lengthOfList(funcnames) - 10;
+  l = lengthOfList(funcnames) - 11;
   for (i=0;i<l;i++) {
     free(dataInListAtPosition(funcnames, i));
   }

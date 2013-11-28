@@ -225,27 +225,12 @@ void yyerror(const char *msg) {
  }
 
  VarVal* getVarValFromName(char* name) {
-   int i, j, l;
+   int i;
    DynArray *va;
-   VarVal* vv;
    va = varlist->data;
-   l = strlen(name);
-   i = 3;
-   if (l == 5)
-     i = 0;
-   if (l == 6)
-     i = 1;
-   for(;i<va->last;i++) {
-     vv = va->array[i];
-     if (l == strlen(vv->name)) {
-       for (j=0;j<l;j++) {
-	 if (name[j] != vv->name[j])
-	   break;
-       }
-       if (j == l)
-	 break;
-     }
-     if (i == 0) i = 3;
+   for(i=0;i<va->last;i++) {
+     if (name == ((VarVal*)va->array[i])->name)
+       break;
    }
    if (i == va->last) return NULL;
    return va->array[i];
@@ -303,9 +288,6 @@ void yyerror(const char *msg) {
  }
 
  int freeFuncDef(FuncDef* fd) {
-   if (fd->name < constants || constants+lenconstants < fd->name) {
-     free(fd->name);
-   }
    free(fd);
    return 0;
  }
@@ -313,6 +295,7 @@ void yyerror(const char *msg) {
  int funcnum;
  FuncDef **funcdeftable;
  FuncDef *varAllocDefs[3];
+ List* funcnames;
 
  int hashName(char* name) {
    int i, s;
@@ -332,17 +315,15 @@ void yyerror(const char *msg) {
 
  FuncDef *getFunction(char *name) {
    FuncDef* fd;
-   int i, j, l;
+   int i;
    i = hashName(name);
-   l = strlen(name);
-   for (j=0;j!=l;i++) {
-     fd = funcdeftable[i];
-     if (strlen(fd->name) == l) {
-       for (j=0;j<l;j++) {
-	 if (fd->name[j] != name[j])
-	   break;
-       }
+   while (i<funcnum) {
+     fd = funcdeftable[i++];
+     if (fd == NULL) {
+       printf("Function %s is not defined\n", name);
+       break;
      }
+     if (fd->name == name) break;
    }
    return fd;
  }
@@ -375,6 +356,7 @@ void yyerror(const char *msg) {
  Value* evaluateFuncVal(FuncVal* fv) {
    FuncDef* fd;
    fd = getFunction(fv->name);
+   if (fd == NULL) return NULL;
    return (*fd->evaluate)(fd, fv->arglist);
  }
 
@@ -392,7 +374,7 @@ void yyerror(const char *msg) {
      return strlen((char*)v->data);
    }
    if (v->type == 'n') {
-     return (int)*((double*)v->data);
+     return *((double*)v->data);
    }
    if (v->type == 'l') {
      return lengthOfList((List*)v->data);
@@ -720,8 +702,8 @@ void yyerror(const char *msg) {
  }
 
  Value* defDef(FuncDef* fd, List* arglist) {
-   char* name;
-   int i, l;
+   char* name, *fn;
+   int i, j, k, l;
    l = lengthOfList(arglist);
    if (l < 3) {
      printf("Not enough arguments for DEF\n");
@@ -733,6 +715,21 @@ void yyerror(const char *msg) {
      if (name[i] > 90) {
        name[i] -= 32;
      }
+   }
+   l = lengthOfList(funcnames);
+   k = strlen(name);
+   for (i=0;i<l;i++) {
+     fn = dataInListAtPosition(funcnames, i);
+     if (fn != NULL && strlen(fn) == k) {
+       for (j=0;j<k;j++) {
+	 if (fn[j] != name[j]) break;
+       }
+       if (j == k) break;
+     }
+   }
+   if (j == k) {
+     free(name);
+     name = fn;
    }
    insertFunction(newFuncDef(name, ((Value*)arglist->next->data)->data,
 			     ((Value*)arglist->next->next->data)->data));
@@ -980,14 +977,31 @@ statementlist	: statementlist funcall	{
 	  				}
 		;
 funcall		: FUNC arglist	{ 
-				  int i;
-				  $$ = newFuncVal($1, $2);
-				  i = strlen($1);
-				  if (i == 3) {
-				    if ($1[0] == 'D' && $1[1] == 'E' && $1[2] == 'F') {
-				      funcnum++;
+				  int i, j, k, l;
+				  char* n;
+				  l = lengthOfList(funcnames);
+				  k = strlen($1);
+				  j = 0;
+				  for (i=0;i<l;i++) {
+				    n = dataInListAtPosition(funcnames, i);
+				    if (n != NULL && k == strlen(n)) {
+				      for (j=0;j<k;j++) {
+					if ($1[j] != n[j]) break;
+				      }
+				      if (j == k) {
+					free($1);
+					$1 = n;
+					break;
+				      }
 				    }
 				  }
+				  if (j != k) {
+				    addToListBeginning(funcnames, $1);
+				  }
+				  if ($1 == constants+32) {
+				      funcnum++;
+				  }
+				  $$ = newFuncVal($1, $2);
 				}
 		;
 arglist		: '(' list ')'	{
@@ -1063,26 +1077,26 @@ value	: STR			{
 				}
 	| VAR			{
 				  int i, j, k, l;
-				  char* n, *vn;
+				  char* n;
 				  l = lengthOfList(varnames);
 				  k = strlen($1);
 				  j = 0;
-				  vn = $1;
 				  for (i=0;i<l;i++) {
 				    n = dataInListAtPosition(varnames, i);
 				    if (n != NULL && k == strlen(n)) {
 				      for (j=0;j<k;j++) {
-					if ($1[k] != n[k]) break;
+					if ($1[j] != n[j]) break;
 				      }
-				      if (j != k) {
+				      if (j == k) {
 					free($1);
 					$1 = n;
 					break;
 				      }
 				    }
 				  }
-				  if ($1 == vn)
+				  if (j != k) {
 				    addToListBeginning(varnames, $1);
+				  }
 				  $$ = (Value*)newVariable($1);
 				}
 	| funcall		{
@@ -1141,6 +1155,7 @@ int main(int argc, char** argv) {
   yyin = fp;
   funcnum = 10;
   falsevalue = newValue('0', NULL);
+  funcnames = newList();
   varnames = newList();
   varlist = newList();
   globalvars = newArray(3, sizeof(VarVal));
@@ -1150,7 +1165,19 @@ int main(int argc, char** argv) {
   appendToArray(globalvars, newVarVal(constants+10, stdfiles[0]));
   appendToArray(globalvars, newVarVal(constants+16, stdfiles[1]));
   appendToArray(globalvars, newVarVal(constants+24, stdfiles[2]));
+  addToListBeginning(varnames, constants+10);
+  addToListBeginning(varnames, constants+16);
+  addToListBeginning(varnames, constants+24);
   addToListBeginning(varlist, globalvars);
+  addToListBeginning(funcnames, constants+32);
+  addToListBeginning(funcnames, constants+36);
+  addToListBeginning(funcnames, constants+40);
+  addToListBeginning(funcnames, constants+44);
+  addToListBeginning(funcnames, constants+50);
+  addToListBeginning(funcnames, constants+56);
+  addToListBeginning(funcnames, constants+62);
+  addToListBeginning(funcnames, constants+66);
+  addToListBeginning(funcnames, constants+70);
   yyparse();
   funcnum *= 4;
   funcdeftable = calloc(funcnum, sizeof(FuncDef));
@@ -1163,11 +1190,12 @@ int main(int argc, char** argv) {
   newBuiltinFuncDef(constants+62, &addDef);
   newBuiltinFuncDef(constants+66, &mulDef);
   newBuiltinFuncDef(constants+70, &retDef);
-  varAllocDefs[0] = getFunction("ADD");
-  varAllocDefs[1] = getFunction("MUL");
-  varAllocDefs[2] = getFunction("READ");
+  varAllocDefs[0] = getFunction(constants+62); /* ADD */
+  varAllocDefs[1] = getFunction(constants+66); /* MUL */
+  varAllocDefs[2] = getFunction(constants+56); /* READ */
   v = evaluateStatements(lastParseTree);
-  freeValue(v);
+  if (v != NULL)
+    freeValue(v);
   for (i=0;i<funcnum;i++) {
     if (funcdeftable[i] != NULL) {
       freeFuncDef(funcdeftable[i]);
@@ -1183,11 +1211,16 @@ int main(int argc, char** argv) {
   }
   freeArray(globalvars);
   freeList(varlist);
-  l = lengthOfList(varnames);
+  l = lengthOfList(varnames) - 4;
   for (i=0;i<l;i++) {
     free(dataInListAtPosition(varnames, i));
   }
   freeList(varnames);
+  l = lengthOfList(funcnames) - 10;
+  for (i=0;i<l;i++) {
+    free(dataInListAtPosition(funcnames, i));
+  }
+  freeList(funcnames);
   freeValue(falsevalue);
   free(stdinp);
   free(stdoutp);

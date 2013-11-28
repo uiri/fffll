@@ -15,10 +15,13 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 #include "list.h"
+#include "array.h"
 #include <stdlib.h>
 #include <stdio.h>
 
 const List EmptyList = {NULL, NULL};
+
+ListAllocator* ListManager = NULL;
 
 List* addListToList(List *list, List *oldlist) {
   List *headptr;
@@ -40,7 +43,7 @@ List addToListAfterData(List *list, void *newdata, void *afterdata) {
       list = list->next;
     }
   oldptr = list->next;
-  list->next = malloc(sizeof(List));
+  list->next = allocList();
   list->next->next = oldptr;
   list->next->data = newdata;
   return *headptr;
@@ -59,7 +62,7 @@ List addToListAfterDataLast(List *list, void *newdata, void *afterdata) {
     return *headptr;
   list = lastptr;
   lastptr = list->next;
-  list->next = malloc(sizeof(List));
+  list->next = allocList();
   list->next->next = lastptr;
   list->next->data = newdata;
   return *headptr;
@@ -76,7 +79,7 @@ List addToListBeforeData(List *list, void *newdata, void *beforedata) {
   if (list == NULL)
     return *headptr;
   oldptr = list->next;
-  list->next = malloc(sizeof(List));
+  list->next = allocList();
   list->next->data = beforedata;
   list->next->next = oldptr;
   list->data = newdata;
@@ -96,7 +99,7 @@ List addToListBeforeDataLast(List *list, void *newdata, void *beforedata) {
     return *headptr;
   list = lastptr;
   lastptr = list->next;
-  list->next = malloc(sizeof(List));
+  list->next = allocList();
   list->next->next = lastptr;
   list->next->data = beforedata;
   list->data = newdata;
@@ -110,7 +113,7 @@ List addToListAtPosition(List *list, int position, void *data) {
   for(i=0;i<position;i++)
     list = list->next;
   oldptr = list->next;
-  list->next = malloc(sizeof(List));
+  list->next = allocList();
   list->next->next = oldptr;
   list->next->data = data;
   return *headptr;
@@ -120,7 +123,7 @@ List addToListBeginning(List *list, void *data) {
   List *headptr, *oldptr;
   headptr = list;
   oldptr = list->next;
-  list->next = malloc(sizeof(List));
+  list->next = allocList();
   list->next->next = oldptr;
   list->next->data = list->data;
   list->data = data;
@@ -136,10 +139,33 @@ List addToListEnd(List *list, void *data) {
   }
   while(list->next != NULL)
     list = list->next;
-  list->next = malloc(sizeof(List)+8);
+  list->next = allocList();
   list->next->data = data;
   list->next->next = NULL;
   return *headptr;
+}
+
+List* allocList() {
+  if (ListManager == NULL) {
+    ListManager = malloc(sizeof(ListAllocator));
+    ListManager->pools = 0;
+    /* alloc ListManager->new and ListManager->new[0] */
+    ListManager->new = malloc((ListManager->pools+1)*sizeof(List*));
+    ListManager->new[ListManager->pools] = calloc(16, sizeof(List));
+    ListManager->free = newArray(8, sizeof(List*));
+    ListManager->next = 0;
+    return ListManager->new[ListManager->pools]+ListManager->next++;
+  }
+  if (ListManager->free->last != 0) {
+    return popFromArray(ListManager->free);
+  }
+  if (ListManager->next == 16) {
+    ListManager->pools++;
+    ListManager->new = realloc(ListManager->new, (ListManager->pools+1)*sizeof(List*));
+    ListManager->new[ListManager->pools] = calloc(16, sizeof(List));
+    ListManager->next = 0;
+  }
+  return ListManager->new[ListManager->pools]+ListManager->next++;
 }
 
 List changeInListDataAtPosition(List *list, int position, void *data) {
@@ -154,13 +180,13 @@ List changeInListDataAtPosition(List *list, int position, void *data) {
 
 List *cloneList(List *list) {
   List *clone, *headptr;
-  clone = malloc(sizeof(List));
+  clone = allocList();
   clone->data = list->data;
   clone->next = NULL;
   headptr = clone;
   while (list->next != NULL) {
     list = list->next;
-    clone->next = malloc(sizeof(List));
+    clone->next = allocList();
     clone->next->data = list->data;
     clone->next->next = NULL;
     clone = clone->next;
@@ -192,7 +218,7 @@ List deleteFromListData(List *list, void *data) {
     rmptr = list->next;
     list->data = list->next->data;
     list->next = list->next->next;
-    free(rmptr);
+    freeListNode(rmptr);
     return *headptr;
   }
   while (list->next->data != data) {
@@ -202,7 +228,7 @@ List deleteFromListData(List *list, void *data) {
   }
   rmptr = list->next;
   list->next = list->next->next;
-  free(rmptr);
+  freeListNode(rmptr);
   return *headptr;
 }
 
@@ -216,7 +242,7 @@ List deleteFromListEnd(List *list) {
   if (list == headptr)
     return *headptr;
   else {
-    free(list);
+    freeListNode(list);
     lastptr->next = NULL;
   }
   return *headptr;
@@ -225,7 +251,7 @@ List deleteFromListEnd(List *list) {
 List *deleteFromListBeginning(List *list) {
   List *headptr;
   headptr = list->next;
-  free(list);
+  freeListNode(list);
   return headptr;
 }
 
@@ -242,7 +268,7 @@ List deleteFromListPosition(List *list, int position) {
     list = list->next;
   rmptr = list->next;
   list->next = list->next->next;
-  free(rmptr);
+  freeListNode(rmptr);
   return *headptr;
 }
 
@@ -262,7 +288,7 @@ List deleteFromListLastData(List *list, void *data) {
       list->data = NULL;
   }
   list->next = lastptr->next;
-  free(lastptr);
+  freeListNode(lastptr);
   return *headptr;
 }
 
@@ -271,14 +297,30 @@ int freeList(List *list) {
   headptr = list;
   if (list == NULL) return 0;
   if (list->next == NULL) {
-    free(list);
+    freeListNode(list);
     return 0;
   }
   while (list->next->next != NULL)
     list = list->next;
-  free(list->next);
+  freeListNode(list->next);
   list->next = NULL;
-  freeList(headptr);
+  freeListNode(headptr);
+  return 0;
+}
+
+int freeListAlloc() {
+  int i;
+  freeArray(ListManager->free);
+  for (i=0;i<=ListManager->pools;i++) {
+    free(ListManager->new[i]);
+  }
+  free(ListManager->new);
+  free(ListManager);
+  return 0;
+}
+
+int freeListNode(List *list) {
+  appendToArray(ListManager->free, list);
   return 0;
 }
 
@@ -306,7 +348,7 @@ int lengthOfList(List *list) {
 
 List *newList() {
   List *list;
-  list = malloc(sizeof(List)+8);
+  list = allocList();
   *list = EmptyList;
   return list;
 }

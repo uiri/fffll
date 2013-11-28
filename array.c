@@ -34,6 +34,13 @@ DynArray *newArray(int len, size_t size) {
   return da;
 }
 
+void *popFromArray(DynArray* da) {
+  void* data;
+  data = da->array[--(da->last)];
+  da->array[da->last] = NULL;
+  return data;
+}
+
 int reallocArray(DynArray* da) {
   da->length *= 2;
   da->array = realloc(da->array, da->length*da->elementsize);

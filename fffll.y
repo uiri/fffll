@@ -256,6 +256,10 @@ void yyerror(const char *msg) {
        addToListEnd(r, l->data);
      } else {
        v = evaluateValue((Value*)l->data);
+       if (v == NULL) {
+	 freeValueList(r);
+	 return NULL;
+       }
        if (((Value*)l->data)->type == 'v' || ((Value*)l->data)->type == 'c') {
 	 v->refcount++;
        }
@@ -372,7 +376,7 @@ void yyerror(const char *msg) {
    Value* u;
    if (v->type == 'v') {
      vv = varValFromName(((Variable*)v)->name);
-     if (vv == NULL) return INFINITY;
+     if (vv == NULL) return NAN;
      return evaluateValueAsBool(vv->val);
    }
    if (v->type == 'n') {
@@ -380,7 +384,7 @@ void yyerror(const char *msg) {
    }
    if (v->type == 'c') {
      u = evaluateFuncVal((FuncVal*)v);
-     if (u == NULL) return INFINITY;
+     if (u == NULL) return NAN;
      i = evaluateValueAsBool(u);
      freeValue(u);
      return i;
@@ -416,7 +420,7 @@ void yyerror(const char *msg) {
    while (i<l) {
      n[++m] = calloc(1, sizeof(double));
      j = evaluateValueAsBool((Value*)dataInListAtPosition(be->stack, i++));
-     if (j == INFINITY) {
+     if (isnan(j)) {
        m++;
        for (i=0;i<m;i++) {
 	 free(n[i]);
@@ -433,7 +437,7 @@ void yyerror(const char *msg) {
      n[++m] = calloc(1, sizeof(double));
      c = (char*)dataInListAtPosition(be->stack, i++);
      k = evaluateValueAsBool((Value*)dataInListAtPosition(be->stack, i++));
-     if (k == INFINITY) {
+     if (isnan(k)) {
        m++;
        for (i=0;i<m;i++) {
 	 free(n[i]);
@@ -565,12 +569,12 @@ void yyerror(const char *msg) {
      return atof((char*)v->data);
    if (v->type == 'b') {
      be = evaluateBoolExpr((BoolExpr*)v);
-     if (be == NULL) return INFINITY;
+     if (be == NULL) return NAN;
      return (double)(be->lasteval);
    }
    if (v->type == 'c') {
      u = (Value*)evaluateFuncVal((FuncVal*)v);
-     if (u == NULL) return INFINITY;
+     if (u == NULL) return NAN;
      d = valueToDouble(u);
      freeValue(u);
      return d;
@@ -590,7 +594,7 @@ void yyerror(const char *msg) {
    }
    if (v->type == 'v') {
      u = evaluateValue(v);
-     if (u == NULL) return INFINITY;
+     if (u == NULL) return NAN;
      n = valueToDouble(u);
      freeValue(u);
    }
@@ -954,7 +958,7 @@ void yyerror(const char *msg) {
    *n = 0.0;
    for (i=0;i<l;i++) {
      d = valueToDouble(dataInListAtPosition(arglist, i));
-     if (d == INFINITY) {
+     if (isnan(d)) {
        freeValueList(arglist);
        free(n);
        return NULL;
@@ -974,7 +978,7 @@ void yyerror(const char *msg) {
    *n = 1.0;
    for (i=0;i<l;i++) {
      d = valueToDouble(dataInListAtPosition(arglist, i));
-     if (d == INFINITY) {
+     if (isnan(d)) {
        freeValueList(arglist);
        free(n);
        return NULL;

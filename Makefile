@@ -24,3 +24,6 @@ clean:
 	rm explang.y.h
 	rm explang.l.c
 	rm explang
+test:
+	for TESTFILE in examples/*; do valgrind ./fffll $$TESTFILE; done;
+	rm test

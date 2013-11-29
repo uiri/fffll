@@ -249,18 +249,18 @@ void yyerror(const char *msg) {
 
  List* evaluateList(List* l) {
    List* r;
-   VarVal* vv;
+   Value* v;
    r = newList();
    while (l != NULL) {
-     if (((Value*)l->data)->type == 'b') {
+     if (((Value*)l->data)->type == 'd') {
        ((Value*)l->data)->refcount++;
        addToListEnd(r, l->data);
      } else {
-       if (((Value*)l->data)->type == 'v') {
-	 vv = varValFromName(((Variable*)l->data)->name);
-	 vv->val->refcount++;
+       v = evaluateValue((Value*)l->data);
+       if (((Value*)l->data)->type == 'v' || ((Value*)l->data)->type == 'c') {
+	 v->refcount++;
        }
-       addToListEnd(r, evaluateValue((Value*)l->data));
+       addToListEnd(r, v);
      }
      l = l->next;
    }

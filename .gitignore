@@ -3,6 +3,9 @@
 *.y.h
 *.y.c
 *.l.c
+*.gcov
+*.gcda
+*.gcno
 fffll
 parse*
 massif.out.*

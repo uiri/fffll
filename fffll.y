@@ -156,9 +156,6 @@ void yyerror(const char *msg) {
  int freeValue(Value* val) {
    val->refcount--;
    if (val->refcount < 1) {
-     if (val->type == 'l' || val->type == 'd') {
-       freeValueList(val->data);
-     }
      if (val->type == 'n' || val->type == 's') {
        free(val->data);
      }
@@ -175,6 +172,9 @@ void yyerror(const char *msg) {
      if (val->type == 'c') {
        freeFuncVal((FuncVal*)val);
        return 1;
+     }
+     if (val->type == 'l' || val->type == 'd') {
+       freeValueList(val->data);
      }
      if (val->type == 'v') {
        freeVariable((Variable*)val);
@@ -231,10 +231,9 @@ void yyerror(const char *msg) {
    va = varlist->data;
    for(i=0;i<va->last;i++) {
      if (name == ((VarVal*)va->array[i])->name)
-       break;
+       return va->array[i];
    }
-   if (i == va->last) return NULL;
-   return va->array[i];
+   return NULL;
  }
 
  VarVal* varValFromName(char* name) {
@@ -295,21 +294,26 @@ void yyerror(const char *msg) {
 
  int funcnum;
  FuncDef **funcdeftable;
- FuncDef *varAllocDefs[3];
+ FuncDef *varAllocDefs[4];
  List* funcnames;
 
  int hashName(char* name) {
    int i, s;
    s = 0;
-   for(i=0;name[i] != '\0';i++)
-     s += name[i];
-   return s%funcnum;
+   /* Hash from sdbm. See http://www.cse.yorku.ca/~oz/hash.html */
+   for(i=0;name[i] != '\0';i++) {
+     s += name[i] + (s << 6) + (s << 16) - s;
+     /* funcnum is always 2^n - 1 */
+     s = s&funcnum; 
+   }
+   return s;
  }
 
  int insertFunction(FuncDef* fd) {
    int i;
    i = hashName(fd->name);
-   while (funcdeftable[i] != NULL) i++;
+   while (funcdeftable[i] != NULL)
+     i++;
    funcdeftable[i] = fd;
    return 0;
  }
@@ -318,6 +322,7 @@ void yyerror(const char *msg) {
    FuncDef* fd;
    int i;
    i = hashName(name);
+   fd = NULL;
    while (i<funcnum) {
      fd = funcdeftable[i++];
      if (fd == NULL) {
@@ -365,20 +370,13 @@ void yyerror(const char *msg) {
    VarVal* vv;
    int i;
    Value* u;
-   if (v->type == '0') {
-     return 0;
-   }
-   if (v->type == 'b') {
-     return ((BoolExpr*)v)->lasteval;
-   }
-   if (v->type == 's') {
-     return strlen((char*)v->data);
+   if (v->type == 'v') {
+     vv = varValFromName(((Variable*)v)->name);
+     if (vv == NULL) return INFINITY;
+     return evaluateValueAsBool(vv->val);
    }
    if (v->type == 'n') {
      return *((double*)v->data);
-   }
-   if (v->type == 'l') {
-     return lengthOfList((List*)v->data);
    }
    if (v->type == 'c') {
      u = evaluateFuncVal((FuncVal*)v);
@@ -387,13 +385,20 @@ void yyerror(const char *msg) {
      freeValue(u);
      return i;
    }
+   if (v->type == 's') {
+     return strlen((char*)v->data);
+   }
+   if (v->type == 'b') {
+     return ((BoolExpr*)v)->lasteval;
+   }
+   if (v->type == 'l') {
+     return lengthOfList((List*)v->data);
+   }
    if (v->type == 'd') {
      return evaluateValueAsBool(evaluateStatements((List*)v->data));
    }
-   if (v->type == 'v') {
-     vv = varValFromName(((Variable*)v)->name);
-     if (vv == NULL) return INFINITY;
-     return evaluateValueAsBool(vv->val);
+   if (v->type == '0') {
+     return 0;
    }
    return 1;
  }
@@ -724,6 +729,7 @@ void yyerror(const char *msg) {
    }
    l = lengthOfList(funcnames);
    k = strlen(name);
+   j = -1;
    for (i=0;i<l;i++) {
      fn = dataInListAtPosition(funcnames, i);
      if (fn != NULL && strlen(fn) == k) {
@@ -1231,6 +1237,10 @@ int main(int argc, char** argv) {
   addToListBeginning(funcnames, constants+76);
   yyparse();
   funcnum *= 4;
+  i = 64;
+  while (i<funcnum)
+    i *= 2;
+  funcnum = i - 1;
   funcdeftable = calloc(funcnum, sizeof(FuncDef));
   newBuiltinFuncDef(constants+32, &defDef);
   newBuiltinFuncDef(constants+36, &setDef);

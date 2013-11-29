@@ -1,5 +1,7 @@
 CC=gcc
 CFLAGS=-Wall -g -pedantic -o
+# you may possible also want the following for profiling:
+# -fprofile-arcs -ftest-coverage -pg
 
 all:	fffll.l.c fffll.y.c list.o array.o
 	$(CC) $(CFLAGS) fffll list.o array.o fffll.l.c fffll.y.c

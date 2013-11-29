@@ -421,13 +421,12 @@ void yyerror(const char *msg) {
        return NULL;
      }
      if (j) *n[m] = 1;
-     c = (char*)dataInListAtPosition(be->stack, i++);
-     if (c[0] == '|' || c[0] == '&') {
+     if (i == l) {
        addToListEnd(stack, n[m]);
-       addToListEnd(stack, c);
-       continue;
+       break;
      }
      n[++m] = calloc(1, sizeof(double));
+     c = (char*)dataInListAtPosition(be->stack, i++);
      k = evaluateValueAsBool((Value*)dataInListAtPosition(be->stack, i++));
      if (k == INFINITY) {
        m++;
@@ -437,6 +436,12 @@ void yyerror(const char *msg) {
        free(n);
        freeList(stack);
        return NULL;
+     }
+     if (c[0] == '|' || c[0] == '&') {
+       addToListEnd(stack, n[m-1]);
+       addToListEnd(stack, c);
+       addToListEnd(stack, n[m]);
+       continue;
      }
      if ((c[0] == '<' && j < k) ||
 	 (c[0] == '>' && j > k) ||
@@ -450,13 +455,13 @@ void yyerror(const char *msg) {
    i = 0;
    while (i<l) {
      j = *(double*)dataInListAtPosition(stack, i++);
-     if (i==l) {
-       o = (double*)dataInListAtPosition(stack, i++);
+     if (i == l) {
+       o = (double*)dataInListAtPosition(stack, --i);
        if (j) *o = 1; else *o = 0;
        break;
      }
      c = dataInListAtPosition(stack, i++);
-     o = dataInListAtPosition(stack, i);
+     o = (double*)dataInListAtPosition(stack, i);
      k = *o;
      if (((j && k) && c[0] == '&') || ((j || k) && c[0] == '|'))
        *o = 1;
@@ -1074,12 +1079,14 @@ bexpr		: compexpr '&' compexpr
 					  $$ = $1;
 					  addToListEnd($$->stack, and);
 					  addListToList($$->stack, $3->stack);
+					  freeBoolExpr($3);
 					}
 		| compexpr '|' compexpr
 					{
 					  $$ = $1;
 					  addToListEnd($$->stack, or);
 					  addListToList($$->stack, $3->stack);
+					  freeBoolExpr($3);
 					}
 		| compexpr		{
 					  $$ = $1;

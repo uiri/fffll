@@ -1,0 +1,6 @@
+Def("MAIN", [], {
+    Write(stdout, (4|0))
+    Write(stdout, (4&0))
+    Write(stdout, (4>0))
+})
+Main()

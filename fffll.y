@@ -24,12 +24,12 @@
 #include "array.h"
 
 extern int yylex();
-extern FILE *yyin;
+extern FILE* yyin;
 extern int lineno;
 
 #define YYERROR_VERBOSE
 
-void yyerror(const char *msg) {
+void yyerror(const char* msg) {
   printf("ERROR(PARSER): %s\n", msg);
 }
 
@@ -39,12 +39,12 @@ void yyerror(const char *msg) {
  typedef struct value Value;
  struct value {
    int refcount;
-   void *data;
+   void* data;
    char type;
  };
 
  int freeValue(Value* val);
- Value *evaluateValue(Value* v);
+ Value* evaluateValue(Value* v);
 
  Value* falsevalue;
 
@@ -67,7 +67,7 @@ void yyerror(const char *msg) {
    return 0;
  }
 
- FuncVal *newFuncVal(char* name, List* arglist) {
+ FuncVal* newFuncVal(char* name, List* arglist) {
    FuncVal* fv;
    fv = malloc(sizeof(FuncVal));
    fv->refcount = 1;
@@ -98,7 +98,7 @@ void yyerror(const char *msg) {
    int lasteval;
  };
 
- BoolExpr *newBoolExpr(Value* val) {
+ BoolExpr* newBoolExpr(Value* val) {
    BoolExpr* be;
    be = malloc(sizeof(BoolExpr));
    be->refcount = 1;
@@ -126,8 +126,8 @@ void yyerror(const char *msg) {
    char type;
  };
 
- Variable *newVariable(char* name) {
-   Variable *var;
+ Variable* newVariable(char* name) {
+   Variable* var;
    var = malloc(sizeof(Variable));
    var->refcount = 1;
    var->name = name;
@@ -144,8 +144,8 @@ void yyerror(const char *msg) {
    return 0;
  }
 
- Value *newValue(char type, void* data) {
-   Value *val;
+ Value* newValue(char type, void* data) {
+   Value* val;
    val = malloc(sizeof(Value));
    val->refcount = 1;
    val->type = type;
@@ -190,7 +190,7 @@ void yyerror(const char *msg) {
  List* varlist;
  List* varnames;
  DynArray* globalvars;
- 
+
  typedef struct varval VarVal;
 
  struct varval {
@@ -228,9 +228,9 @@ void yyerror(const char *msg) {
 
  VarVal* getVarValFromName(char* name) {
    int i;
-   DynArray *va;
+   DynArray* va;
    va = varlist->data;
-   for(i=0;i<va->last;i++) {
+   for (i=0;i<va->last;i++) {
      if (name == ((VarVal*)va->array[i])->name)
        return va->array[i];
    }
@@ -276,8 +276,8 @@ void yyerror(const char *msg) {
  struct funcdef {
    char* name;
    Value* (*evaluate)(FuncDef*, List*);
-   List *statements;
-   List *arguments;
+   List* statements;
+   List* arguments;
  };
 
  Value* evaluateFuncDef(FuncDef* fd, List* arglist);
@@ -298,18 +298,18 @@ void yyerror(const char *msg) {
  }
 
  int funcnum;
- FuncDef **funcdeftable;
- FuncDef *varAllocDefs[5];
+ FuncDef** funcdeftable;
+ FuncDef* varAllocDefs[5];
  List* funcnames;
 
  int hashName(char* name) {
    int i, s;
    s = 0;
    /* Hash from sdbm. See http://www.cse.yorku.ca/~oz/hash.html */
-   for(i=0;name[i] != '\0';i++) {
+   for (i=0;name[i] != '\0';i++) {
      s += name[i] + (s << 6) + (s << 16) - s;
      /* funcnum is always 2^n - 1 */
-     s = s&funcnum; 
+     s = s&funcnum;
    }
    return s;
  }
@@ -323,7 +323,7 @@ void yyerror(const char *msg) {
    return 0;
  }
 
- FuncDef *getFunction(char *name) {
+ FuncDef* getFunction(char* name) {
    FuncDef* fd;
    int i;
    i = hashName(name);
@@ -346,7 +346,7 @@ void yyerror(const char *msg) {
    return insertFunction(fd);
  }
 
- Value *evaluateStatements(List* sl) {
+ Value* evaluateStatements(List* sl) {
    Value* s, *t;
    int i,l;
    l = lengthOfList(sl);
@@ -488,7 +488,7 @@ void yyerror(const char *msg) {
    return be;
  }
 
- Value *evaluateValue(Value* v) {
+ Value* evaluateValue(Value* v) {
    VarVal* vv;
    if (v->type == 'c') {
      v = evaluateFuncVal((FuncVal*)v);
@@ -544,7 +544,7 @@ void yyerror(const char *msg) {
  int descope(Value* v) {
    DynArray* da;
    int i;
-   VarVal *vv;
+   VarVal* vv;
    da = varlist->data;
    for (i=0;i<da->last;i++) {
      vv = da->array[i];
@@ -604,7 +604,7 @@ void yyerror(const char *msg) {
    return n;
  }
 
- char *valueToString(Value* v) {
+ char* valueToString(Value* v) {
    char* s, *t;
    int i, j, k, l, freet, m;
    VarVal* vv;
@@ -756,7 +756,7 @@ void yyerror(const char *msg) {
    return (Value*)arglist->data;
  }
 
- Value *setDef(FuncDef *fd, List* arglist) {
+ Value* setDef(FuncDef* fd, List* arglist) {
    VarVal* vv;
    Value* v, *u;
    if (lengthOfList(arglist) < 2) {
@@ -780,7 +780,7 @@ void yyerror(const char *msg) {
    return vv->val;
  }
 
- Value *ifDef(FuncDef *fd, List* arglist) {
+ Value* ifDef(FuncDef* fd, List* arglist) {
    int l;
    BoolExpr* be;
    l = lengthOfList(arglist);
@@ -800,9 +800,9 @@ void yyerror(const char *msg) {
    return falsevalue;
  }
 
- Value* whileDef(FuncDef *fd, List* arglist) {
+ Value* whileDef(FuncDef* fd, List* arglist) {
    Value* v;
-   BoolExpr *be;
+   BoolExpr* be;
    if (lengthOfList(arglist) < 2) {
      printf("Not enough arguments for WHILE\n");
      return NULL;
@@ -819,7 +819,7 @@ void yyerror(const char *msg) {
    return v;
  }
 
- Value* retDef(FuncDef *fd, List* arglist) {
+ Value* retDef(FuncDef* fd, List* arglist) {
    Value* v;
    if (arglist == NULL) {
      falsevalue->refcount++;
@@ -834,7 +834,7 @@ void yyerror(const char *msg) {
    return v;
  }
 
- Value* writeDef(FuncDef *fd, List* arglist) {
+ Value* writeDef(FuncDef* fd, List* arglist) {
    char* s;
    int i, j, k, l, m;
    FILE* fp;
@@ -872,7 +872,7 @@ void yyerror(const char *msg) {
    return falsevalue;
  }
 
- Value *readDef(FuncDef *fd, List* arglist) {
+ Value* readDef(FuncDef* fd, List* arglist) {
    char c;
    char* s;
    FILE* fp;
@@ -887,7 +887,7 @@ void yyerror(const char *msg) {
    if (v == NULL) return NULL;
    if (v->type != 'f') {
      printf("READ only takes a file as its argument.\n");
-     return NULL;     
+     return NULL;
    }
    fp = *(FILE**)v->data;
    if (feof(fp)) {
@@ -936,7 +936,7 @@ void yyerror(const char *msg) {
    return newValue('s', s);
  }
 
- Value *openDef(FuncDef *fd, List* arglist) {
+ Value* openDef(FuncDef* fd, List* arglist) {
    FILE** fp;
    Value* v;
    char* s;
@@ -951,9 +951,9 @@ void yyerror(const char *msg) {
    free(s);
    return newValue('f', fp);
  }
- 
- Value *addDef(FuncDef *fd, List* arglist) {
-   double *n, d;
+
+ Value* addDef(FuncDef* fd, List* arglist) {
+   double d, *n;
    int i,l;
    arglist = evaluateList(arglist);
    l = lengthOfList(arglist);
@@ -971,8 +971,8 @@ void yyerror(const char *msg) {
    return newValue('n', n);
  }
 
- Value *mulDef(FuncDef *fd, List* arglist) {
-   double *n, d;
+ Value* mulDef(FuncDef* fd, List* arglist) {
+   double d, *n;
    int i,l;
    arglist = evaluateList(arglist);
    l = lengthOfList(arglist);
@@ -991,8 +991,8 @@ void yyerror(const char *msg) {
    return newValue('n', n);
  }
 
- Value *rcpDef(FuncDef *fd, List* arglist) {
-   double *n, d, b;
+ Value* rcpDef(FuncDef* fd, List* arglist) {
+   double b, d, *n;
    int i, e;
    if (lengthOfList(arglist) != 1) {
      printf("RCP only takes 1 argument, the number whose reciprocal"+
@@ -1008,7 +1008,7 @@ void yyerror(const char *msg) {
    for (i=0;i<e;i++) {
      *n *= 0.5;
    }
-   for(i=0;i<4;i++) {
+   for (i=0;i<4;i++) {
      b = *n * (-1.0);
      *n = fma(d, b, 2);
      *n *= (-1.0)*b;
@@ -1184,26 +1184,26 @@ value	: STR			{
 				  }
 				  $$ = (Value*)newVariable($1);
 				}
-	| funcall		{
+	| funcall               {
 				  $$ = (Value*)$1;
 				}
-	| '[' list ']'		{
+	| '[' list ']'          {
 				  $$ = newValue('l', $2);
 				}
-	| '[' ']'		{
+	| '[' ']'               {
 				  $$ = newValue('l', NULL);
 				}
-	| '{' statementlist '}'	{
+	| '{' statementlist '}' {
 				  $$ = newValue('d', $2);
 				}
-	| boolexpr		{
+	| boolexpr              {
 				  $$ = (Value*)$1;
 				}
 	;
 %%
 
 int main(int argc, char** argv) {
-  FILE *fp;
+  FILE* fp;
   /* REMEMBER TO CHANGE VALUE IN FOR LOOP BELOW */
   char* str[19] = { "=", "<", ">", "&", "|", "stdin", "stdout", "stderr", "DEF",
 		    "SET", "IF", "WHILE", "WRITE", "READ", "OPEN", "ADD", "MUL",

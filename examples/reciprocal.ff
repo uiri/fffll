@@ -1,0 +1,6 @@
+Set(x, RCP(5))
+Set(y, Mul(x, 5))
+Write(stdout, x)
+Write(stdout, y)
+Write(stdout, RCP(320))
+Write(stdout, "Done")

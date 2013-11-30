@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-Wall -g -pedantic -o
+CFLAGS=-Wall -g -lm -pedantic -o
 # you may possible also want the following for profiling:
 # -fprofile-arcs -ftest-coverage -pg
 

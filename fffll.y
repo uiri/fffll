@@ -160,7 +160,8 @@ void yyerror(const char *msg) {
        free(val->data);
      }
      if (val->type == 'f') {
-       if (*(FILE**)val->data != stdin && *(FILE**)val->data != stdout && *(FILE**)val->data != stderr) {
+       if (*(FILE**)val->data != stdin && *(FILE**)val->data != stdout
+	   && *(FILE**)val->data != stderr) {
 	 fclose(*(FILE**)val->data);
 	 free(val->data);
        }
@@ -298,7 +299,7 @@ void yyerror(const char *msg) {
 
  int funcnum;
  FuncDef **funcdeftable;
- FuncDef *varAllocDefs[4];
+ FuncDef *varAllocDefs[5];
  List* funcnames;
 
  int hashName(char* name) {
@@ -527,7 +528,9 @@ void yyerror(const char *msg) {
      appendToArray(da, newVarVal(((Variable*)fdname->data)->name, v));
      if (((Value*)al->data)->type == 'c') {
        fd = getFunction(((FuncVal*)al->data)->name);
-       if (fd == varAllocDefs[0] || fd == varAllocDefs[1] || fd == varAllocDefs[2]) {
+       if (fd == varAllocDefs[0] || fd == varAllocDefs[1] ||
+	   fd == varAllocDefs[2] || fd == varAllocDefs[3] ||
+	   fd == varAllocDefs[4]) {
 	 freeValue(v);
        }
      }
@@ -958,14 +961,13 @@ void yyerror(const char *msg) {
    *n = 0.0;
    for (i=0;i<l;i++) {
      d = valueToDouble(dataInListAtPosition(arglist, i));
-     if (isnan(d)) {
-       freeValueList(arglist);
-       free(n);
-       return NULL;
-     }
      *n += d;
    }
    freeValueList(arglist);
+   if (isnan(*n)) {
+     free(n);
+     return NULL;
+   }
    return newValue('n', n);
  }
 
@@ -986,6 +988,31 @@ void yyerror(const char *msg) {
      *n *= d;
    }
    freeValueList(arglist);
+   return newValue('n', n);
+ }
+
+ Value *rcpDef(FuncDef *fd, List* arglist) {
+   double *n, d, b;
+   int i, e;
+   if (lengthOfList(arglist) != 1) {
+     printf("RCP only takes 1 argument, the number whose reciprocal"+
+	    " is to be computed.\n");
+     return NULL;
+   }
+   d = valueToDouble(arglist->data);
+   if (isnan(d))
+     return NULL;
+   n = malloc(sizeof(double));
+   *n = frexp(d, &e);
+   e -= 1;
+   for (i=0;i<e;i++) {
+     *n *= 0.5;
+   }
+   for(i=0;i<4;i++) {
+     b = *n * (-1.0);
+     *n = fma(d, b, 2);
+     *n *= (-1.0)*b;
+   }
    return newValue('n', n);
  }
 
@@ -1178,7 +1205,9 @@ value	: STR			{
 int main(int argc, char** argv) {
   FILE *fp;
   /* REMEMBER TO CHANGE VALUE IN FOR LOOP BELOW */
-  char* str[18] = { "=", "<", ">", "&", "|", "stdin", "stdout", "stderr", "DEF", "SET", "IF", "WHILE", "WRITE", "READ", "OPEN", "ADD", "MUL", "RETURN"};
+  char* str[19] = { "=", "<", ">", "&", "|", "stdin", "stdout", "stderr", "DEF",
+		    "SET", "IF", "WHILE", "WRITE", "READ", "OPEN", "ADD", "MUL",
+		    "RCP", "RETURN"};
   int i, j, k, l;
   Value* stdfiles[3], *v;
   if (argc != 2) {
@@ -1189,7 +1218,7 @@ int main(int argc, char** argv) {
   constants = calloc(lenconstants, 1);
   l = 0;
   /* REMEMBER TO CHANGE VALUE IN ARRAY ABOVE */
-  for (i=0;i<18;i++) {
+  for (i=0;i<19;i++) {
     k = strlen(str[i]);
     for (j=0;j<k;j++) {
       constants[l] = str[i][j];
@@ -1255,14 +1284,14 @@ int main(int argc, char** argv) {
   newBuiltinFuncDef(constants+62, &openDef);
   newBuiltinFuncDef(constants+68, &addDef);
   newBuiltinFuncDef(constants+72, &mulDef);
-  newBuiltinFuncDef(constants+76, &retDef);
+  newBuiltinFuncDef(constants+76, &rcpDef);
+  newBuiltinFuncDef(constants+80, &retDef);
   varAllocDefs[0] = getFunction(constants+68); /* ADD */
   varAllocDefs[1] = getFunction(constants+72); /* MUL */
   varAllocDefs[2] = getFunction(constants+56); /* READ */
   varAllocDefs[3] = getFunction(constants+62); /* OPEN */
+  varAllocDefs[4] = getFunction(constants+76); /* RCP */
   v = evaluateStatements(lastParseTree);
-  if (v != NULL && v->type != 'f' && v != falsevalue)
-    freeValue(v);
   for (i=0;i<funcnum;i++) {
     if (funcdeftable[i] != NULL) {
       freeFuncDef(funcdeftable[i]);
@@ -1274,7 +1303,14 @@ int main(int argc, char** argv) {
     freeValue(stdfiles[i]);
   }
   for (i=0;i<globalvars->last;i++) {
-    freeVarVal(globalvars->array[i]);
+    if (((VarVal*)globalvars->array[i])->val != v) {
+      freeVarVal(globalvars->array[i]);
+    } else {
+      free(globalvars->array[i]);
+    }
+  }
+  if (v != NULL && v != falsevalue) {
+    freeValue(v);
   }
   freeArray(globalvars);
   freeList(varlist);

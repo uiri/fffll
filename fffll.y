@@ -299,7 +299,7 @@ void yyerror(const char* msg) {
 
  int funcnum;
  FuncDef** funcdeftable;
- FuncDef* varAllocDefs[5];
+ FuncDef* varAllocDefs[6];
  List* funcnames;
 
  int hashName(char* name) {
@@ -530,7 +530,7 @@ void yyerror(const char* msg) {
        fd = getFunction(((FuncVal*)al->data)->name);
        if (fd == varAllocDefs[0] || fd == varAllocDefs[1] ||
 	   fd == varAllocDefs[2] || fd == varAllocDefs[3] ||
-	   fd == varAllocDefs[4]) {
+	   fd == varAllocDefs[4] || fd == varAllocDefs[5]) {
 	 freeValue(v);
        }
      }
@@ -956,6 +956,8 @@ void yyerror(const char* msg) {
    double d, *n;
    int i,l;
    arglist = evaluateList(arglist);
+   if (arglist == NULL)
+     return NULL;
    l = lengthOfList(arglist);
    n = malloc(sizeof(double));
    *n = 0.0;
@@ -975,6 +977,8 @@ void yyerror(const char* msg) {
    double d, *n;
    int i,l;
    arglist = evaluateList(arglist);
+   if (arglist == NULL)
+     return NULL;
    l = lengthOfList(arglist);
    n = malloc(sizeof(double));
    *n = 1.0;
@@ -995,7 +999,7 @@ void yyerror(const char* msg) {
    double b, d, *n;
    int i, e;
    if (lengthOfList(arglist) != 1) {
-     printf("RCP only takes 1 argument, the number whose reciprocal"+
+     printf("RCP only takes 1 argument, the number whose reciprocal"
 	    " is to be computed.\n");
      return NULL;
    }
@@ -1014,6 +1018,35 @@ void yyerror(const char* msg) {
      *n *= (-1.0)*b;
    }
    return newValue('n', n);
+ }
+
+ Value* lenDef(FuncDef* fd, List* arglist) {
+   double* a;
+   int i, l;
+   Value* v;
+   if (arglist == NULL) {
+     printf("Not enough arguments for LEN\n");
+   }
+   arglist = evaluateList(arglist);
+   if (arglist == NULL)
+     return NULL;
+   a = malloc(sizeof(double));
+   *a = 0.0;
+   l = lengthOfList(arglist);
+   for (i=0;i<l;i++) {
+     v = dataInListAtPosition(arglist, i);
+     if (v->type == 's') {
+       *a += (double)strlen(v->data);
+     } else if (v->type == 'l' || v->type == 'd') {
+       *a += (double)lengthOfList(v->data);
+     } else if (v->type != '0') {
+       printf("LEN only takes variables, function calls, strings, lists or blocks as arguments\n");
+       freeValueList(arglist);
+       free(a);
+       return NULL;
+     }
+   }
+   return newValue('n', a);
  }
 
  List* lastParseTree;
@@ -1204,10 +1237,11 @@ value	: STR			{
 
 int main(int argc, char** argv) {
   FILE* fp;
-  /* REMEMBER TO CHANGE VALUE IN FOR LOOP BELOW */
-  char* str[19] = { "=", "<", ">", "&", "|", "stdin", "stdout", "stderr", "DEF",
+  /* The value between str's [] should be the value of strsize */
+  char* str[20] = { "=", "<", ">", "&", "|", "stdin", "stdout", "stderr", "DEF",
 		    "SET", "IF", "WHILE", "WRITE", "READ", "OPEN", "ADD", "MUL",
-		    "RCP", "RETURN"};
+		    "RCP", "RETURN", "LEN"};
+  int strsize = 20;
   int i, j, k, l;
   Value* stdfiles[3], *v;
   if (argc != 2) {
@@ -1217,8 +1251,7 @@ int main(int argc, char** argv) {
   lenconstants = sizeof(str);
   constants = calloc(lenconstants, 1);
   l = 0;
-  /* REMEMBER TO CHANGE VALUE IN ARRAY ABOVE */
-  for (i=0;i<19;i++) {
+  for (i=0;i<strsize;i++) {
     k = strlen(str[i]);
     for (j=0;j<k;j++) {
       constants[l] = str[i][j];
@@ -1242,7 +1275,7 @@ int main(int argc, char** argv) {
   *stderrp = stderr;
   fp = fopen(argv[1], "r");
   yyin = fp;
-  funcnum = 10;
+  funcnum = strsize - 8;
   falsevalue = newValue('0', NULL);
   funcnames = newList();
   varnames = newList();
@@ -1268,6 +1301,8 @@ int main(int argc, char** argv) {
   addToListBeginning(funcnames, constants+68);
   addToListBeginning(funcnames, constants+72);
   addToListBeginning(funcnames, constants+76);
+  addToListBeginning(funcnames, constants+80);
+  addToListBeginning(funcnames, constants+88);
   yyparse();
   funcnum *= 4;
   i = 64;
@@ -1286,11 +1321,13 @@ int main(int argc, char** argv) {
   newBuiltinFuncDef(constants+72, &mulDef);
   newBuiltinFuncDef(constants+76, &rcpDef);
   newBuiltinFuncDef(constants+80, &retDef);
+  newBuiltinFuncDef(constants+88, &lenDef);
   varAllocDefs[0] = getFunction(constants+68); /* ADD */
   varAllocDefs[1] = getFunction(constants+72); /* MUL */
   varAllocDefs[2] = getFunction(constants+56); /* READ */
   varAllocDefs[3] = getFunction(constants+62); /* OPEN */
   varAllocDefs[4] = getFunction(constants+76); /* RCP */
+  varAllocDefs[5] = getFunction(constants+88); /* LEN */
   v = evaluateStatements(lastParseTree);
   for (i=0;i<funcnum;i++) {
     if (funcdeftable[i] != NULL) {
@@ -1319,7 +1356,7 @@ int main(int argc, char** argv) {
     free(dataInListAtPosition(varnames, i));
   }
   freeList(varnames);
-  l = lengthOfList(funcnames) - 11;
+  l = lengthOfList(funcnames) + 7 - strsize;
   for (i=0;i<l;i++) {
     free(dataInListAtPosition(funcnames, i));
   }

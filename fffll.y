@@ -192,6 +192,31 @@ void yyerror(const char* msg) {
  List* stringlist;
  DynArray* globalvars;
 
+ char* addToStringList(char* s, int freestr) {
+   int i, j, k, l;
+   char* n;
+   l = lengthOfList(stringlist);
+   k = strlen(s);
+   j = 0;
+   for (i=0;i<l;i++) {
+     n = dataInListAtPosition(stringlist, i);
+     if (n != NULL && k == strlen(n)) {
+       for (j=0;j<k;j++) {
+	 if (s[j] != n[j]) break;
+       }
+       if (j == k) {
+	 if (freestr)
+	   free(s);
+	 s = n;
+	 break;
+       }
+     }
+   }
+   if (j != k) {
+     addToListBeginning(stringlist, s);
+   }
+   return s;
+ }
  typedef struct varval VarVal;
 
  struct varval {
@@ -766,6 +791,10 @@ void yyerror(const char* msg) {
      printf("Not enough arguments for SET\n");
      return NULL;
    }
+   if (((Value*)arglist->data)->type != 'v') {
+     printf("SET requires a variable to be its first argument.\n");
+     return NULL;
+   }
    u = arglist->next->data;
    v = evaluateValue(u);
    if (v == NULL) {
@@ -936,7 +965,7 @@ void yyerror(const char* msg) {
      fseek(fp, 0, SEEK_SET);
    }
    fseek(fp, 0, SEEK_CUR);
-   addToListBeginning(stringlist, s);
+   s = addToStringList(s, 1);
    return newValue('s', s);
  }
 
@@ -1086,14 +1115,14 @@ void yyerror(const char* msg) {
        s[g] = r[g];
      }
      s[i] = '\0';
-     v = newValue('s', s+j);
+     v = newValue('s', addToStringList(s+j, 0));
      addToListEnd(l, v);
      g += k;
    }
    if (l->next == NULL)
      free(s);
    else
-     addToListBeginning(stringlist, s);
+     addToListEnd(stringlist, s);
    freeValueList(arglist);
    return newValue('l', l);
  }
@@ -1234,27 +1263,7 @@ compexpr	: value '>' value
 				}
 	;
 value	: STR			{
-				  int i, j, k, l;
-				  char* n;
-				  l = lengthOfList(stringlist);
-				  k = strlen($1);
-				  j = 0;
-				  for (i=0;i<l;i++) {
-				    n = dataInListAtPosition(stringlist, i);
-				    if (n != NULL && k == strlen(n)) {
-				      for (j=0;j<k;j++) {
-					if ($1[j] != n[j]) break;
-				      }
-				      if (j == k) {
-					free($1);
-					$1 = n;
-					break;
-				      }
-				    }
-				  }
-				  if (j != k) {
-				    addToListBeginning(stringlist, $1);
-				  }
+				  $1 = addToStringList($1, 1);
 				  $$ = newValue('s', $1);
 				}
 	| NUM			{
@@ -1425,11 +1434,6 @@ int main(int argc, char** argv) {
   }
   freeArray(globalvars);
   freeList(varlist);
-  l = lengthOfList(stringlist);
-  for (i=0;i<l;i++) {
-    free(dataInListAtPosition(stringlist, i));
-  }
-  freeList(stringlist);
   l = lengthOfList(varnames) - 4;
   for (i=0;i<l;i++) {
     free(dataInListAtPosition(varnames, i));

@@ -399,7 +399,7 @@ void yyerror(const char* msg) {
 
  double evaluateValueAsBool(Value* v) {
    VarVal* vv;
-   int i;
+   double i;
    Value* u;
    if (v->type == 'v') {
      vv = varValFromName(((Variable*)v)->name);
@@ -435,7 +435,7 @@ void yyerror(const char* msg) {
  }
 
  BoolExpr* evaluateBoolExpr(BoolExpr* be) {
-   int i, l, m;
+   int i, l, m, p;
    double j, k, **n, *o;
    char* c;
    List* stack;
@@ -479,9 +479,27 @@ void yyerror(const char* msg) {
        addToListEnd(stack, n[m]);
        continue;
      }
-     if ((c[0] == '<' && j < k) ||
-	 (c[0] == '>' && j > k) ||
-	 (c[0] == '=' && j == k)) {
+     p = 0;
+     if (j>k) {
+       if (j<0.0) {
+	 if (((j-k)/k)>=0.005)
+	   p = 1;
+       } else if (j>0.0) {
+	 if (((j-k)/j)>=0.005)
+	   p = 1;
+       }
+     } else if (j<k) {
+       if (k<0.0) {
+	 if (((k-j)/j)>=0.005)
+	   p = -1;
+       } else if (k>0.0) {
+	 if (((k-j)/k)>=0.005)
+	   p = -1;
+       }
+     }
+     if ((c[0] == '<' && p<0) ||
+	 (c[0] == '>' && p>0) ||
+	 (c[0] == '=' && !p)) {
        *n[m] = 1;
      }
    }

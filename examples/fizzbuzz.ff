@@ -4,7 +4,7 @@ Def("Mod", [y, x], {
     While(!(y<1), {
         Set(w, 1)
 	Set(u, Mul(y, z))
-        While( (w<u), {
+        While( (w<u) {
             Set(w, Mul(w, x))
         })
 	Set(w, Mul(w, -1))

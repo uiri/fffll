@@ -24,13 +24,12 @@
 #define YY_BUF_SIZE 128
 
 int lineno = 1;
+int parencount = 0;
 extern YYSTYPE yylval;
 extern int yywrap(void) { return 1; }
 extern void yyerror(const char* msg);
 
 %}
-%option noinput
-%option nounput
 %%
 
 \"[^\"]*\"		{
@@ -47,7 +46,30 @@ extern void yyerror(const char* msg);
 			  yylval.symbol = funcname;
 			  return STR;
 			}
-[,;()[\]\{\}<>=&|!]	{ return yytext[0]; }
+[,;()[\]\{\}<>=&|!]	{
+			  int insert = 0;
+			  char inschr = ',', inpchr;
+			  if (yytext[0] == '(')
+			    parencount++;
+                          else if (yytext[0] == ')')
+			    parencount--;
+			  else if (yytext[0] == '{')
+			    parencount = 0;
+			  if (parencount < 0) parencount = 0;
+			  if (parencount && yytext[0] == ')') {
+			    insert = 1;
+			    do {
+			      inpchr = input();
+			    } while (inpchr == ' ' || inpchr == '\t' || inpchr == '\n');
+			    unput(inpchr);
+			    if (inpchr != '{' && inpchr != '[' && inpchr != '"');
+			      insert = 0;
+			  }
+			  if (insert) {
+			    unput(inschr);
+			  }
+			  return yytext[0];
+			}
 -?[0-9]+(\.[0-9]+)?	{
 			  yylval.num = atof((char*)yytext);
 			  return NUM;

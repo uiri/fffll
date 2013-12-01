@@ -156,7 +156,7 @@ void yyerror(const char* msg) {
  int freeValue(Value* val) {
    val->refcount--;
    if (val->refcount < 1) {
-     if (val->type == 'n' || val->type == 's') {
+     if (val->type == 'n') {
        free(val->data);
      }
      if (val->type == 'f') {
@@ -189,6 +189,7 @@ void yyerror(const char* msg) {
 
  List* varlist;
  List* varnames;
+ List* stringlist;
  DynArray* globalvars;
 
  typedef struct varval VarVal;
@@ -299,7 +300,7 @@ void yyerror(const char* msg) {
 
  int funcnum;
  FuncDef** funcdeftable;
- FuncDef* varAllocDefs[6];
+ FuncDef* varAllocDefs[7];
  List* funcnames;
 
  int hashName(char* name) {
@@ -530,7 +531,8 @@ void yyerror(const char* msg) {
        fd = getFunction(((FuncVal*)al->data)->name);
        if (fd == varAllocDefs[0] || fd == varAllocDefs[1] ||
 	   fd == varAllocDefs[2] || fd == varAllocDefs[3] ||
-	   fd == varAllocDefs[4] || fd == varAllocDefs[5]) {
+	   fd == varAllocDefs[4] || fd == varAllocDefs[5] ||
+	   fd == varAllocDefs[6] ) {
 	 freeValue(v);
        }
      }
@@ -678,6 +680,7 @@ void yyerror(const char* msg) {
        k += m;
        free(t);
      }
+     if (!k) k = 2;
      s[--k] = ']';
      s[++k] = '\0';
      return s;
@@ -933,6 +936,7 @@ void yyerror(const char* msg) {
      fseek(fp, 0, SEEK_SET);
    }
    fseek(fp, 0, SEEK_CUR);
+   addToListBeginning(stringlist, s);
    return newValue('s', s);
  }
 
@@ -1047,6 +1051,51 @@ void yyerror(const char* msg) {
      }
    }
    return newValue('n', a);
+ }
+
+ Value* tokDef(FuncDef* fd, List* arglist) {
+   List* l;
+   Value* v;
+   char* s, *t, *r;
+   int g, h, i, j, k;
+   if (lengthOfList(arglist) != 2) {
+     printf("TOK takes exactly two arguments, a string to tokenize and a delimiter\n");
+     return NULL;
+   }
+   arglist = evaluateList(arglist);
+   l = newList();
+   if (((Value*)arglist->data)->type != 's' || ((Value*)arglist->next->data)->type != 's') {
+     printf("The arguments to TOK must be strings.\n");
+     return NULL;
+   }
+   r = ((Value*)arglist->data)->data;
+   t = ((Value*)arglist->next->data)->data;
+   h = strlen(r)+1;
+   k = strlen(t);
+   s = malloc(h);
+   g = 0;
+   for (i=0;i<h;i++) {
+     for (j=0;(i+j)<h&&j<k;j++) {
+       if (r[i+j] != t[j])
+	 break;
+     }
+     if (j != k)
+       continue;
+     j = g;
+     for (;g<i;g++) {
+       s[g] = r[g];
+     }
+     s[i] = '\0';
+     v = newValue('s', s+j);
+     addToListEnd(l, v);
+     g += k;
+   }
+   if (l->next == NULL)
+     free(s);
+   else
+     addToListBeginning(stringlist, s);
+   freeValueList(arglist);
+   return newValue('l', l);
  }
 
  List* lastParseTree;
@@ -1185,6 +1234,27 @@ compexpr	: value '>' value
 				}
 	;
 value	: STR			{
+				  int i, j, k, l;
+				  char* n;
+				  l = lengthOfList(stringlist);
+				  k = strlen($1);
+				  j = 0;
+				  for (i=0;i<l;i++) {
+				    n = dataInListAtPosition(stringlist, i);
+				    if (n != NULL && k == strlen(n)) {
+				      for (j=0;j<k;j++) {
+					if ($1[j] != n[j]) break;
+				      }
+				      if (j == k) {
+					free($1);
+					$1 = n;
+					break;
+				      }
+				    }
+				  }
+				  if (j != k) {
+				    addToListBeginning(stringlist, $1);
+				  }
 				  $$ = newValue('s', $1);
 				}
 	| NUM			{
@@ -1238,10 +1308,10 @@ value	: STR			{
 int main(int argc, char** argv) {
   FILE* fp;
   /* The value between str's [] should be the value of strsize */
-  char* str[20] = { "=", "<", ">", "&", "|", "stdin", "stdout", "stderr", "DEF",
+  char* str[21] = { "=", "<", ">", "&", "|", "stdin", "stdout", "stderr", "DEF",
 		    "SET", "IF", "WHILE", "WRITE", "READ", "OPEN", "ADD", "MUL",
-		    "RCP", "RETURN", "LEN"};
-  int strsize = 20;
+		    "RCP", "RETURN", "LEN", "TOK"};
+  int strsize = 21;
   int i, j, k, l;
   Value* stdfiles[3], *v;
   if (argc != 2) {
@@ -1280,6 +1350,7 @@ int main(int argc, char** argv) {
   funcnames = newList();
   varnames = newList();
   varlist = newList();
+  stringlist = newList();
   globalvars = newArray(4, sizeof(VarVal));
   stdfiles[0] = newValue('f', stdinp);
   stdfiles[1] = newValue('f', stdoutp);
@@ -1303,6 +1374,7 @@ int main(int argc, char** argv) {
   addToListBeginning(funcnames, constants+76);
   addToListBeginning(funcnames, constants+80);
   addToListBeginning(funcnames, constants+88);
+  addToListBeginning(funcnames, constants+92);
   yyparse();
   funcnum *= 4;
   i = 64;
@@ -1322,12 +1394,14 @@ int main(int argc, char** argv) {
   newBuiltinFuncDef(constants+76, &rcpDef);
   newBuiltinFuncDef(constants+80, &retDef);
   newBuiltinFuncDef(constants+88, &lenDef);
+  newBuiltinFuncDef(constants+92, &tokDef);
   varAllocDefs[0] = getFunction(constants+68); /* ADD */
   varAllocDefs[1] = getFunction(constants+72); /* MUL */
   varAllocDefs[2] = getFunction(constants+56); /* READ */
   varAllocDefs[3] = getFunction(constants+62); /* OPEN */
   varAllocDefs[4] = getFunction(constants+76); /* RCP */
   varAllocDefs[5] = getFunction(constants+88); /* LEN */
+  varAllocDefs[6] = getFunction(constants+92); /* TOK */
   v = evaluateStatements(lastParseTree);
   for (i=0;i<funcnum;i++) {
     if (funcdeftable[i] != NULL) {
@@ -1351,6 +1425,11 @@ int main(int argc, char** argv) {
   }
   freeArray(globalvars);
   freeList(varlist);
+  l = lengthOfList(stringlist);
+  for (i=0;i<l;i++) {
+    free(dataInListAtPosition(stringlist, i));
+  }
+  freeList(stringlist);
   l = lengthOfList(varnames) - 4;
   for (i=0;i<l;i++) {
     free(dataInListAtPosition(varnames, i));

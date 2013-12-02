@@ -27,6 +27,10 @@ extern int yylex();
 extern FILE* yyin;
 extern int lineno;
 
+int *parencount;
+int parencountind = 0;
+int parencountmax = 16;
+
 #define YYERROR_VERBOSE
 
 void yyerror(const char* msg) {
@@ -482,18 +486,18 @@ void yyerror(const char* msg) {
      p = 0;
      if (j>k) {
        if (j<0.0) {
-	 if (((j-k)/k)>=0.005)
+	 if (((j-k)/k)>=0.0000005)
 	   p = 1;
        } else if (j>0.0) {
-	 if (((j-k)/j)>=0.005)
+	 if (((j-k)/j)>=0.0000005)
 	   p = 1;
        }
      } else if (j<k) {
        if (k<0.0) {
-	 if (((k-j)/j)>=0.005)
+	 if (((k-j)/j)>=0.0000005)
 	   p = -1;
        } else if (k>0.0) {
-	 if (((k-j)/k)>=0.005)
+	 if (((k-j)/k)>=0.0000005)
 	   p = -1;
        }
      }
@@ -1402,7 +1406,10 @@ int main(int argc, char** argv) {
   addToListBeginning(funcnames, constants+80);
   addToListBeginning(funcnames, constants+88);
   addToListBeginning(funcnames, constants+92);
+  parencount = malloc(16*sizeof(int));
+  parencount[parencountind] = 0;
   yyparse();
+  free(parencount);
   funcnum *= 4;
   i = 64;
   while (i<funcnum)

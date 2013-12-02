@@ -24,7 +24,9 @@
 #define YY_BUF_SIZE 128
 
 int lineno = 1;
-int parencount = 0;
+extern int *parencount;
+extern int parencountind;
+extern int parencountmax;
 extern YYSTYPE yylval;
 extern int yywrap(void) { return 1; }
 extern void yyerror(const char* msg);
@@ -50,19 +52,26 @@ extern void yyerror(const char* msg);
 			  int insert = 0;
 			  char inschr = ',', inpchr;
 			  if (yytext[0] == '(')
-			    parencount++;
+			    parencount[parencountind]++;
                           else if (yytext[0] == ')')
-			    parencount--;
-			  else if (yytext[0] == '{')
-			    parencount = 0;
-			  if (parencount < 0) parencount = 0;
-			  if (parencount && yytext[0] == ')') {
+			    parencount[parencountind]--;
+			  else if (yytext[0] == '{') {
+			    parencountind++;
+			    if (parencountind == parencountmax) {
+			      parencountmax *= 2;
+			      parencount = realloc(parencount, parencountmax*sizeof(int));
+			    }
+			    parencount[parencountind] = 0;
+			  } else if (yytext[0] == '}') {
+			    parencountind--;
+			  }
+			  if (parencount[parencountind] && yytext[0] == ')') {
 			    insert = 1;
 			    do {
 			      inpchr = input();
 			    } while (inpchr == ' ' || inpchr == '\t' || inpchr == '\n');
 			    unput(inpchr);
-			    if (inpchr != '{' && inpchr != '[' && inpchr != '"');
+			    if (inpchr != '{' && inpchr != '[' && inpchr != '"')
 			      insert = 0;
 			  }
 			  if (insert) {

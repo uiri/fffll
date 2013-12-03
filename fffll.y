@@ -329,7 +329,7 @@ void yyerror(const char* msg) {
 
  int funcnum;
  FuncDef** funcdeftable;
- FuncDef* varAllocDefs[7];
+ FuncDef* varAllocDefs[8];
  List* funcnames;
 
  int hashName(char* name) {
@@ -1114,6 +1114,8 @@ void yyerror(const char* msg) {
      return NULL;
    }
    arglist = evaluateList(arglist);
+   if (arglist == NULL)
+     return NULL;
    l = newList();
    if (((Value*)arglist->data)->type != 's' || ((Value*)arglist->next->data)->type != 's') {
      printf("The arguments to TOK must be strings.\n");
@@ -1147,6 +1149,28 @@ void yyerror(const char* msg) {
      addToListEnd(stringlist, s);
    freeValueList(arglist);
    return newValue('l', l);
+ }
+
+ Value* catDef(FuncDef* fd, List* arglist) {
+   char* s, *t;
+   int i, j, k, l;
+   arglist = evaluateList(arglist);
+   if (arglist == NULL)
+     return NULL;
+   l = lengthOfList(arglist);
+   k = 0;
+   s = NULL;
+   for (i=0;i<l;i++) {
+     t = valueToString(dataInListAtPosition(arglist, i));
+     j = strlen(t);
+     k += j;
+     s = realloc(s, k+1);
+     strncat(s, t, j);
+     s[k] = '\0';
+     free(t);
+   }
+   s = addToStringList(s, 1);
+   return newValue('s', s);
  }
 
  List* lastParseTree;
@@ -1339,10 +1363,10 @@ value	: STR			{
 int main(int argc, char** argv) {
   FILE* fp;
   /* The value between str's [] should be the value of strsize */
-  char* str[21] = { "=", "<", ">", "&", "|", "stdin", "stdout", "stderr", "DEF",
+  char* str[22] = { "=", "<", ">", "&", "|", "stdin", "stdout", "stderr", "DEF",
 		    "SET", "IF", "WHILE", "WRITE", "READ", "OPEN", "ADD", "MUL",
-		    "RCP", "RETURN", "LEN", "TOK"};
-  int strsize = 21;
+		    "RCP", "RETURN", "LEN", "TOK", "CAT"};
+  int strsize = 22;
   int i, j, k, l;
   Value* stdfiles[3], *v;
   if (argc != 2) {
@@ -1406,6 +1430,7 @@ int main(int argc, char** argv) {
   addToListBeginning(funcnames, constants+80);
   addToListBeginning(funcnames, constants+88);
   addToListBeginning(funcnames, constants+92);
+  addToListBeginning(funcnames, constants+96);
   parencount = malloc(16*sizeof(int));
   parencount[parencountind] = 0;
   yyparse();
@@ -1429,6 +1454,7 @@ int main(int argc, char** argv) {
   newBuiltinFuncDef(constants+80, &retDef);
   newBuiltinFuncDef(constants+88, &lenDef);
   newBuiltinFuncDef(constants+92, &tokDef);
+  newBuiltinFuncDef(constants+96, &catDef);
   varAllocDefs[0] = getFunction(constants+68); /* ADD */
   varAllocDefs[1] = getFunction(constants+72); /* MUL */
   varAllocDefs[2] = getFunction(constants+56); /* READ */
@@ -1436,6 +1462,7 @@ int main(int argc, char** argv) {
   varAllocDefs[4] = getFunction(constants+76); /* RCP */
   varAllocDefs[5] = getFunction(constants+88); /* LEN */
   varAllocDefs[6] = getFunction(constants+92); /* TOK */
+  varAllocDefs[7] = getFunction(constants+96); /* TOK */
   v = evaluateStatements(lastParseTree);
   for (i=0;i<funcnum;i++) {
     if (funcdeftable[i] != NULL) {

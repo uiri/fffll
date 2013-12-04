@@ -30,6 +30,7 @@ struct VarTree {
 
 #endif
 
+VarTree* copyTree(VarTree* vt);
 VarTree* deleteInTree(VarTree* vt, char* key);
 void* findInTree(VarTree* vt, char* key);
 int freeTree(VarTree* vt);

@@ -19,15 +19,20 @@
 #include <stdlib.h>
 #include <string.h>
 
+VarTree* copyTree(VarTree* vt) {
+  VarTree* nt;
+  if (vt == NULL)
+    return NULL;
+  nt = newTree(vt->key, vt->data);
+  nt->left = copyTree(vt->left);
+  nt->right = copyTree(vt->right);
+  return nt;
+}
+
 VarTree* deleteInTree(VarTree* vt, char* key) {
   VarTree* ret;
-  int i, l;
-  l = strlen(key) + 1;
-  for (i=0;i<l;i++) {
-    if (key[i] != vt->key[i])
-      break;
-  }
-  if (i == l) {
+  int i;
+  if (key == vt->key) {
     if (vt->left == NULL && vt->right == NULL) {
       freeTree(vt);
       return NULL;
@@ -46,6 +51,7 @@ VarTree* deleteInTree(VarTree* vt, char* key) {
     free(vt);
     return ret;
   }
+  for (i=0;key[i] != '\0' && key[i] == vt->key[i];i++);
   if (key[i] < vt->key[i]) {
     vt->left = deleteInTree(vt->left, key);
   }
@@ -56,17 +62,13 @@ VarTree* deleteInTree(VarTree* vt, char* key) {
 }
 
 void* findInTree(VarTree* vt, char* key) {
-  int i, l;
-  l = strlen(key) + 1;
+  int i;
   if (vt == NULL)
     return NULL;
-  for (i=0;i<l;i++) {
-    if (key[i] != vt->key[i])
-      break;
-  }
-  if (i == l) {
+  if (key == vt->key) {
     return vt->data;
   }
+  for (i=0;key[i] != '\0' && key[i] == vt->key[i];i++);
   if (key[i] < vt->key[i]) {
     return findInTree(vt->left, key);
   }
@@ -86,16 +88,12 @@ int freeTree(VarTree* vt) {
 }
 
 VarTree* insertInTree(VarTree* vt, char* key, void* data) {
-  int i, l;
-  l = strlen(key) + 1;
-  for (i=0;i<l;i++) {
-    if (key[i] != vt->key[i])
-      break;
-  }
-  if (i == l) {
+  int i;
+  if (key == vt->key) {
     vt->data = data;
     return vt;
   }
+  for (i=0;key[i] != '\0' && key[i] == vt->key[i];i++);
   if (key[i] < vt->key[i]) {
     vt->count++;
     if (vt->left == NULL)

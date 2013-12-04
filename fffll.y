@@ -21,7 +21,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "list.h"
-#include "array.h"
+#include "tree.h"
 
 extern int yylex();
 extern FILE* yyin;
@@ -191,10 +191,20 @@ void yyerror(const char* msg) {
    return 0;
  }
 
+ int freeEachValueInTree(VarTree* vt, Value* v) {
+   if (vt == NULL)
+     return 1;
+   if (vt->data != v)
+     freeValue(vt->data);
+   freeEachValueInTree(vt->left, v);
+   freeEachValueInTree(vt->right, v);
+   return 0;
+ }
+
  List* varlist;
  List* varnames;
  List* stringlist;
- DynArray* globalvars;
+ VarTree* globalvars;
 
  char* addToStringList(char* s, int freestr) {
    int i, j, k, l;
@@ -221,60 +231,19 @@ void yyerror(const char* msg) {
    }
    return s;
  }
- typedef struct varval VarVal;
 
- struct varval {
-   int refcount;
-   char* name;
-   char type;
-   Value* val;
- };
-
- VarVal* newVarVal(char* name, Value* val) {
-   VarVal* vv;
-   vv = malloc(sizeof(VarVal));
-   vv->refcount = 1;
-   vv->name = name;
-   vv->val = val;
-   vv->type = 'w';
-   val->refcount++;
-   return vv;
+ Value* getValueFromName(char* name) {
+   return findInTree(varlist->data, name);
  }
 
- int freeVarVal(VarVal* vv) {
-   vv->refcount--;
-   if (vv->refcount < 1) {
-     freeValue(vv->val);
-     free(vv);
-     return 1;
-   }
-   return 0;
- }
-
- Value* appendToVarList(VarVal* vv) {
-   appendToArray((DynArray*)varlist->data, vv);
-   return vv->val;
- }
-
- VarVal* getVarValFromName(char* name) {
-   int i;
-   DynArray* va;
-   va = varlist->data;
-   for (i=0;i<va->last;i++) {
-     if (name == ((VarVal*)va->array[i])->name)
-       return va->array[i];
-   }
-   return NULL;
- }
-
- VarVal* varValFromName(char* name) {
-   VarVal* vv;
-   vv = getVarValFromName(name);
-   if (vv == NULL) {
+ Value* valueFromName(char* name) {
+   Value* v;
+   v = getValueFromName(name);
+   if (v == NULL) {
      printf("Variable named '%s' is not SET.\n", name);
      return NULL;
    }
-   return vv;
+   return v;
  }
 
  List* evaluateList(List* l) {
@@ -402,13 +371,12 @@ void yyerror(const char* msg) {
  }
 
  double evaluateValueAsBool(Value* v) {
-   VarVal* vv;
    double i;
    Value* u;
    if (v->type == 'v') {
-     vv = varValFromName(((Variable*)v)->name);
-     if (vv == NULL) return NAN;
-     return evaluateValueAsBool(vv->val);
+     u = valueFromName(((Variable*)v)->name);
+     if (u == NULL) return NAN;
+     return evaluateValueAsBool(u);
    }
    if (v->type == 'n') {
      return *((double*)v->data);
@@ -537,15 +505,14 @@ void yyerror(const char* msg) {
  }
 
  Value* evaluateValue(Value* v) {
-   VarVal* vv;
    if (v->type == 'c') {
      v = evaluateFuncVal((FuncVal*)v);
      return v;
    }
    if (v->type == 'v') {
-     vv = varValFromName(((Variable*)v)->name);
-     if (vv == NULL) return NULL;
-     return vv->val;
+     v = valueFromName(((Variable*)v)->name);
+     if (v == NULL) return NULL;
+     return v;
    }
    if (v->type == 'b') {
      v = (Value*)evaluateBoolExpr((BoolExpr*)v);
@@ -554,26 +521,31 @@ void yyerror(const char* msg) {
    return v;
  }
 
+ int incEachRefcountInTree(VarTree* vt) {
+   if (vt == NULL)
+     return 1;
+   ((Value*)vt->data)->refcount++;
+   incEachRefcountInTree(vt->left);
+   incEachRefcountInTree(vt->right);
+   return 0;
+ }
+
  int scope(FuncDef* fd, List* arglist) {
-   DynArray* da;
+   VarTree* vt;
    List* fdname, *al;
    Value* v;
    fdname = fd->arguments;
    al = arglist;
-   da = newArray(16, sizeof(VarVal));
-   ((Value*)globalvars->array[0])->refcount++;
-   ((Value*)globalvars->array[1])->refcount++;
-   ((Value*)globalvars->array[2])->refcount++;
-   appendToArray(da, globalvars->array[0]);
-   appendToArray(da, globalvars->array[1]);
-   appendToArray(da, globalvars->array[2]);
+   vt = copyTree(globalvars);
+   incEachRefcountInTree(vt);
    while (fdname != NULL && al != NULL) {
      v = evaluateValue(al->data);
+     v->refcount++;
      if (v == NULL) {
-       addToListBeginning(varlist, da);
+       addToListBeginning(varlist, vt);
        return 1;
      }
-     appendToArray(da, newVarVal(((Variable*)fdname->data)->name, v));
+     vt = insertInTree(vt, ((Variable*)fdname->data)->name, v);
      if (((Value*)al->data)->type == 'c') {
        fd = getFunction(((FuncVal*)al->data)->name);
        if (fd == varAllocDefs[0] || fd == varAllocDefs[1] ||
@@ -586,25 +558,16 @@ void yyerror(const char* msg) {
      fdname = fdname->next;
      al = al->next;
    }
-   addToListBeginning(varlist, da);
+   addToListBeginning(varlist, vt);
    return 0;
  }
 
  int descope(Value* v) {
-   DynArray* da;
-   int i;
-   VarVal* vv;
-   da = varlist->data;
-   for (i=0;i<da->last;i++) {
-     vv = da->array[i];
-     if (vv->val != v) {
-       freeVarVal(vv);
-     } else {
-       v->refcount--;
-       free(vv);
-     }
-   }
-   freeArray(da);
+   VarTree* vt;
+   vt = varlist->data;
+   freeEachValueInTree(vt, v);
+   v->refcount--;
+   freeTree(vt);
    varlist = deleteFromListBeginning(varlist);
    return 0;
  }
@@ -656,16 +619,15 @@ void yyerror(const char* msg) {
  char* valueToString(Value* v) {
    char* s, *t;
    int i, j, k, l, freet, m;
-   VarVal* vv;
    BoolExpr* be;
    Value* u;
    freet = 0;
    l = 0;
    t = NULL;
    if (v->type == 'v') {
-     vv = varValFromName(((Variable*)v)->name);
-     if (vv == NULL) return NULL;
-     s = valueToString(vv->val);
+     u = valueFromName(((Variable*)v)->name);
+     if (u == NULL) return NULL;
+     s = valueToString(u);
      if (s == NULL) return NULL;
      return s;
    }
@@ -765,6 +727,8 @@ void yyerror(const char* msg) {
    Value* val;
    if (scope(fd, arglist)) return NULL;
    val = evaluateStatements(fd->statements);
+   if (val == NULL)
+     return NULL;
    descope(val);
    return val;
  }
@@ -807,7 +771,6 @@ void yyerror(const char* msg) {
  }
 
  Value* setDef(FuncDef* fd, List* arglist) {
-   VarVal* vv;
    Value* v, *u;
    if (lengthOfList(arglist) < 2) {
      printf("Not enough arguments for SET\n");
@@ -817,21 +780,16 @@ void yyerror(const char* msg) {
      printf("SET requires a variable to be its first argument.\n");
      return NULL;
    }
-   u = arglist->next->data;
-   v = evaluateValue(u);
+   v = evaluateValue(arglist->next->data);
    if (v == NULL) {
      return NULL;
    }
-   vv = getVarValFromName(((Variable*)arglist->data)->name);
-   if (vv != NULL) {
-     freeValue(vv->val);
-     vv->val = v;
-   } else {
-     vv = newVarVal(((Variable*)arglist->data)->name, v);
-     v->refcount--;
-     appendToVarList(vv);
+   u = getValueFromName(((Variable*)arglist->data)->name);
+   if (u != NULL) {
+     freeValue(u);
    }
-   return vv->val;
+   varlist->data = insertInTree(varlist->data, ((Variable*)arglist->data)->name, v);
+   return v;
  }
 
  Value* ifDef(FuncDef* fd, List* arglist) {
@@ -1406,13 +1364,12 @@ int main(int argc, char** argv) {
   varnames = newList();
   varlist = newList();
   stringlist = newList();
-  globalvars = newArray(4, sizeof(VarVal));
   stdfiles[0] = newValue('f', stdinp);
   stdfiles[1] = newValue('f', stdoutp);
   stdfiles[2] = newValue('f', stderrp);
-  appendToArray(globalvars, newVarVal(constants+10, stdfiles[0]));
-  appendToArray(globalvars, newVarVal(constants+16, stdfiles[1]));
-  appendToArray(globalvars, newVarVal(constants+24, stdfiles[2]));
+  globalvars = newTree(constants+10, stdfiles[0]);
+  globalvars = insertInTree(globalvars, constants+16, stdfiles[1]);
+  globalvars = insertInTree(globalvars, constants+24, stdfiles[2]);
   addToListBeginning(varnames, constants+10);
   addToListBeginning(varnames, constants+16);
   addToListBeginning(varnames, constants+24);
@@ -1474,17 +1431,10 @@ int main(int argc, char** argv) {
   for (i=0;i<3;i++) {
     freeValue(stdfiles[i]);
   }
-  for (i=0;i<globalvars->last;i++) {
-    if (((VarVal*)globalvars->array[i])->val != v) {
-      freeVarVal(globalvars->array[i]);
-    } else {
-      free(globalvars->array[i]);
-    }
-  }
   if (v != NULL && v != falsevalue) {
     freeValue(v);
   }
-  freeArray(globalvars);
+  freeTree(globalvars);
   freeList(varlist);
   l = lengthOfList(varnames) - 4;
   for (i=0;i<l;i++) {

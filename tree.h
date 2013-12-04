@@ -1,4 +1,4 @@
-/* DynArray - Dynamic Array Implementation
+/* VarTree - Self-balancing binary search tree implementation
    Copyright (C) 2013 W Pearson
 
    This program is free software: you can redistribute it and/or modify
@@ -15,26 +15,25 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <stddef.h>
+#ifndef VARTREE
+#define VARTREE
 
-#ifndef MYDYNAMICARRAY
-#define MYDYNAMICARRAY
+typedef struct VarTree VarTree;
 
-typedef struct DynArray DynArray;
-
-struct DynArray {
-  int length;
-  int last;
-  size_t elementsize;
-  void **array;
+struct VarTree {
+  VarTree* left;
+  VarTree* right;
+  char* key;
+  void* data;
+  int count;
 };
 
 #endif
 
-int appendToArray(DynArray* da, void* data);
-int freeArray(DynArray* da);
-void *getElementInArray(DynArray* da, int index);
-DynArray *newArray(int len, size_t size);
-void *popFromArray(DynArray* da);
-int reallocArray(DynArray* da);
-int setElementInArray(DynArray *da, int index, void* data);
+VarTree* deleteInTree(VarTree* vt, char* key);
+void* findInTree(VarTree* vt, char* key);
+int freeTree(VarTree* vt);
+VarTree* insertInTree(VarTree* vt, char* key, void* data);
+VarTree* mergeTree(VarTree* left, VarTree* right);
+VarTree* newTree(char* key, void* data);
+VarTree* rebalanceTree(VarTree* vt);

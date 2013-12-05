@@ -1,0 +1,9 @@
+Def("Main", [], {
+    Set(x, [4, 2, 6, 4.6, 10])
+    Write(stdout, Head(x))
+    Write(stdout, Tail(x))
+    Set(x, Tail(x))
+    Write(stdout, Head(x))
+    Write(stdout, Tail(x))
+})
+Main()

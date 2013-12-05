@@ -298,7 +298,7 @@ void yyerror(const char* msg) {
 
  int funcnum;
  FuncDef** funcdeftable;
- FuncDef* varAllocDefs[8];
+ FuncDef* notVarAllocDefs[6];
  List* funcnames;
 
  int hashName(char* name) {
@@ -548,10 +548,9 @@ void yyerror(const char* msg) {
      vt = insertInTree(vt, ((Variable*)fdname->data)->name, v);
      if (((Value*)al->data)->type == 'c') {
        fd = getFunction(((FuncVal*)al->data)->name);
-       if (fd == varAllocDefs[0] || fd == varAllocDefs[1] ||
-	   fd == varAllocDefs[2] || fd == varAllocDefs[3] ||
-	   fd == varAllocDefs[4] || fd == varAllocDefs[5] ||
-	   fd == varAllocDefs[6] ) {
+       if (fd != notVarAllocDefs[0] && fd != notVarAllocDefs[1] &&
+	   fd != notVarAllocDefs[2] && fd != notVarAllocDefs[3] &&
+	   fd != notVarAllocDefs[4] && fd != notVarAllocDefs[5] ) {
 	 freeValue(v);
        }
      }
@@ -1113,8 +1112,10 @@ void yyerror(const char* msg) {
    char* s, *t;
    int i, j, k, l;
    arglist = evaluateList(arglist);
-   if (arglist == NULL)
+   if (arglist == NULL) {
+     printf("CAT requires at least one argument");
      return NULL;
+   }
    l = lengthOfList(arglist);
    k = 0;
    s = NULL;
@@ -1129,6 +1130,41 @@ void yyerror(const char* msg) {
    }
    s = addToStringList(s, 1);
    return newValue('s', s);
+ }
+
+ Value* headDef(FuncDef* fd, List* arglist) {
+   Value* v;
+   if (lengthOfList(arglist) != 1) {
+     printf("HEAD only takes one argument.");
+     return NULL;
+   }
+   v = evaluateValue(arglist->data);
+   if (v->type != 'l') {
+     printf("HEAD's argument must be a list.");
+     return NULL;
+   }
+   return evaluateValue(((List*)v->data)->data);
+ }
+
+ Value* tailDef(FuncDef* fd, List* arglist) {
+   Value* v;
+   List* ll, *tl;
+   if (lengthOfList(arglist) != 1) {
+     printf("TAIL only takes one argument.");
+     return NULL;
+   }
+   v = evaluateValue(arglist->data);
+   if (v->type != 'l') {
+     printf("TAIL's argument must be a list.");
+     return NULL;
+   }
+   ll = ((List*)v->data)->next;
+   tl = ll;
+   while (tl != NULL) {
+     ((Value*)tl->data)->refcount++;
+     tl = tl->next;
+   }
+   return newValue('l', ll);
  }
 
  List* lastParseTree;
@@ -1321,10 +1357,10 @@ value	: STR			{
 int main(int argc, char** argv) {
   FILE* fp;
   /* The value between str's [] should be the value of strsize */
-  char* str[22] = { "=", "<", ">", "&", "|", "stdin", "stdout", "stderr", "DEF",
+  char* str[24] = { "=", "<", ">", "&", "|", "stdin", "stdout", "stderr", "DEF",
 		    "SET", "IF", "WHILE", "WRITE", "READ", "OPEN", "ADD", "MUL",
-		    "RCP", "RETURN", "LEN", "TOK", "CAT"};
-  int strsize = 22;
+		    "RCP", "RETURN", "LEN", "TOK", "CAT", "HEAD", "TAIL"};
+  int strsize = 24;
   int i, j, k, l;
   Value* stdfiles[3], *v;
   if (argc != 2) {
@@ -1388,6 +1424,8 @@ int main(int argc, char** argv) {
   addToListBeginning(funcnames, constants+88);
   addToListBeginning(funcnames, constants+92);
   addToListBeginning(funcnames, constants+96);
+  addToListBeginning(funcnames, constants+100);
+  addToListBeginning(funcnames, constants+106);
   parencount = malloc(16*sizeof(int));
   parencount[parencountind] = 0;
   yyparse();
@@ -1412,14 +1450,14 @@ int main(int argc, char** argv) {
   newBuiltinFuncDef(constants+88, &lenDef);
   newBuiltinFuncDef(constants+92, &tokDef);
   newBuiltinFuncDef(constants+96, &catDef);
-  varAllocDefs[0] = getFunction(constants+68); /* ADD */
-  varAllocDefs[1] = getFunction(constants+72); /* MUL */
-  varAllocDefs[2] = getFunction(constants+56); /* READ */
-  varAllocDefs[3] = getFunction(constants+62); /* OPEN */
-  varAllocDefs[4] = getFunction(constants+76); /* RCP */
-  varAllocDefs[5] = getFunction(constants+88); /* LEN */
-  varAllocDefs[6] = getFunction(constants+92); /* TOK */
-  varAllocDefs[7] = getFunction(constants+96); /* TOK */
+  newBuiltinFuncDef(constants+100, &headDef);
+  newBuiltinFuncDef(constants+106, &tailDef);
+  notVarAllocDefs[0] = getFunction(constants+32); /* DEF */
+  notVarAllocDefs[1] = getFunction(constants+36); /* SET */
+  notVarAllocDefs[2] = getFunction(constants+40); /* IF */
+  notVarAllocDefs[3] = getFunction(constants+44); /* WHILE */
+  notVarAllocDefs[4] = getFunction(constants+50); /* WRITE */
+  notVarAllocDefs[5] = getFunction(constants+80); /* RETURN */
   v = evaluateStatements(lastParseTree);
   for (i=0;i<funcnum;i++) {
     if (funcdeftable[i] != NULL) {

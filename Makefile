@@ -1,12 +1,13 @@
 CC=gcc
 CFLAGS=-Wall -g -pedantic
-LIBS=-L. -lm -llist
+LIBS=-L. -lm -llist -lfffll
 # you may possible also want the following for profiling:
 # -fprofile-arcs -ftest-coverage -pg
 
-all:	fffll.l.c fffll.y.c tree.o
+all:	fffll.l.c fffll.y.c value.c tree.o
 	if ! [ -f liblist.so ]; then make liblist.so; fi;
-	$(CC) $(LIBS) $(CFLAGS) -o fffll tree.o fffll.l.c fffll.y.c
+	if ! [ -f libfffll.so ]; then make libfffll.so; fi;
+	$(CC) $(LIBS) $(CFLAGS) -o fffll tree.o value.c fffll.l.c fffll.y.c
 
 fffll.l.c: fffll.l
 	flex -o fffll.l.c fffll.l
@@ -17,11 +18,20 @@ fffll.y.c: fffll.y
 liblist.so: list.o array.o
 	$(CC) -shared $(CFLAGS) -o liblist.so list.o array.o
 
-list.o: list.c list.h
-	$(CC) -fPIC $(CFLAGS) -c list.c
+libfffll.so: builtin.o evaluate.o
+	$(CC) -shared $(CFLAGS) -o libfffll.so builtin.o evaluate.o
 
 array.o: array.c array.h
 	$(CC) -fPIC $(CFLAGS) -c array.c
+
+builtin.o: builtin.c builtin.h
+	$(CC) -fPIC $(CFLAGS) -c builtin.c
+
+evaluate.o: evaluate.c evaluate.h
+	$(CC) -fPIC $(CFLAGS) -c evaluate.c
+
+list.o: list.c list.h
+	$(CC) -fPIC $(CFLAGS) -c list.c
 
 tree.o: tree.c tree.h
 	$(CC) -fPIC $(CFLAGS) -c tree.c

@@ -1,0 +1,205 @@
+/* FFFLL - C implementation of a Fun Functioning Functional Little Language
+   Copyright (C) 2013 W Pearson
+
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+#include <math.h>
+#include <stdlib.h>
+#include <string.h>
+#include "evaluate.h"
+#include "list.h"
+#include "value.h"
+
+BoolExpr* evaluateBoolExpr(BoolExpr* be) {
+  int i, l, m, p;
+  double j, k, **n, *o;
+  char* c;
+  List* stack;
+  stack = newList();
+  l = lengthOfList(be->stack);
+  m = -1;
+  n = malloc(((l+1)/2)*sizeof(double*));
+  i = 0;
+  while (i<l) {
+    n[++m] = calloc(1, sizeof(double));
+    j = evaluateValueAsBool((Value*)dataInListAtPosition(be->stack, i++));
+    if (isnan(j)) {
+      m++;
+      for (i=0;i<m;i++) {
+	free(n[i]);
+      }
+      free(n);
+      freeList(stack);
+      return NULL;
+    }
+    if (j) *n[m] = 1;
+    if (i == l) {
+      addToListEnd(stack, n[m]);
+      break;
+    }
+    n[++m] = calloc(1, sizeof(double));
+    c = (char*)dataInListAtPosition(be->stack, i++);
+    k = evaluateValueAsBool((Value*)dataInListAtPosition(be->stack, i++));
+    if (isnan(k)) {
+      m++;
+      for (i=0;i<m;i++) {
+	free(n[i]);
+      }
+      free(n);
+      freeList(stack);
+      return NULL;
+    }
+    if (c[0] == '|' || c[0] == '&') {
+      addToListEnd(stack, n[m-1]);
+      addToListEnd(stack, c);
+      addToListEnd(stack, n[m]);
+      continue;
+    }
+    p = 0;
+    if (j>k) {
+      if (j<0.0) {
+	if (((j-k)/k)>=0.0000005)
+	  p = 1;
+      } else if (j>0.0) {
+	if (((j-k)/j)>=0.0000005)
+	  p = 1;
+      }
+    } else if (j<k) {
+      if (k<0.0) {
+	if (((k-j)/j)>=0.0000005)
+	  p = -1;
+      } else if (k>0.0) {
+	if (((k-j)/k)>=0.0000005)
+	  p = -1;
+      }
+    }
+    if ((c[0] == '<' && p<0) ||
+	(c[0] == '>' && p>0) ||
+	(c[0] == '=' && !p)) {
+      *n[m] = 1;
+    }
+  }
+  o = n[m];
+  m++;
+  l = lengthOfList(stack);
+  i = 0;
+  while (i<l) {
+    j = *(double*)dataInListAtPosition(stack, i++);
+    if (i == l) {
+      o = (double*)dataInListAtPosition(stack, --i);
+      if (j) *o = 1; else *o = 0;
+      break;
+    }
+    c = dataInListAtPosition(stack, i++);
+    o = (double*)dataInListAtPosition(stack, i);
+    k = *o;
+    if (((j && k) && c[0] == '&') || ((j || k) && c[0] == '|'))
+      *o = 1;
+    else
+      *o = 0;
+  }
+  be->lasteval = *o;
+  for (i=0;i<m;i++) {
+    free(n[i]);
+  }
+  free(n);
+  freeList(stack);
+  if (be->neg) be->lasteval = !be->lasteval;
+  return be;
+}
+
+Value* evaluateFuncVal(FuncVal* fv) {
+  FuncDef* fd;
+  fd = getFunction(fv->name);
+  if (fd == NULL) return NULL;
+  return (*fd->evaluate)(fd, fv->arglist);
+}
+
+List* evaluateList(List* l) {
+  List* r;
+  Value* v;
+  r = newList();
+  while (l != NULL) {
+    if (((Value*)l->data)->type == 'd') {
+      ((Value*)l->data)->refcount++;
+      addToListEnd(r, l->data);
+    } else {
+      v = evaluateValue((Value*)l->data);
+      if (v == NULL) {
+	freeValueList(r);
+	return NULL;
+      }
+      if (((Value*)l->data)->type == 'v' || ((Value*)l->data)->type == 'c') {
+	v->refcount++;
+      }
+      addToListEnd(r, v);
+    }
+    l = l->next;
+  }
+  return r;
+}
+
+double evaluateValueAsBool(Value* v) {
+  double i;
+  Value* u;
+  if (v->type == 'v') {
+    u = valueFromName(((Variable*)v)->name);
+    if (u == NULL) return NAN;
+    return evaluateValueAsBool(u);
+  }
+  if (v->type == 'n') {
+    return *((double*)v->data);
+  }
+  if (v->type == 'c') {
+    u = evaluateFuncVal((FuncVal*)v);
+    if (u == NULL) return NAN;
+    i = evaluateValueAsBool(u);
+    freeValue(u);
+    return i;
+  }
+  if (v->type == 's') {
+    return strlen((char*)v->data);
+  }
+  if (v->type == 'b') {
+    return ((BoolExpr*)v)->lasteval;
+  }
+  if (v->type == 'l') {
+    return lengthOfList((List*)v->data);
+  }
+  if (v->type == 'd') {
+    return evaluateValueAsBool(evaluateStatements((List*)v->data));
+  }
+  if (v->type == '0') {
+    return 0;
+  }
+  return 1;
+}
+
+Value* evaluateValue(Value* v) {
+  if (v->type == 'c') {
+    v = evaluateFuncVal((FuncVal*)v);
+    return v;
+  }
+  if (v->type == 'v') {
+    v = valueFromName(((Variable*)v)->name);
+    if (v == NULL) return NULL;
+    return v;
+  }
+  if (v->type == 'b') {
+    v = (Value*)evaluateBoolExpr((BoolExpr*)v);
+  }
+  v->refcount++;
+  return v;
+}

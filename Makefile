@@ -4,7 +4,12 @@ LIBS=-L. -lm -llist -lfffll
 # you may possible also want the following for profiling:
 # -fprofile-arcs -ftest-coverage -pg
 
-all:	fffll.l.c fffll.y.c value.c tree.o
+all:
+	make liblist.so
+	make libfffll.so
+	make fffll
+
+fffll:	fffll.l.c fffll.y.c value.c tree.o
 	if ! [ -f liblist.so ]; then make liblist.so; fi;
 	if ! [ -f libfffll.so ]; then make libfffll.so; fi;
 	$(CC) $(LIBS) $(CFLAGS) -o fffll tree.o value.c fffll.l.c fffll.y.c

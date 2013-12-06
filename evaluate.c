@@ -25,8 +25,9 @@
 BoolExpr* evaluateBoolExpr(BoolExpr* be) {
   int i, l, m, p;
   double j, k, **n, *o;
-  char* c;
+  char* c, *s, *t;
   List* stack;
+  Value* v, *u;
   stack = newList();
   l = lengthOfList(be->stack);
   m = -1;
@@ -34,6 +35,15 @@ BoolExpr* evaluateBoolExpr(BoolExpr* be) {
   i = 0;
   while (i<l) {
     n[++m] = calloc(1, sizeof(double));
+    s = NULL;
+    t = NULL;
+    u = dataInListAtPosition(be->stack, i);
+    v = evaluateValue(u);
+    if (v->type == 's') {
+      s = v->data;
+    }
+    if (u->type != 'v' && u->type != 'c')
+      freeValue(v);
     j = evaluateValueAsBool((Value*)dataInListAtPosition(be->stack, i++));
     if (isnan(j)) {
       m++;
@@ -51,6 +61,13 @@ BoolExpr* evaluateBoolExpr(BoolExpr* be) {
     }
     n[++m] = calloc(1, sizeof(double));
     c = (char*)dataInListAtPosition(be->stack, i++);
+    u = dataInListAtPosition(be->stack, i);
+    v = evaluateValue(u);
+    if (v->type == 's') {
+      t = v->data;
+    }
+    if (u->type != 'v' && u->type != 'c')
+      freeValue(v);
     k = evaluateValueAsBool((Value*)dataInListAtPosition(be->stack, i++));
     if (isnan(k)) {
       m++;
@@ -67,28 +84,36 @@ BoolExpr* evaluateBoolExpr(BoolExpr* be) {
       addToListEnd(stack, n[m]);
       continue;
     }
-    p = 0;
-    if (j>k) {
-      if (j<0.0) {
-	if (((j-k)/k)>=0.0000005)
-	  p = 1;
-      } else if (j>0.0) {
-	if (((j-k)/j)>=0.0000005)
-	  p = 1;
+    if (t != NULL && s != NULL) {
+      if (s == t && c[0] == '=') {
+	  *n[m] = 1;
+      } else {
+	for (p=0;s[p] != '\0' && s[p] == t[p];p++);
+	if ((c[0] == '<' && s[p] < t[p]) || (c[0] == '>' && s[p] > t[p]))
+	  *n[m] = 1;
       }
-    } else if (j<k) {
-      if (k<0.0) {
-	if (((k-j)/j)>=0.0000005)
-	  p = -1;
-      } else if (k>0.0) {
-	if (((k-j)/k)>=0.0000005)
-	  p = -1;
+    } else {
+      p = 0;
+      if (j>k) {
+	if (j<0.0) {
+	  if (((j-k)/k)>=0.0000005)
+	    p = 1;
+	} else if (j>0.0) {
+	  if (((j-k)/j)>=0.0000005)
+	    p = 1;
+	}
+      } else if (j<k) {
+	if (k<0.0) {
+	  if (((k-j)/j)>=0.0000005)
+	    p = -1;
+	} else if (k>0.0) {
+	  if (((k-j)/k)>=0.0000005)
+	    p = -1;
+	}
       }
-    }
-    if ((c[0] == '<' && p<0) ||
-	(c[0] == '>' && p>0) ||
-	(c[0] == '=' && !p)) {
-      *n[m] = 1;
+      if ((c[0] == '<' && p<0) || (c[0] == '>' && p>0) || (c[0] == '=' && !p)) {
+	*n[m] = 1;
+      }
     }
   }
   o = n[m];

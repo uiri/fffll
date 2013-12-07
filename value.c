@@ -135,7 +135,6 @@ Value* evaluateStatements(List* sl) {
   int i,l;
   l = lengthOfList(sl);
   s = falsevalue;
-  t = falsevalue;
   for (i=0;i<l;i++) {
     t = dataInListAtPosition(sl, i);
     t = evaluateValue(t);

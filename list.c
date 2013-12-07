@@ -51,6 +51,8 @@ List addToListAfterData(List *list, void *newdata, void *afterdata) {
 
 List addToListAfterDataLast(List *list, void *newdata, void *afterdata) {
   List *headptr, *lastptr;
+  if (list == NULL)
+    return EmptyList;
   headptr = list;
   lastptr = NULL;
   while (list != NULL) {
@@ -70,7 +72,9 @@ List addToListAfterDataLast(List *list, void *newdata, void *afterdata) {
 
 List addToListBeforeData(List *list, void *newdata, void *beforedata) {
   List *headptr, *oldptr;
-  headptr=list;
+  if (list == NULL)
+    return EmptyList;
+  headptr = list;
   while (list != NULL) {
     if (list->data == beforedata)
       break;
@@ -88,6 +92,8 @@ List addToListBeforeData(List *list, void *newdata, void *beforedata) {
 
 List addToListBeforeDataLast(List *list, void *newdata, void *beforedata) {
   List *headptr, *lastptr;
+  if (list == NULL)
+    return EmptyList;
   headptr = list;
   lastptr = NULL;
   while (list != NULL) {
@@ -274,14 +280,21 @@ List deleteFromListPosition(List *list, int position) {
 
 List deleteFromListLastData(List *list, void *data) {
   List *headptr, *lastptr;
-  headptr=list;
+  if (list == NULL)
+    return EmptyList;
+  headptr = list;
+  lastptr = NULL;
   while (list != NULL) {
     if (list->data == data)
       lastptr = list;
     list=list->next;
   }
+  if (lastptr == NULL)
+    return *headptr;
   list = lastptr;
   lastptr = list->next;
+  if (lastptr == NULL)
+    return *headptr;
   if (list == headptr) {
     list->data = lastptr->data;
     if (lastptr == NULL)

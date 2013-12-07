@@ -134,10 +134,16 @@ char* valueToString(Value* v) {
       if (k) s[k] = ' ';
       k++;
       u = evaluateValue(dataInListAtPosition(v->data, i));
-      if (u == NULL) return NULL;
+      if (u == NULL) {
+	free(s);
+	return NULL;
+      }
       t = valueToString(u);
       freeValue(u);
-      if (t == NULL) return NULL;
+      if (t == NULL) {
+	free(s);
+	return NULL;
+      }
       m = strlen(t);
       s = realloc(s, k+m+2);
       for (j=0;j<m;j++) {
@@ -159,7 +165,6 @@ char* valueToString(Value* v) {
     if (u == NULL) return NULL;
     t = valueToString(u);
     freeValue(u);
-    if (t == NULL) return NULL;
   }
   if (v->type == 'd') {
     freet = 1;
@@ -167,11 +172,11 @@ char* valueToString(Value* v) {
     if (u == NULL) return NULL;
     t = valueToString(u);
     freeValue(u);
-    if (t == NULL) return NULL;
   }
   if (v->type == 's') {
     t = v->data;
   }
+  if (t == NULL) return NULL;
   l = strlen(t);
   s = malloc(l+1);
   for (i=0;i<l;i++) {
@@ -218,6 +223,10 @@ Value* catDef(FuncDef* fd, List* arglist) {
   s = NULL;
   for (i=0;i<l;i++) {
     t = valueToString(dataInListAtPosition(arglist, i));
+    if (t == NULL) {
+      free(s);
+      return NULL;
+    }
     j = strlen(t);
     k += j;
     s = realloc(s, k+1);
@@ -245,19 +254,18 @@ Value* defDef(FuncDef* fd, List* arglist) {
   }
   l = lengthOfList(funcnames);
   k = strlen(name);
-  j = -1;
   for (i=0;i<l;i++) {
     fn = dataInListAtPosition(funcnames, i);
     if (fn != NULL && strlen(fn) == k) {
       for (j=0;j<k;j++) {
 	if (fn[j] != name[j]) break;
       }
-      if (j == k) break;
+      if (j == k) {
+	free(name);
+	name = fn;
+	break;
+      }
     }
-  }
-  if (j == k) {
-    free(name);
-    name = fn;
   }
   insertFunction(newFuncDef(name, ((Value*)arglist->next->data)->data,
 			    ((Value*)arglist->next->next->data)->data, 0));
@@ -356,6 +364,7 @@ Value* openDef(FuncDef* fd, List* arglist) {
   char* s;
   if (arglist == NULL) {
     printf("Not enough arguments for OPEN\n");
+    return NULL;
   }
   v = evaluateValue(arglist->data);
   if (v == NULL) return NULL;
@@ -599,6 +608,7 @@ Value* writeDef(FuncDef* fd, List* arglist) {
   if (fp == stdout || fp == stderr) {
     k = 1;
   }
+  j = -1;
   for (i=1;i<l;i++) {
     s = valueToString(dataInListAtPosition(arglist, i));
     if (s == NULL) {

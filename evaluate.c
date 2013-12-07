@@ -33,6 +33,7 @@ BoolExpr* evaluateBoolExpr(BoolExpr* be) {
   l = lengthOfList(be->stack);
   m = -1;
   n = malloc(((l+1)/2)*sizeof(double*));
+  o = NULL;
   i = 0;
   while (i<l) {
     n[++m] = calloc(1, sizeof(double));
@@ -43,6 +44,10 @@ BoolExpr* evaluateBoolExpr(BoolExpr* be) {
       v = evaluateValue(u);
       if (v == NULL) {
 	freeList(stack);
+	m++;
+	for (i=0;i<m;i++) {
+	  free(n[i]);
+	}
 	free(n);
 	return NULL;
       }
@@ -74,6 +79,10 @@ BoolExpr* evaluateBoolExpr(BoolExpr* be) {
       v = evaluateValue(u);
       if (v == NULL) {
 	freeList(stack);
+	m++;
+	for (i=0;i<m;i++) {
+	  free(n[i]);
+	}
 	free(n);
 	return NULL;
       }
@@ -131,7 +140,8 @@ BoolExpr* evaluateBoolExpr(BoolExpr* be) {
       }
     }
   }
-  o = n[m];
+  if (m > -1)
+    o = n[m];
   m++;
   l = lengthOfList(stack);
   i = 0;
@@ -150,7 +160,10 @@ BoolExpr* evaluateBoolExpr(BoolExpr* be) {
     else
       *o = 0;
   }
-  be->lasteval = *o;
+  if (o == NULL)
+    be->lasteval = 1;
+  else
+    be->lasteval = *o;
   for (i=0;i<m;i++) {
     free(n[i]);
   }
@@ -244,6 +257,7 @@ Value* evaluateValue(Value* v) {
   }
   if (v->type == 'b') {
     v = (Value*)evaluateBoolExpr((BoolExpr*)v);
+    if (v == NULL) return NULL;
   }
   v->refcount++;
   return v;

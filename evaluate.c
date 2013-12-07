@@ -16,6 +16,7 @@
 */
 
 #include <math.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "evaluate.h"
@@ -227,8 +228,13 @@ double evaluateValueAsBool(Value* v) {
 }
 
 Value* evaluateValue(Value* v) {
+  FuncVal* fv;
   if (v->type == 'c') {
+    fv = (FuncVal*)v;
     v = evaluateFuncVal((FuncVal*)v);
+    if (v == NULL) {
+      fprintf(stderr, "In %s at line %d\n", fv->name, fv->lineno);
+    }
     return v;
   }
   if (v->type == 'v') {

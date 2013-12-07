@@ -288,13 +288,14 @@ FuncDef* newFuncDef(char* name, List* al, List* sl, int alloc) {
   return fd;
 }
 
-FuncVal* newFuncVal(char* name, List* arglist) {
+FuncVal* newFuncVal(char* name, List* arglist, int ln) {
   FuncVal* fv;
   fv = malloc(sizeof(FuncVal));
   fv->refcount = 1;
   fv->name = name;
   fv->type = 'c';
   fv->arglist = arglist;
+  fv->lineno = ln;
   return fv;
 }
 

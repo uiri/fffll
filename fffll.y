@@ -123,7 +123,7 @@ funcall		: FUNC arglist	{
 				  if ($1 == constants+32) {
 				      funcnum++;
 				  }
-				  $$ = newFuncVal($1, $2);
+				  $$ = newFuncVal($1, $2, lineno);
 				}
 		;
 arglist		: '(' list ')'	{

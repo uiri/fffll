@@ -52,6 +52,7 @@ struct funcval {
   char* name;
   char type;
   List* arglist;
+  int lineno;
 };
 
 typedef struct variable Variable;
@@ -77,7 +78,7 @@ int insertFunction(FuncDef* fd);
 BoolExpr* newBoolExpr(Value* val);
 int newBuiltinFuncDef(char* name, Value* (*evaluate)(FuncDef*, List*), int alloc);
 FuncDef* newFuncDef(char* name, List* al, List* sl, int alloc);
-FuncVal* newFuncVal(char* name, List* arglist);
+FuncVal* newFuncVal(char* name, List* arglist, int ln);
 Value* newValue(char type, void* data);
 Variable* newVariable(char* name);
 Value* valueFromName(char* name);

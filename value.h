@@ -43,6 +43,7 @@ struct funcdef {
   Value* (*evaluate)(FuncDef*, List*);
   List* statements;
   List* arguments;
+  int alloc;
 };
 
 typedef struct funcval FuncVal;
@@ -74,8 +75,8 @@ FuncDef* getFunction(char* name);
 int hashName(char* name);
 int insertFunction(FuncDef* fd);
 BoolExpr* newBoolExpr(Value* val);
-int newBuiltinFuncDef(char* name, Value* (*evaluate)(FuncDef*, List*));
-FuncDef* newFuncDef(char* name, List* al, List* sl);
+int newBuiltinFuncDef(char* name, Value* (*evaluate)(FuncDef*, List*), int alloc);
+FuncDef* newFuncDef(char* name, List* al, List* sl, int alloc);
 FuncVal* newFuncVal(char* name, List* arglist);
 Value* newValue(char type, void* data);
 Variable* newVariable(char* name);

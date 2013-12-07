@@ -53,7 +53,6 @@ void yyerror(const char* msg) {
 
  int funcnum;
  FuncDef** funcdeftable;
- FuncDef* notVarAllocDefs[6];
  List* funcnames;
 
  List* lastParseTree;
@@ -326,28 +325,22 @@ int main(int argc, char** argv) {
     i *= 2;
   funcnum = i - 1;
   funcdeftable = calloc(funcnum, sizeof(FuncDef));
-  newBuiltinFuncDef(constants+32, &defDef);
-  newBuiltinFuncDef(constants+36, &setDef);
-  newBuiltinFuncDef(constants+40, &ifDef);
-  newBuiltinFuncDef(constants+44, &whileDef);
-  newBuiltinFuncDef(constants+50, &writeDef);
-  newBuiltinFuncDef(constants+56, &readDef);
-  newBuiltinFuncDef(constants+62, &openDef);
-  newBuiltinFuncDef(constants+68, &addDef);
-  newBuiltinFuncDef(constants+72, &mulDef);
-  newBuiltinFuncDef(constants+76, &rcpDef);
-  newBuiltinFuncDef(constants+80, &retDef);
-  newBuiltinFuncDef(constants+88, &lenDef);
-  newBuiltinFuncDef(constants+92, &tokDef);
-  newBuiltinFuncDef(constants+96, &catDef);
-  newBuiltinFuncDef(constants+100, &headDef);
-  newBuiltinFuncDef(constants+106, &tailDef);
-  notVarAllocDefs[0] = getFunction(constants+32); /* DEF */
-  notVarAllocDefs[1] = getFunction(constants+36); /* SET */
-  notVarAllocDefs[2] = getFunction(constants+40); /* IF */
-  notVarAllocDefs[3] = getFunction(constants+44); /* WHILE */
-  notVarAllocDefs[4] = getFunction(constants+50); /* WRITE */
-  notVarAllocDefs[5] = getFunction(constants+80); /* RETURN */
+  newBuiltinFuncDef(constants+32, &defDef, 0);
+  newBuiltinFuncDef(constants+36, &setDef, 0);
+  newBuiltinFuncDef(constants+40, &ifDef, 0);
+  newBuiltinFuncDef(constants+44, &whileDef, 0);
+  newBuiltinFuncDef(constants+50, &writeDef, 0);
+  newBuiltinFuncDef(constants+56, &readDef, 1);
+  newBuiltinFuncDef(constants+62, &openDef, 1);
+  newBuiltinFuncDef(constants+68, &addDef, 1);
+  newBuiltinFuncDef(constants+72, &mulDef, 1);
+  newBuiltinFuncDef(constants+76, &rcpDef, 1);
+  newBuiltinFuncDef(constants+80, &retDef, 0);
+  newBuiltinFuncDef(constants+88, &lenDef, 1);
+  newBuiltinFuncDef(constants+92, &tokDef, 1);
+  newBuiltinFuncDef(constants+96, &catDef, 1);
+  newBuiltinFuncDef(constants+100, &headDef, 1);
+  newBuiltinFuncDef(constants+106, &tailDef, 1);
   v = evaluateStatements(lastParseTree);
   for (i=0;i<funcnum;i++) {
     if (funcdeftable[i] != NULL) {

@@ -260,7 +260,7 @@ Value* defDef(FuncDef* fd, List* arglist) {
     name = fn;
   }
   insertFunction(newFuncDef(name, ((Value*)arglist->next->data)->data,
-			    ((Value*)arglist->next->next->data)->data));
+			    ((Value*)arglist->next->next->data)->data, 0));
   ((Value*)arglist->data)->refcount++;
   return (Value*)arglist->data;
 }

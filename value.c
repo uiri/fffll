@@ -30,7 +30,6 @@ extern VarTree* globalvars;
 extern List* stringlist;
 
 extern int funcnum;
-extern FuncDef* notVarAllocDefs[6];
 extern FuncDef** funcdeftable;
 
 /* Internal helper functions */
@@ -82,9 +81,7 @@ int scope(FuncDef* fd, List* arglist) {
     vt = insertInTree(vt, ((Variable*)fdname->data)->name, v);
     if (((Value*)al->data)->type == 'c') {
       fd = getFunction(((FuncVal*)al->data)->name);
-      if (fd != notVarAllocDefs[0] && fd != notVarAllocDefs[1] &&
-	  fd != notVarAllocDefs[2] && fd != notVarAllocDefs[3] &&
-	  fd != notVarAllocDefs[4] && fd != notVarAllocDefs[5] ) {
+      if (fd->alloc == 1) {
 	freeValue(v);
       }
     }
@@ -273,20 +270,21 @@ BoolExpr* newBoolExpr(Value* val) {
   return be;
 }
 
-int newBuiltinFuncDef(char* name, Value* (*evaluate)(FuncDef*, List*)) {
+int newBuiltinFuncDef(char* name, Value* (*evaluate)(FuncDef*, List*), int alloc) {
   FuncDef* fd;
-  fd = newFuncDef(name, NULL, NULL);
+  fd = newFuncDef(name, NULL, NULL, alloc);
   fd->evaluate = evaluate;
   return insertFunction(fd);
 }
 
-FuncDef* newFuncDef(char* name, List* al, List* sl) {
+FuncDef* newFuncDef(char* name, List* al, List* sl, int alloc) {
   FuncDef* fd;
   fd = malloc(sizeof(FuncDef));
   fd->name = name;
   fd->statements = sl;
   fd->arguments = al;
   fd->evaluate = &evaluateFuncDef;
+  fd->alloc = alloc;
   return fd;
 }
 

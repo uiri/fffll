@@ -238,8 +238,7 @@ Value* defDef(FuncDef* fd, List* arglist) {
     return NULL;
   }
   name = valueToString(arglist->data);
-  l = strlen(name);
-  for (i=0;i<l;i++) {
+  for (i=0;name[i] != '\0';i++) {
     if (name[i] > 90) {
       name[i] -= 32;
     }
@@ -519,7 +518,7 @@ Value* tokDef(FuncDef* fd, List* arglist) {
   List* l;
   Value* v;
   char* s, *t, *r;
-  int g, h, i, j, k;
+  int h, i, j, k;
   if (lengthOfList(arglist) != 2) {
     printf("TOK takes exactly two arguments, a string to tokenize and a delimiter\n");
     return NULL;
@@ -534,25 +533,23 @@ Value* tokDef(FuncDef* fd, List* arglist) {
   }
   r = ((Value*)arglist->data)->data;
   t = ((Value*)arglist->next->data)->data;
-  h = strlen(r)+1;
+  s = malloc(strlen(r));
   k = strlen(t);
-  s = malloc(h);
-  g = 0;
-  for (i=0;i<h;i++) {
-    for (j=0;(i+j)<h&&j<k;j++) {
-      if (r[i+j] != t[j])
-	break;
-    }
-    if (j != k)
+  h = 0;
+  for (i=-1;r[i+1] != '\0';i++) {
+    for (j=0;t[j] != '\0' && t[j] != r[i+1+j];j++);
+    if (t[j] != r[i+1+j])
       continue;
-    j = g;
-    for (;g<i;g++) {
-      s[g] = r[g];
+    j = h;
+    i++;
+    for (;h<i;h++) {
+      s[h] = r[h];
     }
     s[i] = '\0';
+    i--;
     v = newValue('s', addToStringList(s+j, 0));
     addToListEnd(l, v);
-    g += k;
+    h += k;
   }
   if (l->next == NULL)
     free(s);
@@ -583,7 +580,7 @@ Value* whileDef(FuncDef* fd, List* arglist) {
 
 Value* writeDef(FuncDef* fd, List* arglist) {
   char* s;
-  int i, j, k, l, m;
+  int i, j, k, l;
   FILE* fp;
   Value* v;
   if (arglist == NULL) {
@@ -598,22 +595,21 @@ Value* writeDef(FuncDef* fd, List* arglist) {
   }
   fp = *(FILE**)v->data;
   l = lengthOfList(arglist);
-  m = 0;
+  k = 0;
   if (fp == stdout || fp == stderr) {
-    m = 1;
+    k = 1;
   }
   for (i=1;i<l;i++) {
     s = valueToString(dataInListAtPosition(arglist, i));
     if (s == NULL) {
       return NULL;
     }
-    k = strlen(s);
-    for (j=0;j<k;j++) {
+    for (j=0;s[j] != '\0';j++) {
       fputc(s[j], fp);
     }
     free(s);
   }
-  if (m || j == -1)
+  if (k || j == -1)
     fputc('\n', fp);
   fseek(fp, 0, SEEK_CUR);
   return falsevalue;

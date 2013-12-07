@@ -34,15 +34,26 @@ extern void yyerror(const char* msg);
 %}
 %%
 
-\"[^\"]*\"		{
-			  int i, l;
+\"([^\"]*(\"\")*)*\"	{
+			  int i, l, j;
 			  char* funcname;
-			  l = strlen(yytext);
-			  l--;
+			  i = 0;
+			  for (l=0;yytext[l] != '\0';l++) {
+			    if (yytext[l] == '"') {
+			      i++;
+			      if (yytext[l+1] == '"')
+			        l++;
+			    }
+			  }
+			  l -= i;
+			  l++;
 			  funcname = malloc(l);
 			  l--;
+			  j = 1;
 			  for (i=0;i<l;i++) {
-			    funcname[i] = yytext[i+1];
+			    if (yytext[i+j] == '"' && yytext[i+j+1] == '"')
+			      j++;
+			    funcname[i] = yytext[i+j];
 			  }
 			  funcname[i] = '\0';
 			  yylval.symbol = funcname;
@@ -59,7 +70,8 @@ extern void yyerror(const char* msg);
 			    parencountind++;
 			    if (parencountind == parencountmax) {
 			      parencountmax *= 2;
-			      parencount = realloc(parencount, parencountmax*sizeof(int));
+			      parencount = realloc(parencount,
+			                           parencountmax*sizeof(int));
 			    }
 			    parencount[parencountind] = 0;
 			  } else if (yytext[0] == '}') {
@@ -69,7 +81,8 @@ extern void yyerror(const char* msg);
 			    insert = 1;
 			    do {
 			      inpchr = input();
-			    } while (inpchr == ' ' || inpchr == '\t' || inpchr == '\n');
+			    } while (inpchr == ' ' || inpchr == '\t' ||
+			             inpchr == '\n');
 			    unput(inpchr);
 			    if (inpchr != '{' && inpchr != '[' && inpchr != '"')
 			      insert = 0;

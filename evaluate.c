@@ -38,12 +38,19 @@ BoolExpr* evaluateBoolExpr(BoolExpr* be) {
     s = NULL;
     t = NULL;
     u = dataInListAtPosition(be->stack, i);
-    v = evaluateValue(u);
-    if (v->type == 's') {
-      s = v->data;
+    if (u->type != 'b') {
+      v = evaluateValue(u);
+      if (v == NULL) {
+	freeList(stack);
+	free(n);
+	return NULL;
+      }
+      if (v->type == 's') {
+	s = v->data;
+      }
+      if (u->type != 'v' && u->type != 'c')
+	freeValue(v);
     }
-    if (u->type != 'v' && u->type != 'c')
-      freeValue(v);
     j = evaluateValueAsBool((Value*)dataInListAtPosition(be->stack, i++));
     if (isnan(j)) {
       m++;
@@ -62,12 +69,19 @@ BoolExpr* evaluateBoolExpr(BoolExpr* be) {
     n[++m] = calloc(1, sizeof(double));
     c = (char*)dataInListAtPosition(be->stack, i++);
     u = dataInListAtPosition(be->stack, i);
-    v = evaluateValue(u);
-    if (v->type == 's') {
-      t = v->data;
+    if (u->type != 'b') {
+      v = evaluateValue(u);
+      if (v == NULL) {
+	freeList(stack);
+	free(n);
+	return NULL;
+      }
+      if (v->type == 's') {
+	t = v->data;
+      }
+      if (u->type != 'v' && u->type != 'c')
+	freeValue(v);
     }
-    if (u->type != 'v' && u->type != 'c')
-      freeValue(v);
     k = evaluateValueAsBool((Value*)dataInListAtPosition(be->stack, i++));
     if (isnan(k)) {
       m++;

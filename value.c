@@ -102,7 +102,7 @@ char* addToStringList(char* s, int freestr) {
   char* n;
   l = lengthOfList(stringlist);
   k = strlen(s);
-  j = 0;
+  j = -1;
   for (i=0;i<l;i++) {
     n = dataInListAtPosition(stringlist, i);
     if (n != NULL && k == strlen(n)) {

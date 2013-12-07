@@ -1,17 +1,15 @@
 CC=gcc
 CFLAGS=-Wall -g -pedantic
-LIBS=-L. -lm -llist -lfffll
+LIBS=-L. -lm -lffflllist -lfffllstd
 # you may possible also want the following for profiling:
 # -fprofile-arcs -ftest-coverage -pg
 
 all:
-	make liblist.so
-	make libfffll.so
+	make libffflllist.so
+	make libfffllstd.so
 	make fffll
 
 fffll:	fffll.l.c fffll.y.c value.c tree.o
-	if ! [ -f liblist.so ]; then make liblist.so; fi;
-	if ! [ -f libfffll.so ]; then make libfffll.so; fi;
 	$(CC) $(LIBS) $(CFLAGS) -o fffll tree.o value.c fffll.l.c fffll.y.c
 
 fffll.l.c: fffll.l
@@ -20,11 +18,11 @@ fffll.l.c: fffll.l
 fffll.y.c: fffll.y
 	bison -d -o fffll.y.c fffll.y
 
-liblist.so: list.o array.o
-	$(CC) -shared $(CFLAGS) -o liblist.so list.o array.o
+libffflllist.so: list.o array.o
+	$(CC) -shared $(CFLAGS) -o libffflllist.so list.o array.o
 
-libfffll.so: builtin.o evaluate.o
-	$(CC) -shared $(CFLAGS) -o libfffll.so builtin.o evaluate.o
+libfffllstd.so: builtin.o evaluate.o
+	$(CC) -shared $(CFLAGS) -o libfffllstd.so builtin.o evaluate.o
 
 array.o: array.c array.h
 	$(CC) -fPIC $(CFLAGS) -c array.c

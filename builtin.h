@@ -25,6 +25,7 @@ Value* ifDef(FuncDef* fd, List* arglist);
 Value* lenDef(FuncDef* fd, List* arglist);
 Value* mulDef(FuncDef* fd, List* arglist);
 Value* openDef(FuncDef* fd, List* arglist);
+Value* pushDef(FuncDef* fd, List* arglist);
 Value* rcpDef(FuncDef* fd, List* arglist);
 Value* readDef(FuncDef* fd, List* arglist);
 Value* retDef(FuncDef* fd, List* arglist);

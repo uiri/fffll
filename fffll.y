@@ -245,10 +245,11 @@ value	: STR			{
 int main(int argc, char** argv) {
   FILE* fp;
   /* The value between str's [] should be the value of strsize */
-  char* str[24] = { "=", "<", ">", "&", "|", "stdin", "stdout", "stderr", "DEF",
+  char* str[25] = { "=", "<", ">", "&", "|", "stdin", "stdout", "stderr", "DEF",
 		    "SET", "IF", "WHILE", "WRITE", "READ", "OPEN", "ADD", "MUL",
-		    "RCP", "RETURN", "LEN", "TOK", "CAT", "HEAD", "TAIL"};
-  int strsize = 24;
+		    "RCP", "RETURN", "LEN", "TOK", "CAT", "HEAD", "TAIL",
+		    "PUSH"};
+  int strsize = 25;
   int lenconstants;
   int i, j, k, l;
   Value* stdfiles[3], *v;
@@ -315,6 +316,7 @@ int main(int argc, char** argv) {
   addToListBeginning(funcnames, constants+96);
   addToListBeginning(funcnames, constants+100);
   addToListBeginning(funcnames, constants+106);
+  addToListBeginning(funcnames, constants+112);
   parencount = malloc(16*sizeof(int));
   parencount[parencountind] = 0;
   yyparse();
@@ -341,6 +343,7 @@ int main(int argc, char** argv) {
   newBuiltinFuncDef(constants+96, &catDef, 1);
   newBuiltinFuncDef(constants+100, &headDef, 1);
   newBuiltinFuncDef(constants+106, &tailDef, 1);
+  newBuiltinFuncDef(constants+112, &pushDef, 0);
   v = evaluateStatements(lastParseTree);
   for (i=0;i<funcnum;i++) {
     if (funcdeftable[i] != NULL) {

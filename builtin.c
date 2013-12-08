@@ -160,18 +160,18 @@ char* valueToString(Value* v) {
     return s;
   }
   if (v->type == 'c') {
-    freet = 1;
     u = evaluateFuncVal((FuncVal*)v);
     if (u == NULL) return NULL;
-    t = valueToString(u);
+    s = valueToString(u);
     freeValue(u);
+    return s;
   }
   if (v->type == 'd') {
-    freet = 1;
     u = evaluateStatements(v->data);
     if (u == NULL) return NULL;
-    t = valueToString(u);
+    s = valueToString(u);
     freeValue(u);
+    return s;
   }
   if (v->type == 's') {
     t = v->data;
@@ -375,6 +375,27 @@ Value* openDef(FuncDef* fd, List* arglist) {
   return newValue('f', fp);
 }
 
+Value* pushDef(FuncDef* fd, List* arglist) {
+  Value* v, *u;
+  int i, l;
+  l = lengthOfList(arglist);
+  if (l < 2) {
+    printf("PUSH needs at least two arguments.\n");
+    return NULL;
+  }
+  v = evaluateValue(arglist->data);
+  if (v->type != 'l') {
+    printf("PUSH's first argument must be a list.\n");
+    freeValue(v);
+    return NULL;
+  }
+  for (i=1;i<l;i++) {
+    u = evaluateValue(dataInListAtPosition(arglist, i));
+    addToListEnd(v->data, u);
+  }
+  return v;
+}
+
 Value* rcpDef(FuncDef* fd, List* arglist) {
   double b, d, *n;
   int i, e;
@@ -514,8 +535,8 @@ Value* tailDef(FuncDef* fd, List* arglist) {
     printf("TAIL's argument must be a list.");
     return NULL;
   }
-  ll = ((List*)v->data)->next;
-  tl = ll;
+  ll = cloneList(((List*)v->data)->next);
+  tl = ((List*)v->data)->next;
   while (tl != NULL) {
     ((Value*)tl->data)->refcount++;
     tl = tl->next;

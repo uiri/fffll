@@ -120,6 +120,29 @@ char* addToStringList(char* s, int freestr) {
   return s;
 }
 
+int errmsg(char* err) {
+  fprintf(stderr, "%s\n", err);
+  return 0;
+}
+
+int errmsgf(char* format, char* s) {
+  char* err;
+  err = malloc(strlen(format) + strlen(s) + 2);
+  sprintf(err, format, s);
+  errmsg(err);
+  free(err);
+  return 0;
+}
+
+int errmsgfd(char* format, char* s, int i) {
+  char* err;
+  err = malloc(strlen(format) + strlen(s) + (i/10) + 3);
+  sprintf(err, format, s, i);
+  errmsg(err);
+  free(err);
+  return 0;
+}
+
 Value* evaluateFuncDef(FuncDef* fd, List* arglist) {
   Value* val;
   if (scope(fd, arglist)) return NULL;
@@ -228,7 +251,7 @@ FuncDef* getFunction(char* name) {
   while (i<funcnum) {
     fd = funcdeftable[i++];
     if (fd == NULL) {
-      printf("Function %s is not defined\n", name);
+      errmsgf("Function %s is not defined", name);
       break;
     }
     if (fd->name == name) break;
@@ -320,7 +343,7 @@ Value* valueFromName(char* name) {
   Value* v;
   v = findInTree(varlist->data, name);
   if (v == NULL) {
-    printf("Variable named '%s' is not SET.\n", name);
+    errmsgf("Variable named '%s' is not SET", name);
     return NULL;
   }
   return v;

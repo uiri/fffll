@@ -215,7 +215,7 @@ Value* catDef(FuncDef* fd, List* arglist) {
   int i, j, k, l;
   arglist = evaluateList(arglist);
   if (arglist == NULL) {
-    printf("CAT requires at least one argument");
+    errmsg("CAT requires at least one argument");
     return NULL;
   }
   l = lengthOfList(arglist);
@@ -243,7 +243,7 @@ Value* defDef(FuncDef* fd, List* arglist) {
   int i, j, k, l;
   l = lengthOfList(arglist);
   if (l < 3) {
-    printf("Not enough arguments for DEF\n");
+    errmsg("Not enough arguments for DEF");
     return NULL;
   }
   name = valueToString(arglist->data);
@@ -276,12 +276,12 @@ Value* defDef(FuncDef* fd, List* arglist) {
 Value* headDef(FuncDef* fd, List* arglist) {
   Value* v;
   if (lengthOfList(arglist) != 1) {
-    printf("HEAD only takes one argument.");
+    errmsg("HEAD only takes one argument");
     return NULL;
   }
   v = evaluateValue(arglist->data);
   if (v->type != 'l') {
-    printf("HEAD's argument must be a list.");
+    errmsg("HEAD's argument must be a list");
     return NULL;
   }
   return evaluateValue(((List*)v->data)->data);
@@ -292,7 +292,7 @@ Value* ifDef(FuncDef* fd, List* arglist) {
   BoolExpr* be;
   l = lengthOfList(arglist);
   if (l < 2) {
-    printf("Not enough arguments for IF\n");
+    errmsg("Not enough arguments for IF");
     return NULL;
   }
   be = evaluateBoolExpr(arglist->data);
@@ -312,7 +312,7 @@ Value* lenDef(FuncDef* fd, List* arglist) {
   int i, l;
   Value* v;
   if (arglist == NULL) {
-    printf("Not enough arguments for LEN\n");
+    errmsg("Not enough arguments for LEN");
   }
   arglist = evaluateList(arglist);
   if (arglist == NULL)
@@ -327,7 +327,7 @@ Value* lenDef(FuncDef* fd, List* arglist) {
     } else if (v->type == 'l' || v->type == 'd') {
       *a += (double)lengthOfList(v->data);
     } else if (v->type != '0') {
-      printf("LEN only takes variables, function calls, strings, lists or blocks as arguments\n");
+      errmsg("LEN only takes variables, function calls, strings, lists or blocks as arguments");
       freeValueList(arglist);
       free(a);
       return NULL;
@@ -363,7 +363,7 @@ Value* openDef(FuncDef* fd, List* arglist) {
   Value* v;
   char* s;
   if (arglist == NULL) {
-    printf("Not enough arguments for OPEN\n");
+    errmsg("Not enough arguments for OPEN");
     return NULL;
   }
   v = evaluateValue(arglist->data);
@@ -380,12 +380,12 @@ Value* pushDef(FuncDef* fd, List* arglist) {
   int i, l;
   l = lengthOfList(arglist);
   if (l < 2) {
-    printf("PUSH needs at least two arguments.\n");
+    errmsg("PUSH needs at least two arguments");
     return NULL;
   }
   v = evaluateValue(arglist->data);
   if (v->type != 'l') {
-    printf("PUSH's first argument must be a list.\n");
+    errmsg("PUSH's first argument must be a list");
     freeValue(v);
     return NULL;
   }
@@ -400,8 +400,8 @@ Value* rcpDef(FuncDef* fd, List* arglist) {
   double b, d, *n;
   int i, e;
   if (lengthOfList(arglist) != 1) {
-    printf("RCP only takes 1 argument, the number whose reciprocal"
-	   " is to be computed.\n");
+    errmsg("RCP only takes 1 argument, the number whose reciprocal"
+	   " is to be computed");
     return NULL;
   }
   d = valueToDouble(arglist->data);
@@ -429,18 +429,18 @@ Value* readDef(FuncDef* fd, List* arglist) {
   int i;
   Value* v;
   if (arglist == NULL) {
-    printf("Not enough arguments for READ\n");
+    errmsg("Not enough arguments for READ");
     return NULL;
   }
   v = evaluateValue(arglist->data);
   if (v == NULL) return NULL;
   if (v->type != 'f') {
-    printf("READ only takes a file as its argument.\n");
+    errmsg("READ only takes a file as its argument");
     return NULL;
   }
   fp = *(FILE**)v->data;
   if (feof(fp)) {
-    printf("Attempt to READ past the end of a file.\n");
+    errmsg("Attempt to READ past the end of a file");
     return NULL;
   }
   n = 0;
@@ -493,7 +493,7 @@ Value* retDef(FuncDef* fd, List* arglist) {
     return falsevalue;
   }
   if (((Value*)arglist->data)->type != 'd') {
-    printf("RETURN only takes a statement block as its argument.\n");
+    errmsg("RETURN only takes a statement block as its argument");
     return NULL;
   }
   v = evaluateStatements(((Value*)arglist->data)->data);
@@ -504,11 +504,11 @@ Value* retDef(FuncDef* fd, List* arglist) {
 Value* setDef(FuncDef* fd, List* arglist) {
   Value* v, *u;
   if (lengthOfList(arglist) < 2) {
-    printf("Not enough arguments for SET\n");
+    errmsg("Not enough arguments for SET");
     return NULL;
   }
   if (((Value*)arglist->data)->type != 'v') {
-    printf("SET requires a variable to be its first argument.\n");
+    errmsg("SET requires a variable to be its first argument");
     return NULL;
   }
   v = evaluateValue(arglist->next->data);
@@ -527,12 +527,12 @@ Value* tailDef(FuncDef* fd, List* arglist) {
   Value* v;
   List* ll, *tl;
   if (lengthOfList(arglist) != 1) {
-    printf("TAIL only takes one argument.");
+    errmsg("TAIL only takes one argument");
     return NULL;
   }
   v = evaluateValue(arglist->data);
   if (v->type != 'l') {
-    printf("TAIL's argument must be a list.");
+    errmsg("TAIL's argument must be a list");
     return NULL;
   }
   ll = cloneList(((List*)v->data)->next);
@@ -550,7 +550,7 @@ Value* tokDef(FuncDef* fd, List* arglist) {
   char* s, *t, *r;
   int h, i, j, k;
   if (lengthOfList(arglist) != 2) {
-    printf("TOK takes exactly two arguments, a string to tokenize and a delimiter\n");
+    errmsg("TOK takes exactly two arguments, a string to tokenize and a delimiter");
     return NULL;
   }
   arglist = evaluateList(arglist);
@@ -558,7 +558,7 @@ Value* tokDef(FuncDef* fd, List* arglist) {
     return NULL;
   l = newList();
   if (((Value*)arglist->data)->type != 's' || ((Value*)arglist->next->data)->type != 's') {
-    printf("The arguments to TOK must be strings.\n");
+    errmsg("The arguments to TOK must be strings");
     return NULL;
   }
   r = ((Value*)arglist->data)->data;
@@ -593,7 +593,7 @@ Value* whileDef(FuncDef* fd, List* arglist) {
   Value* v;
   BoolExpr* be;
   if (lengthOfList(arglist) < 2) {
-    printf("Not enough arguments for WHILE\n");
+    errmsg("Not enough arguments for WHILE");
     return NULL;
   }
   v = falsevalue;
@@ -614,13 +614,13 @@ Value* writeDef(FuncDef* fd, List* arglist) {
   FILE* fp;
   Value* v;
   if (arglist == NULL) {
-    printf("Not enough arguments for WRITE\n");
+    errmsg("Not enough arguments for WRITE");
     return NULL;
   }
   v = evaluateValue(arglist->data);
   if (v == NULL) return NULL;
   if (v->type != 'f') {
-    printf("WRITE only takes a file as its first argument.\n");
+    errmsg("WRITE only takes a file as its first argument");
     return NULL;
   }
   fp = *(FILE**)v->data;

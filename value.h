@@ -65,6 +65,9 @@ struct variable {
 #endif
 
 char* addToStringList(char* s, int freestr);
+int errmsg(char* err);
+int errmsgf(char* format, char* s);
+int errmsgfd(char* format, char* s, int i);
 Value* evaluateFuncDef(FuncDef* fd, List* arglist);
 Value* evaluateStatements(List* sl);
 int freeBoolExpr(BoolExpr* be);

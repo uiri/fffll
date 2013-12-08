@@ -16,7 +16,6 @@
 */
 
 #include <math.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "evaluate.h"
@@ -246,7 +245,7 @@ Value* evaluateValue(Value* v) {
     fv = (FuncVal*)v;
     v = evaluateFuncVal((FuncVal*)v);
     if (v == NULL) {
-      fprintf(stderr, "In %s at line %d\n", fv->name, fv->lineno);
+      errmsgfd("In %s at line %d", fv->name, fv->lineno);
     }
     return v;
   }

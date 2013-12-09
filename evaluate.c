@@ -16,6 +16,7 @@
 */
 
 #include <math.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "evaluate.h"
@@ -53,7 +54,7 @@ BoolExpr* evaluateBoolExpr(BoolExpr* be) {
       if (v->type == 's') {
 	s = v->data;
       }
-      if (u->type != 'v' && u->type != 'c')
+      if (u->type != 'v')
 	freeValue(v);
     }
     j = evaluateValueAsBool((Value*)dataInListAtPosition(be->stack, i++));
@@ -88,7 +89,7 @@ BoolExpr* evaluateBoolExpr(BoolExpr* be) {
       if (v->type == 's') {
 	t = v->data;
       }
-      if (u->type != 'v' && u->type != 'c')
+      if (u->type != 'v')
 	freeValue(v);
     }
     k = evaluateValueAsBool((Value*)dataInListAtPosition(be->stack, i++));

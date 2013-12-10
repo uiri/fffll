@@ -20,8 +20,72 @@
 #include <stdlib.h>
 #include <string.h>
 #include "evaluate.h"
-#include "list.h"
-#include "value.h"
+#include "tree.h"
+
+extern List* varlist;
+extern VarTree* globalvars;
+
+/* Internal helper functions */
+
+int freeEachValueInTree(VarTree* vt, Value* v) {
+  if (vt == NULL)
+    return 1;
+  if (vt->data != v)
+    freeValue(vt->data);
+  freeEachValueInTree(vt->left, v);
+  freeEachValueInTree(vt->right, v);
+  return 0;
+}
+
+int descope(Value* v) {
+  VarTree* vt;
+  vt = varlist->data;
+  freeEachValueInTree(vt, v);
+  v->refcount--;
+  freeTree(vt);
+  varlist = deleteFromListBeginning(varlist);
+  return 0;
+}
+
+int incEachRefcountInTree(VarTree* vt) {
+  if (vt == NULL)
+    return 1;
+  ((Value*)vt->data)->refcount++;
+  incEachRefcountInTree(vt->left);
+  incEachRefcountInTree(vt->right);
+  return 0;
+}
+
+int scope(FuncDef* fd, List* arglist) {
+  VarTree* vt;
+  List* fdname, *al;
+  Value* v;
+  fdname = fd->arguments;
+  al = arglist;
+  vt = copyTree(globalvars);
+  incEachRefcountInTree(vt);
+  while (fdname != NULL && al != NULL) {
+    v = evaluateValue(al->data);
+    v->refcount++;
+    if (v == NULL) {
+      addToListBeginning(varlist, vt);
+      return 1;
+    }
+    vt = insertInTree(vt, ((Variable*)fdname->data)->name, v);
+    if (((Value*)al->data)->type == 'c') {
+      fd = getFunction(((FuncVal*)al->data)->name);
+      if (fd->alloc == 1) {
+	freeValue(v);
+      }
+    }
+    fdname = fdname->next;
+    al = al->next;
+  }
+  addToListBeginning(varlist, vt);
+  return 0;
+}
+
+/* External evaluation functions */
 
 BoolExpr* evaluateBoolExpr(BoolExpr* be) {
   int i, l, m, p;
@@ -171,6 +235,16 @@ BoolExpr* evaluateBoolExpr(BoolExpr* be) {
   freeList(stack);
   if (be->neg) be->lasteval = !be->lasteval;
   return be;
+}
+
+Value* evaluateFuncDef(FuncDef* fd, List* arglist) {
+  Value* val;
+  if (scope(fd, arglist)) return NULL;
+  val = evaluateStatements(fd->statements);
+  if (val == NULL)
+    return NULL;
+  descope(val);
+  return val;
 }
 
 Value* evaluateFuncVal(FuncVal* fv) {

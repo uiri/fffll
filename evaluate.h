@@ -18,6 +18,7 @@
 #include "value.h"
 
 BoolExpr* evaluateBoolExpr(BoolExpr* be);
+Value* evaluateFuncDef(FuncDef* fd, List* arglist);
 Value* evaluateFuncVal(FuncVal* fv);
 List* evaluateList(List* l);
 Value* evaluateValue(Value* v);

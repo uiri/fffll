@@ -16,12 +16,10 @@
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
    */
 
-#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "builtin.h"
-#include "list.h"
 #include "tree.h"
 #include "value.h"
 
@@ -39,12 +37,8 @@ void yyerror(const char* msg) {
   printf("ERROR(PARSER): %s\n", msg);
 }
 
- FILE** stdinp;
- FILE** stdoutp;
- FILE** stderrp;
- char* constants;
-
  Value* falsevalue;
+ char* constants;
 
  List* varlist;
  List* varnames;
@@ -56,8 +50,7 @@ void yyerror(const char* msg) {
  List* funcnames;
 
  List* lastParseTree;
- char* eq; char* gt; char* lt;
- char* and; char* or;
+ char* eq, *gt, *lt, *and, *or;
 
 %}
 
@@ -96,7 +89,7 @@ statementlist	: statementlist funcall	{
 					  $$ = newList();
 					  addToListEnd($$, $1);
 					  lastParseTree = $$;
-	  				}
+					}
 		;
 funcall		: FUNC arglist	{ 
 				  int i, j, k, l;
@@ -147,7 +140,7 @@ boolexpr	: '!' '(' bexpr ')'	{
 					  $$->neg = 1;
 					}
 		| '(' bexpr ')'		{
-		  			  $$ = $2;
+					  $$ = $2;
 					}
 		;
 bexpr		: compexpr '&' compexpr
@@ -244,12 +237,13 @@ value	: STR			{
 
 int main(int argc, char** argv) {
   FILE* fp;
+  FILE** stdinp, **stdoutp, **stderrp;
   /* The value between str's [] should be the value of strsize */
-  char* str[25] = { "=", "<", ">", "&", "|", "stdin", "stdout", "stderr", "DEF",
-		    "SET", "IF", "WHILE", "WRITE", "READ", "OPEN", "ADD", "MUL",
-		    "RCP", "RETURN", "LEN", "TOK", "CAT", "HEAD", "TAIL",
-		    "PUSH"};
   int strsize = 25;
+  const char* str[] = { "=", "<", ">", "&", "|", "stdin", "stdout", "stderr",
+                        "DEF", "SET", "IF", "WHILE", "WRITE", "READ", "OPEN",
+                        "ADD", "MUL", "RCP", "RETURN", "LEN", "TOK", "CAT",
+                        "HEAD", "TAIL", "PUSH"};
   int lenconstants;
   int i, j, k, l;
   Value* stdfiles[3], *v;

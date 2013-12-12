@@ -1,0 +1,9 @@
+Def( "Print" [x] {
+     Write(stdout, "Printing...", x)
+})
+
+Def( "Print" [x] {
+     Write(stdout, x)
+})
+
+Print("Hello World")

@@ -200,8 +200,13 @@ int hashName(char* name) {
 int insertFunction(FuncDef* fd) {
   int i;
   i = hashName(fd->name);
-  while (funcdeftable[i] != NULL)
+  while (funcdeftable[i] != NULL) {
+    if (funcdeftable[i]->name == fd->name) {
+      free(funcdeftable[i]);
+      break;
+    }
     i++;
+  }
   funcdeftable[i] = fd;
   return 0;
 }

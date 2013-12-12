@@ -24,13 +24,13 @@ Def("Main",
 	    If( (Mod(x, 3)=0) {
 		If( (Mod(x, 5)=0) {
 		    Write(stdout, "Fizzbuzz")
-		}, {
+		} {
 		    Write(stdout, "Fizz")
 		})
 	    }, {
 		If( (Mod(x, 5)=0) {
 		    Write(stdout, "Buzz")
-		}, {
+		} {
 		    Write(stdout, x)
 		})
 	    })

@@ -35,8 +35,8 @@ extern void yyerror(const char* msg);
 %%
 
 \"([^\"]*(\"\")*)*\"	{
-			  int i, l, j;
-			  char* funcname;
+			  int i, l, j, insert;
+			  char* funcname, inpchr;
 			  i = 0;
 			  for (l=0;yytext[l] != '\0';l++) {
 			    if (yytext[l] == '"') {
@@ -56,6 +56,17 @@ extern void yyerror(const char* msg);
 			    funcname[i] = yytext[i+j];
 			  }
 			  funcname[i] = '\0';
+			  insert = 1;
+			  do {
+			    inpchr = input();
+			  } while (inpchr == ' ' || inpchr == '\t' ||
+			           inpchr == '\n');
+			  unput(inpchr);
+			  if (inpchr != '{' && inpchr != '[' && inpchr != '"')
+			    insert = 0;
+			  if (insert) {
+			    unput(',');
+			  }
 			  yylval.symbol = funcname;
 			  return STR;
 			}
@@ -77,7 +88,7 @@ extern void yyerror(const char* msg);
 			  } else if (yytext[0] == '}') {
 			    parencountind--;
 			  }
-			  if (parencount[parencountind] && yytext[0] == ')') {
+			  if (parencount[parencountind] && (yytext[0] == ')' || yytext[0] == '}' || yytext[0] == ']')) {
 			    insert = 1;
 			    do {
 			      inpchr = input();

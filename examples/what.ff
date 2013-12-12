@@ -1,7 +1,7 @@
-DEF("Print", [x], {
+DEF("Print" [x] {
     Write(stdout, x)
 })
-Def( "Main", [], {
+Def( "Main" [] {
     Print("What?")
 })
 Main()

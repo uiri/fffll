@@ -369,6 +369,11 @@ Value* openDef(FuncDef* fd, List* arglist) {
   v = evaluateValue(arglist->data);
   if (v == NULL) return NULL;
   s = valueToString(v);
+  if ((s[0] == 'h' || s[0] == 'H') && (s[1] == 't' || s[1] == 'T') &&
+      (s[2] == 't' || s[2] == 'T') && (s[3] == 'p' || s[3] == 'P') &&
+      (s[4] == ':' || ((s[4] == 's' || s[4] == 'S') && s[5] == ':'))) {
+    return (Value*)newHttpVal(s);
+  }
   fp = malloc(sizeof(FILE*));
   *fp = fopen(s, "a+");
   free(s);

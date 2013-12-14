@@ -16,6 +16,7 @@
      along with this program.  If not, see <http://www.gnu.org/licenses/>.
    */
 
+#include <curl/curl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -315,6 +316,7 @@ int main(int argc, char** argv) {
   addToListBeginning(funcnames, constants+112);
   parencount = malloc(16*sizeof(int));
   parencount[parencountind] = 0;
+  curl_global_init(CURL_GLOBAL_ALL);
   yyparse();
   free(parencount);
   funcnum *= 4;
@@ -371,5 +373,6 @@ int main(int argc, char** argv) {
   free(stdoutp);
   free(stderrp);
   free(constants);
+  curl_global_cleanup();
   return 0;
 }

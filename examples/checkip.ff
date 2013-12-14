@@ -1,0 +1,5 @@
+Def("Main" [] {
+	Set(x, Read(Open("HtTp://checkip.dyndns.org/")))
+	Write(stdout, x)
+})
+Main()

@@ -15,6 +15,7 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <curl/curl.h>
 #include "list.h"
 
 #ifndef FFFLLVALUE
@@ -54,17 +55,28 @@ struct funcval {
   int lineno;
 };
 
-typedef struct variable Variable;
-struct variable {
+typedef struct httpval HttpVal;
+struct httpval {
   int refcount;
-  char* name;
+  CURL* curl;
   char type;
+  char* url;
+  char* buf;
+  int pos;
+  int bufsize;
 };
 
 typedef struct stringval String;
 struct stringval {
   int refcount;
   char* val;
+};
+
+typedef struct variable Variable;
+struct variable {
+  int refcount;
+  char* name;
+  char type;
 };
 
 #endif
@@ -76,6 +88,7 @@ int errmsgfd(char* format, char* s, int i);
 Value* evaluateStatements(List* sl);
 int freeBoolExpr(BoolExpr* be);
 int freeFuncVal(FuncVal* fv);
+int freeHttpVal(HttpVal* hv);
 int freeString(String* s);
 int freeValue(Value* val);
 int freeValueList(List* r);
@@ -87,6 +100,7 @@ BoolExpr* newBoolExpr(Value* val);
 int newBuiltinFuncDef(char* name, Value* (*evaluate)(FuncDef*, List*), int alloc);
 FuncDef* newFuncDef(char* name, List* al, List* sl, int alloc);
 FuncVal* newFuncVal(char* name, List* arglist, int ln);
+HttpVal* newHttpVal(char* url);
 String* newString(char* s);
 Value* newValue(char type, void* data);
 Variable* newVariable(char* name);

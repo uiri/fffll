@@ -15,6 +15,7 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <curl/curl.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -115,6 +116,17 @@ int freeFuncVal(FuncVal* fv) {
   return 0;
 }
 
+int freeHttpVal(HttpVal* hv) {
+  hv->refcount--;
+  if (hv->refcount < 1) {
+    curl_easy_cleanup(hv->curl);
+    free(hv->buf);
+    free(hv->url);
+    free(hv);
+  }
+  return 0;
+}
+
 int freeString(String* s) {
   s->refcount--;
   if (s->refcount < 1) {
@@ -140,6 +152,10 @@ int freeValue(Value* val) {
 	fclose(*(FILE**)val->data);
 	free(val->data);
       }
+    }
+    if (val->type == 'h') {
+      freeHttpVal((HttpVal*)val);
+      return 1;
     }
     if (val->type == 'b') {
       freeBoolExpr((BoolExpr*)val);
@@ -260,6 +276,26 @@ FuncVal* newFuncVal(char* name, List* arglist, int ln) {
   fv->arglist = arglist;
   fv->lineno = ln;
   return fv;
+}
+
+HttpVal* newHttpVal(char* url) {
+  HttpVal* hv;
+  hv = malloc(sizeof(HttpVal));
+  hv->url = url;
+  hv->refcount = 1;
+  hv->type = 'h';
+  hv->curl = curl_easy_init();
+  curl_easy_setopt(hv->curl, CURLOPT_URL, url);
+  curl_easy_setopt(hv->curl, CURLOPT_FOLLOWLOCATION, 1L);
+  curl_easy_setopt(hv->curl, CURLOPT_MAXREDIRS, 20L);
+  curl_easy_setopt(hv->curl, CURLOPT_AUTOREFERER, 1L);
+  curl_easy_setopt(hv->curl, CURLOPT_USERAGENT, "FFFLL");
+  curl_easy_setopt(hv->curl, CURLOPT_SSL_VERIFYPEER, 0L);
+  curl_easy_setopt(hv->curl, CURLOPT_SSL_VERIFYHOST, 0L);
+  hv->buf = NULL;
+  hv->pos = 0;
+  hv->bufsize = 0;
+  return hv;
 }
 
 String* newString(char* s) {

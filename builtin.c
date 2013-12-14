@@ -29,6 +29,20 @@ extern List* funcnames;
 
 /* Internal helper functions */
 
+size_t writeHttpBuffer(void* contents, size_t size, size_t nmemb, void* userp) {
+  HttpVal* hv;
+  hv = (HttpVal*)userp;
+
+  hv->buf = realloc(hv->buf, hv->bufsize + (size*nmemb) + 1);
+  if (hv->buf == NULL)
+    return 0;
+  memcpy(&(hv->buf[hv->bufsize]), contents, (size*nmemb));
+  hv->bufsize += (size*nmemb);
+  hv->buf[hv->bufsize] = '\0';
+
+  return (size*nmemb);
+}
+
 double valueToDouble(Value* v) {
   double d, n;
   int i, l;
@@ -430,8 +444,9 @@ Value* readDef(FuncDef* fd, List* arglist) {
   char c;
   char* s;
   FILE* fp;
+  HttpVal* hv;
   double n, l;
-  int i;
+  int i, j;
   Value* v;
   String* str;
   if (arglist == NULL) {
@@ -440,56 +455,83 @@ Value* readDef(FuncDef* fd, List* arglist) {
   }
   v = evaluateValue(arglist->data);
   if (v == NULL) return NULL;
-  if (v->type != 'f') {
-    errmsg("READ only takes a file as its argument");
+  if (v->type != 'f' && v->type != 'h') {
+    errmsg("READ only takes a file or http request as its argument");
+    if (((Value*)arglist->data)->type != 'v' && ((Value*)arglist->data)->type != 'c')
+      freeValue(v);
     return NULL;
   }
-  fp = *(FILE**)v->data;
-  if (feof(fp)) {
-    errmsg("Attempt to READ past the end of a file");
-    return NULL;
-  }
-  n = 0;
-  if (fp != stdin && fp != stdout && fp != stderr &&
-      lengthOfList(arglist) > 1) {
-    v = evaluateValue(arglist->next->data);
-    if (v->type == 'n') {
-      n = *(double*)v->data;
-      l = n;
-      if (n < 0) {
-	for (i=-1;l<0;l++) {
-	  do {
-	    i--;
-	    fseek(fp, i, SEEK_END);
-	    c = fgetc(fp);
-	  } while (c != '\n');
-	}
-      } else {
-	fseek(fp, 0, SEEK_SET);
-	for (i=0;i<l;i++) {
-	  for (c=fgetc(fp);c != '\n';c=fgetc(fp));
-	  if (c == EOF) break;
+  if (v->type == 'h') {
+    hv = (HttpVal*)v;
+    if (hv->buf == NULL) {
+      curl_easy_setopt(hv->curl, CURLOPT_WRITEFUNCTION, writeHttpBuffer);
+      curl_easy_setopt(hv->curl, CURLOPT_WRITEDATA, (void*)hv);
+      i = curl_easy_perform(hv->curl);
+      if (i) {
+	errmsgf("READ failed to read %s", hv->url);
+      }
+    }
+    if (hv->pos == hv->bufsize) {
+      errmsg("Attempt to READ past the end of a HTTP response");
+      return NULL;
+    }
+    for (i=0;hv->buf[hv->pos+i] != '\n' && hv->buf[hv->pos+1] != '\0';i++);
+    s = malloc(i+1);
+    for (j=0;j<i;j++) {
+      s[j] = hv->buf[hv->pos++];
+    }
+    s[j] = '\0';
+    hv->pos++;
+  } else {
+    fp = *(FILE**)v->data;
+    if (feof(fp)) {
+      errmsg("Attempt to READ past the end of a file");
+      return NULL;
+    }
+    n = 0;
+    if (fp != stdin && fp != stdout && fp != stderr &&
+	lengthOfList(arglist) > 1) {
+      v = evaluateValue(arglist->next->data);
+      if (v->type == 'n') {
+	n = *(double*)v->data;
+	l = n;
+	if (n < 0) {
+	  for (i=-1;l<0;l++) {
+	    do {
+	      i--;
+	      fseek(fp, i, SEEK_END);
+	      c = fgetc(fp);
+	    } while (c != '\n');
+	  }
+	} else {
+	  fseek(fp, 0, SEEK_SET);
+	  for (i=0;i<l;i++) {
+	    for (c=fgetc(fp);c != '\n';c=fgetc(fp));
+	    if (c == EOF) break;
+	  }
 	}
       }
     }
-  }
-  l = 32;
-  s = malloc(l);
-  i = 0;
-  for (c=fgetc(fp);c != '\n' && c != EOF;c=fgetc(fp)) {
-    if (i+1 > l) {
-      l *= 2;
-      s = realloc(s, l);
+    l = 32;
+    s = malloc(l);
+    i = 0;
+    for (c=fgetc(fp);c != '\n' && c != EOF;c=fgetc(fp)) {
+      if (i+1 > l) {
+        l *= 2;
+        s = realloc(s, l);
+      }
+      s[i++] = c;
     }
-    s[i++] = c;
+    s[i] = '\0';
+    if (n == -1) {
+      fseek(fp, 0, SEEK_SET);
+    }
+    fseek(fp, 0, SEEK_CUR);
   }
-  s[i] = '\0';
-  if (n == -1) {
-    fseek(fp, 0, SEEK_SET);
-  }
-  fseek(fp, 0, SEEK_CUR);
   str = newString(s);
   str = addToStringList(str);
+  if (((Value*)arglist->data)->type != 'v')
+    freeValue(v);
   return newValue('s', str);
 }
 

@@ -30,22 +30,22 @@ extern List* stringlist;
 extern int funcnum;
 extern FuncDef** funcdeftable;
 
-char* addToStringList(char* s, int freestr) {
+String* addToStringList(String* s) {
   int i, j, k, l;
-  char* n;
+  String* n;
   l = lengthOfList(stringlist);
-  k = strlen(s);
+  k = strlen(s->val);
   j = -1;
   for (i=0;i<l;i++) {
     n = dataInListAtPosition(stringlist, i);
-    if (n != NULL && k == strlen(n)) {
+    if (n != NULL && k == strlen(n->val)) {
       for (j=0;j<k;j++) {
-	if (s[j] != n[j]) break;
+	if (s->val[j] != n->val[j]) break;
       }
       if (j == k) {
-	if (freestr)
-	  free(s);
+	freeString(s);
 	s = n;
+	n->refcount++;
 	break;
       }
     }
@@ -111,7 +111,16 @@ int freeFuncVal(FuncVal* fv) {
     free(fv->name);
     freeValueList(fv->arglist);
     free(fv);
-    return 1;
+  }
+  return 0;
+}
+
+int freeString(String* s) {
+  s->refcount--;
+  if (s->refcount < 1) {
+    free(s->val);
+    free(s);
+    deleteFromListData(stringlist, s);
   }
   return 0;
 }
@@ -121,6 +130,9 @@ int freeValue(Value* val) {
   if (val->refcount < 1) {
     if (val->type == 'n') {
       free(val->data);
+    }
+    if (val->type == 's') {
+      freeString(val->data);
     }
     if (val->type == 'f') {
       if (*(FILE**)val->data != stdin && *(FILE**)val->data != stdout
@@ -145,7 +157,6 @@ int freeValue(Value* val) {
       return 1;
     }
     free(val);
-    return 1;
   }
   return 0;
 }
@@ -164,7 +175,6 @@ int freeVariable(Variable* var) {
   var->refcount--;
   if (var->refcount < 1) {
     free(var);
-    return 1;
   }
   return 0;
 }
@@ -250,6 +260,14 @@ FuncVal* newFuncVal(char* name, List* arglist, int ln) {
   fv->arglist = arglist;
   fv->lineno = ln;
   return fv;
+}
+
+String* newString(char* s) {
+  String* str;
+  str = malloc(sizeof(String));
+  str->val = s;
+  str->refcount = 1;
+  return str;
 }
 
 Value* newValue(char type, void* data) {

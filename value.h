@@ -37,7 +37,6 @@ struct boolval {
 };
 
 typedef struct funcdef FuncDef;
-
 struct funcdef {
   char* name;
   Value* (*evaluate)(FuncDef*, List*);
@@ -62,15 +61,22 @@ struct variable {
   char type;
 };
 
+typedef struct stringval String;
+struct stringval {
+  int refcount;
+  char* val;
+};
+
 #endif
 
-char* addToStringList(char* s, int freestr);
+String* addToStringList(String* s);
 int errmsg(char* err);
 int errmsgf(char* format, char* s);
 int errmsgfd(char* format, char* s, int i);
 Value* evaluateStatements(List* sl);
 int freeBoolExpr(BoolExpr* be);
 int freeFuncVal(FuncVal* fv);
+int freeString(String* s);
 int freeValue(Value* val);
 int freeValueList(List* r);
 int freeVariable(Variable* var);
@@ -81,6 +87,7 @@ BoolExpr* newBoolExpr(Value* val);
 int newBuiltinFuncDef(char* name, Value* (*evaluate)(FuncDef*, List*), int alloc);
 FuncDef* newFuncDef(char* name, List* al, List* sl, int alloc);
 FuncVal* newFuncVal(char* name, List* arglist, int ln);
+String* newString(char* s);
 Value* newValue(char type, void* data);
 Variable* newVariable(char* name);
 Value* valueFromName(char* name);

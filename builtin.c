@@ -38,7 +38,7 @@ double valueToDouble(Value* v) {
   if (v->type == 'n')
     return *(double*)v->data;
   if (v->type == 's')
-    return atof((char*)v->data);
+    return atof(((String*)v->data)->val);
   if (v->type == 'b') {
     be = evaluateBoolExpr((BoolExpr*)v);
     if (be == NULL) return NAN;
@@ -172,7 +172,7 @@ char* valueToString(Value* v) {
     return s;
   }
   if (v->type == 's') {
-    t = v->data;
+    t = ((String*)v->data)->val;
   }
   if (t == NULL) return NULL;
   l = strlen(t);
@@ -211,6 +211,7 @@ Value* addDef(FuncDef* fd, List* arglist) {
 Value* catDef(FuncDef* fd, List* arglist) {
   char* s, *t;
   int i, j, k, l;
+  String* str;
   arglist = evaluateList(arglist);
   if (arglist == NULL) {
     errmsg("CAT requires at least one argument");
@@ -232,8 +233,9 @@ Value* catDef(FuncDef* fd, List* arglist) {
     s[k] = '\0';
     free(t);
   }
-  s = addToStringList(s, 1);
-  return newValue('s', s);
+  str = newString(s);
+  str = addToStringList(str);
+  return newValue('s', str);
 }
 
 Value* defDef(FuncDef* fd, List* arglist) {
@@ -426,6 +428,7 @@ Value* readDef(FuncDef* fd, List* arglist) {
   double n, l;
   int i;
   Value* v;
+  String* str;
   if (arglist == NULL) {
     errmsg("Not enough arguments for READ");
     return NULL;
@@ -480,8 +483,9 @@ Value* readDef(FuncDef* fd, List* arglist) {
     fseek(fp, 0, SEEK_SET);
   }
   fseek(fp, 0, SEEK_CUR);
-  s = addToStringList(s, 1);
-  return newValue('s', s);
+  str = newString(s);
+  str = addToStringList(str);
+  return newValue('s', str);
 }
 
 Value* retDef(FuncDef* fd, List* arglist) {
@@ -547,6 +551,7 @@ Value* tokDef(FuncDef* fd, List* arglist) {
   Value* v;
   char* s, *t, *r;
   int h, i, j, k;
+  String* str;
   if (lengthOfList(arglist) != 2) {
     errmsg("TOK takes exactly two arguments, a string to tokenize and a delimiter");
     return NULL;
@@ -559,30 +564,29 @@ Value* tokDef(FuncDef* fd, List* arglist) {
     errmsg("The arguments to TOK must be strings");
     return NULL;
   }
-  r = ((Value*)arglist->data)->data;
-  t = ((Value*)arglist->next->data)->data;
-  s = malloc(strlen(r));
-  k = strlen(t);
+  r = ((String*)((Value*)arglist->data)->data)->val;
+  t = ((String*)((Value*)arglist->next->data)->data)->val;
   h = 0;
-  for (i=-1;r[i+1] != '\0';i++) {
-    for (j=0;t[j] != '\0' && t[j] != r[i+1+j];j++);
-    if (t[j] != r[i+1+j])
+  for (i=0;r[i] != '\0';i++) {
+    k = i;
+    for (j=0;t[j] != '\0' && t[j] == r[i];j++) i++;
+    if (t[j] != '\0' && r[i] != '\0') {
+      i = k;
       continue;
-    j = h;
-    i++;
-    for (;h<i;h++) {
-      s[h] = r[h];
     }
-    s[i] = '\0';
-    i--;
-    v = newValue('s', addToStringList(s+j, 0));
+    k -= h;
+    s = malloc(k+1);
+    for (j=0;j<k;j++) {
+      s[j] = r[h];
+      h++;
+    }
+    s[j] = '\0';
+    str = newString(s);
+    str = addToStringList(str);
+    v = newValue('s', str);
     addToListEnd(l, v);
-    h += k;
+    h = i;
   }
-  if (l->next == NULL)
-    free(s);
-  else
-    addToListEnd(stringlist, s);
   freeValueList(arglist);
   return newValue('l', l);
 }

@@ -297,7 +297,7 @@ double evaluateValueAsBool(Value* v) {
     return i;
   }
   if (v->type == 's') {
-    return strlen((char*)v->data);
+    return strlen(((String*)v->data)->val);
   }
   if (v->type == 'b') {
     return ((BoolExpr*)v)->lasteval;

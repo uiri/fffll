@@ -184,8 +184,10 @@ compexpr	: value '>' value
 				}
 	;
 value	: STR			{
-				  $1 = addToStringList($1, 1);
-				  $$ = newValue('s', $1);
+				  String* s;
+				  s = newString($1);
+				  s = addToStringList(s);
+				  $$ = newValue('s', s);
 				}
 	| NUM			{
 				  double* n;

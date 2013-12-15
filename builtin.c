@@ -341,7 +341,8 @@ Value* lenDef(FuncDef* fd, List* arglist) {
     } else if (v->type == 'l' || v->type == 'd') {
       *a += (double)lengthOfList(v->data);
     } else if (v->type != '0') {
-      errmsg("LEN only takes variables, function calls, strings, lists or blocks as arguments");
+      errmsg("LEN only takes variables, function calls, strings, lists or "
+	     "blocks as arguments");
       freeValueList(arglist);
       free(a);
       return NULL;
@@ -457,7 +458,8 @@ Value* readDef(FuncDef* fd, List* arglist) {
   if (v == NULL) return NULL;
   if (v->type != 'f' && v->type != 'h') {
     errmsg("READ only takes a file or http request as its argument");
-    if (((Value*)arglist->data)->type != 'v' && ((Value*)arglist->data)->type != 'c')
+    if (((Value*)arglist->data)->type != 'v' &&
+	((Value*)arglist->data)->type != 'c')
       freeValue(v);
     return NULL;
   }
@@ -568,7 +570,8 @@ Value* setDef(FuncDef* fd, List* arglist) {
   if (u != NULL) {
     freeValue(u);
   }
-  varlist->data = insertInTree(varlist->data, ((Variable*)arglist->data)->name, v);
+  varlist->data = insertInTree(varlist->data, ((Variable*)arglist->data)->name,
+			       v);
   return v;
 }
 
@@ -600,14 +603,16 @@ Value* tokDef(FuncDef* fd, List* arglist) {
   int h, i, j, k;
   String* str;
   if (lengthOfList(arglist) != 2) {
-    errmsg("TOK takes exactly two arguments, a string to tokenize and a delimiter");
+    errmsg("TOK takes exactly two arguments, a string to tokenize and a "
+	   "delimiter");
     return NULL;
   }
   arglist = evaluateList(arglist);
   if (arglist == NULL)
     return NULL;
   l = newList();
-  if (((Value*)arglist->data)->type != 's' || ((Value*)arglist->next->data)->type != 's') {
+  if (((Value*)arglist->data)->type != 's' ||
+      ((Value*)arglist->next->data)->type != 's') {
     errmsg("The arguments to TOK must be strings");
     return NULL;
   }
@@ -658,39 +663,65 @@ Value* whileDef(FuncDef* fd, List* arglist) {
 }
 
 Value* writeDef(FuncDef* fd, List* arglist) {
-  char* s;
-  int i, j, k, l;
+  char* s, *t;
+  int h, i, j, k, l;
   FILE* fp;
   Value* v;
+  HttpVal* hv;
   if (arglist == NULL) {
     errmsg("Not enough arguments for WRITE");
     return NULL;
   }
   v = evaluateValue(arglist->data);
   if (v == NULL) return NULL;
-  if (v->type != 'f') {
-    errmsg("WRITE only takes a file as its first argument");
+  if (v->type != 'f' && v->type != 'h') {
+    errmsg("WRITE only takes a file or a http request as its first argument");
     return NULL;
   }
-  fp = *(FILE**)v->data;
   l = lengthOfList(arglist);
-  k = 0;
-  if (fp == stdout || fp == stderr) {
-    k = 1;
-  }
   j = -1;
-  for (i=1;i<l;i++) {
-    s = valueToString(dataInListAtPosition(arglist, i));
-    if (s == NULL) {
-      return NULL;
+  if (v->type == 'f') {
+    fp = *(FILE**)v->data;
+    k = 0;
+    if (fp == stdout || fp == stderr) {
+      k = 1;
     }
-    for (j=0;s[j] != '\0';j++) {
-      fputc(s[j], fp);
+    for (i=1;i<l;i++) {
+      s = valueToString(dataInListAtPosition(arglist, i));
+      if (s == NULL) {
+	return NULL;
+      }
+      for (j=0;s[j] != '\0';j++) {
+	fputc(s[j], fp);
+      }
+      free(s);
     }
-    free(s);
+    if (k || j == -1)
+      fputc('\n', fp);
+    fseek(fp, 0, SEEK_CUR);
+  } else {
+    k = 32;
+    t = malloc(k);
+    h = 0;
+    for (i=1;i<l;i++) {
+      s = valueToString(dataInListAtPosition(arglist, i));
+      for (j=0;s[j] != '\0';j++) {
+	if (h == k) {
+	  k *= 2;
+	  t = realloc(t, k);
+	}
+	t[h++] = s[j];
+      }
+      free(s);
+    }
+    if (h == k) {
+      k++;
+      t = realloc(t, k);
+    }
+    t[h] = '\0';
+    hv = (HttpVal*)v;
+    curl_easy_setopt(hv->curl, CURLOPT_POSTFIELDSIZE, strlen(t));
+    curl_easy_setopt(hv->curl, CURLOPT_POSTFIELDS, t);
   }
-  if (k || j == -1)
-    fputc('\n', fp);
-  fseek(fp, 0, SEEK_CUR);
   return falsevalue;
 }

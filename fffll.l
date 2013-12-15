@@ -38,14 +38,18 @@ extern void yyerror(const char* msg);
 			  int i, l, j, insert;
 			  char* funcname, inpchr;
 			  i = 0;
-			  for (l=0;yytext[l] != '\0';l++) {
-			    if (yytext[l] == '"') {
-			      i++;
-			      if (yytext[l+1] == '"')
-			        l++;
+			  if (yytext[2] == '\0')
+			    l = 0;
+			  else {
+			    for (l=0;yytext[l] != '\0';l++) {
+			      if (yytext[l] == '"') {
+			        i++;
+			        if (yytext[l+1] == '"')
+			          l++;
+			      }
 			    }
+			    l -= i;
 			  }
-			  l -= i;
 			  l++;
 			  funcname = malloc(l);
 			  l--;
@@ -56,11 +60,13 @@ extern void yyerror(const char* msg);
 			    funcname[i] = yytext[i+j];
 			  }
 			  funcname[i] = '\0';
-			  insert = 1;
+			  insert = 0;
+			  if (parencount[parencountind])
+			    insert = 1;
 			  do {
 			    inpchr = input();
-			  } while (inpchr == ' ' || inpchr == '\t' ||
-			           inpchr == '\n');
+			  } while (insert && (inpchr == ' ' || inpchr == '\t' ||
+			           inpchr == '\n'));
 			  unput(inpchr);
 			  if (inpchr != '{' && inpchr != '[' && inpchr != '"')
 			    insert = 0;

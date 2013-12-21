@@ -36,7 +36,7 @@ extern void yyerror(const char* msg);
 
 \"([^\"]*(\"\")*)*\"	{
 			  int i, l, j, insert;
-			  char* funcname, inpchr;
+			  char* funcname, rawchr, inpchr;
 			  i = 0;
 			  if (yytext[2] == '\0')
 			    l = 0;
@@ -60,14 +60,68 @@ extern void yyerror(const char* msg);
 			    funcname[i] = yytext[i+j];
 			  }
 			  funcname[i] = '\0';
+			  l++;
 			  insert = 0;
 			  if (parencount[parencountind])
 			    insert = 1;
-			  do {
-			    inpchr = input();
-			  } while (insert && (inpchr == ' ' || inpchr == '\t' ||
-			           inpchr == '\n'));
-			  unput(inpchr);
+			  while (1) {
+			    do {
+			      inpchr = input();
+			    } while (insert && (inpchr == ' ' || inpchr == '\t' ||
+			             inpchr == '\n'));
+			    unput(inpchr);
+			    if (inpchr == '@') {
+			      input();
+			      inpchr = input();
+			      if (47 < inpchr && inpchr < 58) {
+			        inpchr -= 48;
+			      } else {
+			        if (inpchr > 90)
+			          inpchr -= 32;
+			        inpchr -= 55;
+			      }
+			      rawchr = inpchr * 16;
+			      inpchr = input();
+			      if (47 < inpchr && inpchr < 58) {
+			        inpchr -= 48;
+			      } else {
+			        if (inpchr > 90)
+			          inpchr -= 32;
+			        inpchr -= 55;
+			      }
+			      rawchr += inpchr;
+			    } else
+			      break;
+			    do {
+			      inpchr = input();
+			    } while (insert && (inpchr == ' ' || inpchr == '\t' ||
+			             inpchr == '\n'));
+			    if (i+2 > l) {
+			      l += 2;
+			      funcname = realloc(funcname, l);
+			    }
+			    funcname[i++] = rawchr;
+			    funcname[i] = '\0';
+			    if (inpchr != '"') {
+			      unput(inpchr);
+			      if (inpchr == '@')
+			        continue;
+			      else
+			        break;
+			    }
+			    while ((inpchr = input()) != '"') {
+			      if (i == l) {
+			        l *= 2;
+			        funcname = realloc(funcname, l);
+			      }
+			      funcname[i++] = inpchr;
+			    }
+			    if (i == l) {
+			      l++;
+			      funcname = realloc(funcname, l);
+			    }
+			    funcname[i] = '\0';
+			  }
 			  if (inpchr != '{' && inpchr != '[' && inpchr != '"')
 			    insert = 0;
 			  if (insert) {

@@ -2,6 +2,6 @@ DEF("Print" [x] {
     Write(stdout, x)
 })
 Def( "Main" [] {
-    Print("What?")
+    Print(""@57@68"at"@3f)
 })
 Main()

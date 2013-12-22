@@ -20,7 +20,7 @@ Def("Main",
     [], 
     {
 	Set(x, 1)
-	While( (x<101) {
+	While( (x<10001) {
 	    If( (Mod(x, 3)=0) {
 		If( (Mod(x, 5)=0) {
 		    Write(stdout, "Fizzbuzz")

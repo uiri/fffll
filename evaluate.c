@@ -305,6 +305,9 @@ double evaluateValueAsBool(Value* v) {
   if (v->type == 'l') {
     return lengthOfList((List*)v->data);
   }
+  if (v->type == 'i') {
+    return evaluateValueAsBool(evaluateValue(v));
+  }
   if (v->type == 'd') {
     return evaluateValueAsBool(evaluateStatements((List*)v->data));
   }
@@ -316,6 +319,8 @@ double evaluateValueAsBool(Value* v) {
 
 Value* evaluateValue(Value* v) {
   FuncVal* fv;
+  Value* u;
+  int i, j;
   if (v->type == 'c') {
     fv = (FuncVal*)v;
     v = evaluateFuncVal((FuncVal*)v);
@@ -328,6 +333,26 @@ Value* evaluateValue(Value* v) {
     v = valueFromName(((Variable*)v)->name);
     if (v == NULL) return NULL;
     return v;
+  }
+  if (v->type == 'i') {
+    if (v->data == NULL) {
+      u = valueFromName(((Item*)v)->parent);
+      if (u == NULL)
+	return NULL;
+      if (u->type != 'l') {
+	errmsg("Attempt to index non-list variable\n");
+	return NULL;
+      }
+      v->data = u->data;
+      for (i=0;((Item*)v)->name[i] != '.';i++);
+      i++;
+      for (j=0;47 < ((Item*)v)->name[i] && ((Item*)v)->name[i] < 58;i++)
+	j += ((Item*)v)->name[i] - 48;
+      for (i=0;i<j;i++) {
+	v->data = ((List*)v->data)->next;
+      }
+    }
+    return evaluateValue(((List*)v->data)->data);
   }
   if (v->type == 'b') {
     v = (Value*)evaluateBoolExpr((BoolExpr*)v);

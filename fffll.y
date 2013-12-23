@@ -197,28 +197,53 @@ value	: STR			{
 				  $$ = newValue('n', n);
 				}
 	| VAR			{
-				  int i, j, k, l;
-				  char* n;
+				  int f, g, h, i, j, k, l, m;
+				  char* n, *o;
 				  l = lengthOfList(varnames);
-				  k = strlen($1);
+				  h = 0;
+				  m = 0;
+				  for (k=0;$1[k] != '\0';k++) {
+				    if ($1[k] == '.' && !h) {
+				      h = k;
+				      m = 1;
+				    }
+				  }
 				  j = 0;
+				  o = NULL;
+				  f = 1;
 				  for (i=0;i<l;i++) {
 				    n = dataInListAtPosition(varnames, i);
-				    if (n != NULL && k == strlen(n)) {
+				    if (n == NULL)
+				      continue;
+				    g = strlen(n);
+				    if (f && k == g) {
 				      for (j=0;j<k;j++) {
 					if ($1[j] != n[j]) break;
 				      }
 				      if (j == k) {
 					free($1);
 					$1 = n;
-					break;
+					f = 0;
+				      }
+				    }
+				    if (m && h == g) {
+				      for (j=0;j<h;j++) {
+					if ($1[j] != n[j]) break;
+				      }
+				      if (j == h) {
+					o = n;
+					m = 0;
 				      }
 				    }
 				  }
 				  if (j != k) {
 				    addToListBeginning(varnames, $1);
 				  }
-				  $$ = (Value*)newVariable($1);
+				  if (h) {
+				    $$ = (Value*)newItem($1, o);
+				  } else {
+				    $$ = (Value*)newVariable($1);
+				  }
 				}
 	| funcall               {
 				  $$ = (Value*)$1;

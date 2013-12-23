@@ -1,0 +1,10 @@
+Set(x, [3, 2, 1])
+Write(stdout, x.1)
+Set(x.1, 0)
+If((x.1), {
+    Write(stdout, "WTF?")
+})
+If((x.2), {
+    Write(stdout, "OK good")
+})
+Write(stdout, x)

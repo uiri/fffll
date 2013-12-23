@@ -78,7 +78,7 @@ double valueToDouble(Value* v) {
     }
     return n;
   }
-  if (v->type == 'v') {
+  if (v->type == 'v' || v->type == 'i') {
     u = evaluateValue(v);
     if (u == NULL) return NAN;
     n = valueToDouble(u);
@@ -100,6 +100,12 @@ char* valueToString(Value* v) {
     if (u == NULL) return NULL;
     s = valueToString(u);
     if (s == NULL) return NULL;
+    return s;
+  }
+  if (v->type == 'i') {
+    u = evaluateValue(v);
+    if (u == NULL) return NULL;
+    s = valueToString(u);
     return s;
   }
   if (v->type == 'n') {
@@ -558,13 +564,21 @@ Value* setDef(FuncDef* fd, List* arglist) {
     errmsg("Not enough arguments for SET");
     return NULL;
   }
-  if (((Value*)arglist->data)->type != 'v') {
+  if (((Value*)arglist->data)->type != 'v' && ((Value*)arglist->data)->type != 'i') {
     errmsg("SET requires a variable to be its first argument");
     return NULL;
   }
   v = evaluateValue(arglist->next->data);
   if (v == NULL) {
     return NULL;
+  }
+  if (((Value*)arglist->data)->type == 'i') {
+    u = (Value*)arglist->data;
+    evaluateValue(u);
+    if (((List*)u->data)->data != NULL)
+      freeValue(((List*)u->data)->data);
+    ((List*)u->data)->data = v;
+    return v;
   }
   u = findInTree(varlist->data, ((Variable*)arglist->data)->name);
   if (u != NULL) {

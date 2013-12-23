@@ -127,6 +127,14 @@ int freeHttpVal(HttpVal* hv) {
   return 0;
 }
 
+int freeItem(Item* item) {
+  item->refcount--;
+  if (item->refcount < 1) {
+    free(item);
+  }
+  return 0;
+}
+
 int freeString(String* s) {
   s->refcount--;
   if (s->refcount < 1) {
@@ -296,6 +304,17 @@ HttpVal* newHttpVal(char* url) {
   hv->pos = 0;
   hv->bufsize = 0;
   return hv;
+}
+
+Item* newItem(char* name, char* parent) {
+  Item* item;
+  item = malloc(sizeof(Item));
+  item->data = NULL;
+  item->name = name;
+  item->parent = parent;
+  item->refcount = 1;
+  item->type = 'i';
+  return item;
 }
 
 String* newString(char* s) {

@@ -55,11 +55,10 @@ VarTree* deleteInTree(VarTree* vt, char* key) {
 	t->right = ret;
       break;
     }
-    for (i=0;key[i] != '\0' && key[i] == t->key[i];i++);
-    if (key[i] < t->key[i]) {
+    if (key < t->key) {
       t = t->left;
     }
-    if (key[i] > t->key[i]) {
+    if (key > t->key) {
       t = t->right;
     }
   }
@@ -67,23 +66,17 @@ VarTree* deleteInTree(VarTree* vt, char* key) {
 }
 
 void* findInTree(VarTree* vt, char* key) {
-  int i;
   VarTree* t;
   t = vt;
-  while (1) {
-    if (t == NULL)
-      return NULL;
+  while (t != NULL) {
     if (key == t->key)
       return t->data;
-    for (i=0;key[i] != '\0' && key[i] == t->key[i];i++);
-    if (key[i] == '\0')
-      return NULL;
-    else if (key[i] < t->key[i]) {
+    if (key < t->key)
       t = t->left;
-    } else {
+    else
       t = t->right;
-    }
   }
+  return NULL;
 }
 
 int freeTree(VarTree* vt) {
@@ -96,24 +89,29 @@ int freeTree(VarTree* vt) {
 }
 
 VarTree* insertInTree(VarTree* vt, char* key, void* data) {
-  int i;
-  if (key == vt->key) {
-    vt->data = data;
-    return vt;
-  }
-  for (i=0;key[i] != '\0' && key[i] == vt->key[i];i++);
-  if (key[i] < vt->key[i]) {
-    vt->count++;
-    if (vt->left == NULL)
-      vt->left = newTree(key, data);
-    else
-      vt->left = insertInTree(vt->left, key, data);
-  } else if (key[i] > vt->key[i]) {
-    vt->count++;
-    if (vt->right == NULL)
-      vt->right = newTree(key, data);
-    else
-      vt->right = insertInTree(vt->right, key, data);
+  VarTree* t;
+  t = vt;
+  while (1) {
+    if (key == t->key) {
+      t->data = data;
+      break;
+    }
+    t->count++;
+    if (key < t->key) {
+      if (t->left == NULL) {
+	t->left = newTree(key, data);
+	break;
+      } else {
+	t = t->left;
+      }
+    } else {
+      if (t->right == NULL) {
+	t->right = newTree(key, data);
+	break;
+      } else {
+	t = t->right;
+      }
+    }
   }
   return rebalanceTree(vt);
 }
@@ -160,28 +158,32 @@ VarTree* rebalanceTree(VarTree* vt) {
   root = vt;
   left = vt->left;
   right = vt->right;
-  if (right == NULL && left == NULL) {
+  if (left == NULL || right == NULL) {
+    if (3 > root->count)
+      return root;
     root->count = 1;
-    return root;
+    if (left != NULL) {
+      root->left = NULL;
+      return mergeTree(left, root);
+    }
+    if (right != NULL) {
+      root->right = NULL;
+      return mergeTree(root, right);
+    }
   }
-  if (right == NULL) {
+  if (2 > left->count - right->count || 2 > right->count - left->count)
+    return root;
+  if (left->count > right->count) {
     root->count = 1;
     root->left = NULL;
-    return mergeTree(left, root);
-  }
-  if (left == NULL) {
-    root->count = 1;
     root->right = NULL;
-    return mergeTree(root, right);
-  }
-  root->count = 1;
-  root->left = NULL;
-  root->right = NULL;
-  if (left->count - right->count > 1) {
     right->left = mergeTree(root, right->left);
     left->right = mergeTree(left->right, right);
     root = left;
   } else {
+    root->count = 1;
+    root->left = NULL;
+    root->right = NULL;
     left->right = mergeTree(left->right, root);
     right->left = mergeTree(left, right->left);
     root = right;

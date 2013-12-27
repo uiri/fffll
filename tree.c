@@ -15,9 +15,9 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "tree.h"
 #include <stdlib.h>
 #include <string.h>
+#include "tree.h"
 
 VarTree* copyTree(VarTree* vt) {
   VarTree* nt;
@@ -66,15 +66,13 @@ VarTree* deleteInTree(VarTree* vt, char* key) {
 }
 
 void* findInTree(VarTree* vt, char* key) {
-  VarTree* t;
-  t = vt;
-  while (t != NULL) {
-    if (key == t->key)
-      return t->data;
-    if (key < t->key)
-      t = t->left;
+  while (vt != NULL) {
+    if (key == vt->key)
+      return vt->data;
+    if (vt->key > key)
+      vt = vt->left;
     else
-      t = t->right;
+      vt = vt->right;
   }
   return NULL;
 }
@@ -171,7 +169,8 @@ VarTree* rebalanceTree(VarTree* vt) {
       return mergeTree(root, right);
     }
   }
-  if (2 > left->count - right->count || 2 > right->count - left->count)
+  if ((2 > left->count - right->count && left->count - right->count > -1) ||
+      (2 > right->count - left->count && right->count - left->count > -1))
     return root;
   if (left->count > right->count) {
     root->count = 1;

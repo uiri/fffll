@@ -306,7 +306,7 @@ HttpVal* newHttpVal(char* url) {
   return hv;
 }
 
-Item* newItem(char* name, char* parent) {
+Item* newItem(char* name, char* parent, int j) {
   Item* item;
   item = malloc(sizeof(Item));
   item->data = NULL;
@@ -314,6 +314,7 @@ Item* newItem(char* name, char* parent) {
   item->parent = parent;
   item->refcount = 1;
   item->type = 'i';
+  item->indir = j;
   return item;
 }
 

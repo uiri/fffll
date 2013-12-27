@@ -24,6 +24,7 @@
 
 extern List* varlist;
 extern VarTree* globalvars;
+extern List* varnames;
 
 /* Internal helper functions */
 
@@ -321,6 +322,8 @@ Value* evaluateValue(Value* v) {
   FuncVal* fv;
   Value* u;
   int i, j;
+  char* s, *t;
+  List* l;
   if (v->type == 'c') {
     fv = (FuncVal*)v;
     v = evaluateFuncVal((FuncVal*)v);
@@ -335,7 +338,7 @@ Value* evaluateValue(Value* v) {
     return v;
   }
   if (v->type == 'i') {
-    if (v->data == NULL) {
+    if (v->data == NULL || ((Item*)v)->indir) {
       u = valueFromName(((Item*)v)->parent);
       if (u == NULL)
 	return NULL;
@@ -344,10 +347,31 @@ Value* evaluateValue(Value* v) {
 	return NULL;
       }
       v->data = u->data;
-      for (i=0;((Item*)v)->name[i] != '.';i++);
+      for (i=0;((Item*)v)->name[i] != '.' && ((Item*)v)->name[i] != ':';i++);
       i++;
-      for (j=0;47 < ((Item*)v)->name[i] && ((Item*)v)->name[i] < 58;i++)
-	j += ((Item*)v)->name[i] - 48;
+      s = ((Item*)v)->name+i;
+      i = 0;
+      if (((Item*)v)->indir) {
+	l = varnames;
+	while (1) {
+	  t = l->data;
+	  for (j=0;t[j] != '\0';j++)
+	    if (s[j] != t[j]) break;
+	  if (t[j] == 0)
+	    break;
+	  l = l->next;
+	  if (l == NULL)
+	    return NULL;
+	}
+	u = valueFromName(t);
+	if (u == NULL)
+	  return NULL;
+	s = valueToString(u);
+      }
+      for (j=0;47 < s[i] && s[i] < 58;i++)
+	j += s[i] - 48;
+      if (((Item*)v)->indir)
+	free(s);
       for (i=0;i<j;i++) {
 	v->data = ((List*)v->data)->next;
       }
@@ -360,4 +384,122 @@ Value* evaluateValue(Value* v) {
   }
   v->refcount++;
   return v;
+}
+
+char* valueToString(Value* v) {
+  char* s, *t;
+  int i, j, k, l, freet, m;
+  BoolExpr* be;
+  Value* u;
+  freet = 0;
+  l = 0;
+  t = NULL;
+  if (v->type == 'v') {
+    u = valueFromName(((Variable*)v)->name);
+    if (u == NULL) return NULL;
+    s = valueToString(u);
+    if (s == NULL) return NULL;
+    return s;
+  }
+  if (v->type == 'i') {
+    u = evaluateValue(v);
+    if (u == NULL) return NULL;
+    s = valueToString(u);
+    return s;
+  }
+  if (v->type == 'n') {
+    l = 32;
+    i = l;
+    s = malloc(l);
+    l = snprintf(s, l, "%g", *(double*)v->data);
+    if (i<l) {
+      s = realloc(s, l);
+      snprintf(s, l, "%g", *(double*)v->data);
+    }
+    return s;
+  }
+  if (v->type == '0' || v->type == 'b') {
+    if (v->type == 'b') {
+      be = evaluateBoolExpr((BoolExpr*)v);
+      if (be == NULL) return NULL;
+      l = be->lasteval;
+    }
+    if (l) {
+      s = malloc(5);
+      s[0] = 't';
+      s[1] = 'r';
+      s[2] = 'u';
+      s[3] = 'e';
+      s[4] = '\0';
+    } else {
+      s = malloc(6);
+      s[0] = 'f';
+      s[1] = 'a';
+      s[2] = 'l';
+      s[3] = 's';
+      s[4] = 'e';
+      s[5] = '\0';
+    }
+    return s;
+  }
+  if (v->type == 'l') {
+    l = lengthOfList(v->data);
+    s = malloc(4);
+    s[0] = '[';
+    k = 0;
+    for (i=0;i<l;i++) {
+      if (k) s[k] = ' ';
+      k++;
+      u = evaluateValue(dataInListAtPosition(v->data, i));
+      if (u == NULL) {
+	free(s);
+	return NULL;
+      }
+      t = valueToString(u);
+      freeValue(u);
+      if (t == NULL) {
+	free(s);
+	return NULL;
+      }
+      m = strlen(t);
+      s = realloc(s, k+m+2);
+      for (j=0;j<m;j++) {
+	s[k+j] = t[j];
+      }
+      s[k+++j] = ',';
+      s[k+j] = '\0';
+      k += m;
+      free(t);
+    }
+    if (!k) k = 2;
+    s[--k] = ']';
+    s[++k] = '\0';
+    return s;
+  }
+  if (v->type == 'c') {
+    u = evaluateFuncVal((FuncVal*)v);
+    if (u == NULL) return NULL;
+    s = valueToString(u);
+    freeValue(u);
+    return s;
+  }
+  if (v->type == 'd') {
+    u = evaluateStatements(v->data);
+    if (u == NULL) return NULL;
+    s = valueToString(u);
+    freeValue(u);
+    return s;
+  }
+  if (v->type == 's') {
+    t = ((String*)v->data)->val;
+  }
+  if (t == NULL) return NULL;
+  l = strlen(t);
+  s = malloc(l+1);
+  for (i=0;i<l;i++) {
+    s[i] = t[i];
+  }
+  s[i] = '\0';
+  if (freet) free(t);
+  return s;
 }

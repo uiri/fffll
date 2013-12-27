@@ -73,6 +73,7 @@ struct itemval {
   char type;
   char* parent;
   char* name;
+  int indir;
 };
 
 typedef struct stringval String;
@@ -111,7 +112,7 @@ int newBuiltinFuncDef(char* name, Value* (*evaluate)(FuncDef*, List*), int alloc
 FuncDef* newFuncDef(char* name, List* al, List* sl, int alloc);
 FuncVal* newFuncVal(char* name, List* arglist, int ln);
 HttpVal* newHttpVal(char* url);
-Item* newItem(char* name, char* parent);
+Item* newItem(char* name, char* parent, int j);
 String* newString(char* s);
 Value* newValue(char type, void* data);
 Variable* newVariable(char* name);

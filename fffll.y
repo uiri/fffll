@@ -197,15 +197,18 @@ value	: STR			{
 				  $$ = newValue('n', n);
 				}
 	| VAR			{
-				  int f, g, h, i, j, k, l, m;
+				  int f, g, h, i, j, k, l, m, p;
 				  char* n, *o;
 				  l = lengthOfList(varnames);
 				  h = 0;
 				  m = 0;
+				  p = 0;
 				  for (k=0;$1[k] != '\0';k++) {
-				    if ($1[k] == '.' && !h) {
+				    if (($1[k] == '.' || $1[k] == ':') && !h) {
 				      h = k;
 				      m = 1;
+				      if ($1[k] == ':')
+					p = 1;
 				    }
 				  }
 				  j = 0;
@@ -218,29 +221,31 @@ value	: STR			{
 				    g = strlen(n);
 				    if (f && k == g) {
 				      for (j=0;j<k;j++) {
-					if ($1[j] != n[j]) break;
+				        if ($1[j] != n[j]) break;
 				      }
 				      if (j == k) {
-					free($1);
-					$1 = n;
-					f = 0;
+				        free($1);
+				        $1 = n;
+				        f = 0;
 				      }
 				    }
 				    if (m && h == g) {
 				      for (j=0;j<h;j++) {
-					if ($1[j] != n[j]) break;
+				        if ($1[j] != n[j]) break;
 				      }
 				      if (j == h) {
-					o = n;
-					m = 0;
+				        o = n;
+				        m = 0;
 				      }
 				    }
+				    if (!m && !f)
+				      break;
 				  }
-				  if (j != k) {
+				  if (f) {
 				    addToListBeginning(varnames, $1);
 				  }
 				  if (h) {
-				    $$ = (Value*)newItem($1, o);
+				    $$ = (Value*)newItem($1, o, p);
 				  } else {
 				    $$ = (Value*)newVariable($1);
 				  }

@@ -197,16 +197,19 @@ extern void yyerror(const char* msg);
 			  yylval.symbol = funcname;
 			  return VAR;
 			}
-\/\/			{
+--			{
 			  char c;
-			  while ((c = input()) != '\n');
-			}
-\/\*			{
-			  char c;
-			  while (1) {
-			    while ((c = input()) != '*');
-			    if ((c = input()) == '/')
-			      break;
+			  if ((c = input()) != '\n') {
+			    if (c == '{') {
+			      while (1) {
+			        while ((c = input()) != '}');
+				if ((c = input()) == '-')
+			          if ((c = input()) == '-')
+				    break;
+			      }
+			    } else {
+			      while ((c = input()) != '\n');
+			    }
 			  }
 			}
 [ \t]			;

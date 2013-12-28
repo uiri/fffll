@@ -87,6 +87,8 @@ struct variable {
   int refcount;
   char* name;
   char type;
+  char indextype;
+  void* index;
 };
 
 #endif

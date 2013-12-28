@@ -306,9 +306,6 @@ double evaluateValueAsBool(Value* v) {
   if (v->type == 'l') {
     return lengthOfList((List*)v->data);
   }
-  if (v->type == 'i') {
-    return evaluateValueAsBool(evaluateValue(v));
-  }
   if (v->type == 'd') {
     return evaluateValueAsBool(evaluateStatements((List*)v->data));
   }
@@ -322,7 +319,6 @@ Value* evaluateValue(Value* v) {
   FuncVal* fv;
   Value* u;
   int i, j;
-  char* s, *t;
   List* l;
   if (v->type == 'c') {
     fv = (FuncVal*)v;
@@ -333,50 +329,34 @@ Value* evaluateValue(Value* v) {
     return v;
   }
   if (v->type == 'v') {
-    v = valueFromName(((Variable*)v)->name);
     if (v == NULL) return NULL;
-    return v;
-  }
-  if (v->type == 'i') {
-    if (v->data == NULL || ((Item*)v)->indir) {
-      u = valueFromName(((Item*)v)->parent);
-      if (u == NULL)
-	return NULL;
+    if (((Variable*)v)->indextype == 'n' || ((Variable*)v)->indextype == 'v') {
+      u = valueFromName(((Variable*)v)->name);
       if (u->type != 'l') {
-	errmsg("Attempt to index non-list variable\n");
-	return NULL;
+        errmsg("Only lists can be indexed.");
+        return NULL;
       }
-      v->data = u->data;
-      for (i=0;((Item*)v)->name[i] != '.' && ((Item*)v)->name[i] != ':';i++);
-      i++;
-      s = ((Item*)v)->name+i;
-      i = 0;
-      if (((Item*)v)->indir) {
-	l = varnames;
-	while (1) {
-	  t = l->data;
-	  for (j=0;t[j] != '\0';j++)
-	    if (s[j] != t[j]) break;
-	  if (t[j] == 0)
-	    break;
-	  l = l->next;
-	  if (l == NULL)
-	    return NULL;
-	}
-	u = valueFromName(t);
-	if (u == NULL)
-	  return NULL;
-	s = valueToString(u);
+      l = u->data;
+      if (((Variable*)v)->indextype == 'v') {
+        v = evaluateValue(((Variable*)v)->index);
+        j = (int)valueToDouble(v);
+      } else {
+        j = (int)*(double*)((Variable*)v)->index;
       }
-      for (j=0;47 < s[i] && s[i] < 58;i++)
-	j += s[i] - 48;
-      if (((Item*)v)->indir)
-	free(s);
       for (i=0;i<j;i++) {
-	v->data = ((List*)v->data)->next;
+        if (l == NULL)
+          break;
+        l = l->next;
       }
+      if (l == NULL) {
+        errmsg("List index out of bounds");
+        return NULL;
+      }
+      v = l->data;
+    } else {
+      v = valueFromName(((Variable*)v)->name);
     }
-    return evaluateValue(((List*)v->data)->data);
+    return v;
   }
   if (v->type == 'b') {
     v = (Value*)evaluateBoolExpr((BoolExpr*)v);
@@ -386,120 +366,46 @@ Value* evaluateValue(Value* v) {
   return v;
 }
 
-char* valueToString(Value* v) {
-  char* s, *t;
-  int i, j, k, l, freet, m;
+double valueToDouble(Value* v) {
+  double d, n;
+  int i, l;
   BoolExpr* be;
   Value* u;
-  freet = 0;
-  l = 0;
-  t = NULL;
-  if (v->type == 'v') {
-    u = valueFromName(((Variable*)v)->name);
-    if (u == NULL) return NULL;
-    s = valueToString(u);
-    if (s == NULL) return NULL;
-    return s;
-  }
-  if (v->type == 'i') {
-    u = evaluateValue(v);
-    if (u == NULL) return NULL;
-    s = valueToString(u);
-    return s;
-  }
-  if (v->type == 'n') {
-    l = 32;
-    i = l;
-    s = malloc(l);
-    l = snprintf(s, l, "%g", *(double*)v->data);
-    if (i<l) {
-      s = realloc(s, l);
-      snprintf(s, l, "%g", *(double*)v->data);
-    }
-    return s;
-  }
-  if (v->type == '0' || v->type == 'b') {
-    if (v->type == 'b') {
-      be = evaluateBoolExpr((BoolExpr*)v);
-      if (be == NULL) return NULL;
-      l = be->lasteval;
-    }
-    if (l) {
-      s = malloc(5);
-      s[0] = 't';
-      s[1] = 'r';
-      s[2] = 'u';
-      s[3] = 'e';
-      s[4] = '\0';
-    } else {
-      s = malloc(6);
-      s[0] = 'f';
-      s[1] = 'a';
-      s[2] = 'l';
-      s[3] = 's';
-      s[4] = 'e';
-      s[5] = '\0';
-    }
-    return s;
-  }
-  if (v->type == 'l') {
-    l = lengthOfList(v->data);
-    s = malloc(4);
-    s[0] = '[';
-    k = 0;
-    for (i=0;i<l;i++) {
-      if (k) s[k] = ' ';
-      k++;
-      u = evaluateValue(dataInListAtPosition(v->data, i));
-      if (u == NULL) {
-	free(s);
-	return NULL;
-      }
-      t = valueToString(u);
-      freeValue(u);
-      if (t == NULL) {
-	free(s);
-	return NULL;
-      }
-      m = strlen(t);
-      s = realloc(s, k+m+2);
-      for (j=0;j<m;j++) {
-	s[k+j] = t[j];
-      }
-      s[k+++j] = ',';
-      s[k+j] = '\0';
-      k += m;
-      free(t);
-    }
-    if (!k) k = 2;
-    s[--k] = ']';
-    s[++k] = '\0';
-    return s;
+  n = 0.0;
+  if (v->type == 'n')
+    return *(double*)v->data;
+  if (v->type == 's')
+    return atof(((String*)v->data)->val);
+  if (v->type == 'b') {
+    be = evaluateBoolExpr((BoolExpr*)v);
+    if (be == NULL) return NAN;
+    return (double)(be->lasteval);
   }
   if (v->type == 'c') {
-    u = evaluateFuncVal((FuncVal*)v);
-    if (u == NULL) return NULL;
-    s = valueToString(u);
+    u = (Value*)evaluateFuncVal((FuncVal*)v);
+    if (u == NULL) return NAN;
+    d = valueToDouble(u);
     freeValue(u);
-    return s;
+    return d;
   }
-  if (v->type == 'd') {
-    u = evaluateStatements(v->data);
-    if (u == NULL) return NULL;
-    s = valueToString(u);
+  if (v->type == 'd')
+    return valueToDouble(evaluateStatements(v->data));
+  if (v->type == 'l') {
+    l = lengthOfList(v->data);
+    for (i=0;i<l;i++) {
+      u = evaluateValue(dataInListAtPosition(v->data, i));
+      d = valueToDouble(u);
+      freeValue(u);
+      if (d < 0) return d;
+      n += d;
+    }
+    return n;
+  }
+  if (v->type == 'v') {
+    u = evaluateValue(v);
+    if (u == NULL) return NAN;
+    n = valueToDouble(u);
     freeValue(u);
-    return s;
   }
-  if (v->type == 's') {
-    t = ((String*)v->data)->val;
-  }
-  if (t == NULL) return NULL;
-  l = strlen(t);
-  s = malloc(l+1);
-  for (i=0;i<l;i++) {
-    s[i] = t[i];
-  }
-  s[i] = '\0';
-  if (freet) free(t);
-  return s;
+  return n;
 }

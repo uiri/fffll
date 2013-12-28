@@ -53,6 +53,33 @@ void yyerror(const char* msg) {
  List* lastParseTree;
  char* eq, *gt, *lt, *and, *or;
 
+Variable* parseVariable(char* name) {
+  int i, j, k, l;
+  char* n;
+  l = lengthOfList(varnames);
+  for (k=0;name[k] != '\0';k++);
+  j = 0;
+  for (i=0;i<l;i++) {
+    n = dataInListAtPosition(varnames, i);
+    if (n == NULL)
+      continue;
+    if (k == strlen(n)) {
+      for (j=0;j<k;j++) {
+        if (name[j] != n[j]) break;
+      }
+      if (j == k) {
+        free(name);
+        name = n;
+        break;
+      }
+    }
+  }
+  if (j != k) {
+    addToListBeginning(varnames, name);
+  }
+  return newVariable(name);
+}
+
 %}
 
 %union {
@@ -190,6 +217,30 @@ value	: STR			{
 				  s = addToStringList(s);
 				  $$ = newValue('s', s);
 				}
+	| VAR '.' NUM		{
+				  Variable* var;
+				  double* n;
+				  var = parseVariable($1);
+				  n = malloc(sizeof(double));
+				  *n = $3;
+				  var->indextype = 'n';
+				  var->index = n;
+				  $$ = (Value*)var;
+				}
+	| VAR '.' VAR		{
+				  Variable* var;
+				  var = parseVariable($1);
+				  var->indextype = 'u';
+				  var->index = parseVariable($3);
+				  $$ = (Value*)var;
+				}
+	| VAR '.' '[' VAR ']'	{
+				  Variable* var;
+				  var = parseVariable($1);
+				  var->indextype = 'v';
+				  var->index = parseVariable($4);
+				  $$ = (Value*)var;
+				}
 	| NUM			{
 				  double* n;
 				  n = malloc(sizeof(double));
@@ -197,58 +248,7 @@ value	: STR			{
 				  $$ = newValue('n', n);
 				}
 	| VAR			{
-				  int f, g, h, i, j, k, l, m, p;
-				  char* n, *o;
-				  l = lengthOfList(varnames);
-				  h = 0;
-				  m = 0;
-				  p = 0;
-				  for (k=0;$1[k] != '\0';k++) {
-				    if (($1[k] == '.' || $1[k] == ':') && !h) {
-				      h = k;
-				      m = 1;
-				      if ($1[k] == ':')
-					p = 1;
-				    }
-				  }
-				  j = 0;
-				  o = NULL;
-				  f = 1;
-				  for (i=0;i<l;i++) {
-				    n = dataInListAtPosition(varnames, i);
-				    if (n == NULL)
-				      continue;
-				    g = strlen(n);
-				    if (f && k == g) {
-				      for (j=0;j<k;j++) {
-				        if ($1[j] != n[j]) break;
-				      }
-				      if (j == k) {
-				        free($1);
-				        $1 = n;
-				        f = 0;
-				      }
-				    }
-				    if (m && h == g) {
-				      for (j=0;j<h;j++) {
-				        if ($1[j] != n[j]) break;
-				      }
-				      if (j == h) {
-				        o = n;
-				        m = 0;
-				      }
-				    }
-				    if (!m && !f)
-				      break;
-				  }
-				  if (f) {
-				    addToListBeginning(varnames, $1);
-				  }
-				  if (h) {
-				    $$ = (Value*)newItem($1, o, p);
-				  } else {
-				    $$ = (Value*)newVariable($1);
-				  }
+				  $$ = (Value*)parseVariable($1);
 				}
 	| funcall               {
 				  $$ = (Value*)$1;

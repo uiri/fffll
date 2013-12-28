@@ -130,7 +130,7 @@ extern void yyerror(const char* msg);
 			  yylval.symbol = funcname;
 			  return STR;
 			}
-[,;()[\]\{\}<>=&|!]	{
+[,.()[\]\{\}<>=&|!]	{
 			  int insert = 0;
 			  char inschr = ',', inpchr;
 			  if (yytext[0] == '(')
@@ -182,7 +182,7 @@ extern void yyerror(const char* msg);
 			  yylval.symbol = funcname;
 			  return FUNC;
 			}
-[a-z][A-Za-z.0-9:]*	{
+[a-z][A-Za-z0-9]*	{
 			  int i, l;
 			  char* funcname;
 			  l = strlen(yytext);

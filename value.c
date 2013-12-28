@@ -198,6 +198,10 @@ int freeValueList(List* r) {
 int freeVariable(Variable* var) {
   var->refcount--;
   if (var->refcount < 1) {
+    if (var->indextype == 'n')
+      free(var->index);
+    else if (var->indextype != '0')
+      freeVariable(var->index);
     free(var);
   }
   return 0;
@@ -341,6 +345,8 @@ Variable* newVariable(char* name) {
   var->refcount = 1;
   var->name = name;
   var->type = 'v';
+  var->indextype = '0';
+  var->index = NULL;
   return var;
 }
 

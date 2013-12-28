@@ -43,48 +43,122 @@ size_t writeHttpBuffer(void* contents, size_t size, size_t nmemb, void* userp) {
   return (size*nmemb);
 }
 
-double valueToDouble(Value* v) {
-  double d, n;
-  int i, l;
+char* valueToString(Value* v) {
+  char* s, *t;
+  int i, j, k, l, freet, m;
   BoolExpr* be;
   Value* u;
-  n = 0.0;
-  if (v->type == 'n')
-    return *(double*)v->data;
-  if (v->type == 's')
-    return atof(((String*)v->data)->val);
-  if (v->type == 'b') {
-    be = evaluateBoolExpr((BoolExpr*)v);
-    if (be == NULL) return NAN;
-    return (double)(be->lasteval);
+  freet = 0;
+  l = 0;
+  t = NULL;
+  if (v->type == 'v') {
+    u = evaluateValue(v);
+    if (u == NULL) return NULL;
+    s = valueToString(u);
+    if (s == NULL) return NULL;
+    return s;
   }
-  if (v->type == 'c') {
-    u = (Value*)evaluateFuncVal((FuncVal*)v);
-    if (u == NULL) return NAN;
-    d = valueToDouble(u);
-    freeValue(u);
-    return d;
+  if (v->type == 'i') {
+    u = evaluateValue(v);
+    if (u == NULL) return NULL;
+    s = valueToString(u);
+    return s;
   }
-  if (v->type == 'd')
-    return valueToDouble(evaluateStatements(v->data));
+  if (v->type == 'n') {
+    l = 32;
+    i = l;
+    s = malloc(l);
+    l = snprintf(s, l, "%g", *(double*)v->data);
+    if (i<l) {
+      s = realloc(s, l);
+      snprintf(s, l, "%g", *(double*)v->data);
+    }
+    return s;
+  }
+  if (v->type == '0' || v->type == 'b') {
+    if (v->type == 'b') {
+      be = evaluateBoolExpr((BoolExpr*)v);
+      if (be == NULL) return NULL;
+      l = be->lasteval;
+    }
+    if (l) {
+      s = malloc(5);
+      s[0] = 't';
+      s[1] = 'r';
+      s[2] = 'u';
+      s[3] = 'e';
+      s[4] = '\0';
+    } else {
+      s = malloc(6);
+      s[0] = 'f';
+      s[1] = 'a';
+      s[2] = 'l';
+      s[3] = 's';
+      s[4] = 'e';
+      s[5] = '\0';
+    }
+    return s;
+  }
   if (v->type == 'l') {
     l = lengthOfList(v->data);
+    s = malloc(4);
+    s[0] = '[';
+    k = 0;
     for (i=0;i<l;i++) {
+      if (k) s[k] = ' ';
+      k++;
       u = evaluateValue(dataInListAtPosition(v->data, i));
-      d = valueToDouble(u);
+      if (u == NULL) {
+	free(s);
+	return NULL;
+      }
+      t = valueToString(u);
       freeValue(u);
-      if (d < 0) return d;
-      n += d;
+      if (t == NULL) {
+	free(s);
+	return NULL;
+      }
+      m = strlen(t);
+      s = realloc(s, k+m+2);
+      for (j=0;j<m;j++) {
+	s[k+j] = t[j];
+      }
+      s[k+++j] = ',';
+      s[k+j] = '\0';
+      k += m;
+      free(t);
     }
-    return n;
+    if (!k) k = 2;
+    s[--k] = ']';
+    s[++k] = '\0';
+    return s;
   }
-  if (v->type == 'v' || v->type == 'i') {
-    u = evaluateValue(v);
-    if (u == NULL) return NAN;
-    n = valueToDouble(u);
+  if (v->type == 'c') {
+    u = evaluateFuncVal((FuncVal*)v);
+    if (u == NULL) return NULL;
+    s = valueToString(u);
     freeValue(u);
+    return s;
   }
-  return n;
+  if (v->type == 'd') {
+    u = evaluateStatements(v->data);
+    if (u == NULL) return NULL;
+    s = valueToString(u);
+    freeValue(u);
+    return s;
+  }
+  if (v->type == 's') {
+    t = ((String*)v->data)->val;
+  }
+  if (t == NULL) return NULL;
+  l = strlen(t);
+  s = malloc(l+1);
+  for (i=0;i<l;i++) {
+    s[i] = t[i];
+  }
+  s[i] = '\0';
+  if (freet) free(t);
+  return s;
 }
 
 /* External Function Definitions */
@@ -442,11 +516,13 @@ Value* retDef(FuncDef* fd, List* arglist) {
 
 Value* setDef(FuncDef* fd, List* arglist) {
   Value* v, *u;
+  int i, j;
+  List* l;
   if (lengthOfList(arglist) < 2) {
     errmsg("Not enough arguments for SET");
     return NULL;
   }
-  if (((Value*)arglist->data)->type != 'v' && ((Value*)arglist->data)->type != 'i') {
+  if (((Value*)arglist->data)->type != 'v') {
     errmsg("SET requires a variable to be its first argument");
     return NULL;
   }
@@ -454,22 +530,38 @@ Value* setDef(FuncDef* fd, List* arglist) {
   if (v == NULL) {
     return NULL;
   }
-  if (((Value*)arglist->data)->type == 'i') {
-    u = (Value*)arglist->data;
-    evaluateValue(u);
-    if (((List*)u->data)->data != NULL) {
-      freeValue(((List*)u->data)->data);
-      freeValue(((List*)u->data)->data);
-    }
-    ((List*)u->data)->data = v;
-    return v;
-  }
   u = findInTree(varlist->data, ((Variable*)arglist->data)->name);
-  if (u != NULL) {
-    freeValue(u);
+  if (((Variable*)arglist->data)->indextype == 'n' || ((Variable*)arglist->data)->indextype == 'v') {
+    if (u->type != 'l') {
+      errmsg("Only lists can be indexed.");
+      return NULL;
+    }
+    l = u->data;
+    if (((Variable*)arglist->data)->indextype == 'v') {
+      u = evaluateValue(((Variable*)arglist->data)->index);
+      j = (int)valueToDouble(u);
+    } else {
+      j = (int)*(double*)((Variable*)arglist->data)->index;
+    }
+    for (i=0;i<j;i++) {
+      if (l == NULL)
+	break;
+      l = l->next;
+    }
+    if (l == NULL) {
+      errmsg("List index out of bounds");
+      return NULL;
+    }
+    if (l->data != NULL)
+      freeValue(l->data);
+    l->data = v;
+  } else {
+    if (u != NULL) {
+      freeValue(u);
+    }
+    varlist->data = insertInTree(varlist->data, ((Variable*)arglist->data)->name,
+                                 v);
   }
-  varlist->data = insertInTree(varlist->data, ((Variable*)arglist->data)->name,
-                               v);
   return v;
 }
 

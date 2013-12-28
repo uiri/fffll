@@ -23,4 +23,4 @@ Value* evaluateFuncVal(FuncVal* fv);
 List* evaluateList(List* l);
 Value* evaluateValue(Value* v);
 double evaluateValueAsBool(Value* v);
-char* valueToString(Value* v);
+double valueToDouble(Value* v);

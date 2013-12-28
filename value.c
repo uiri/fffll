@@ -188,12 +188,17 @@ int freeValueList(List* r) {
 }
 
 int freeVariable(Variable* var) {
+  int i;
   var->refcount--;
   if (var->refcount < 1) {
-    if (var->indextype == 'n')
-      free(var->index);
-    else if (var->indextype != '0')
-      freeVariable(var->index);
+    for (i=0;var->indextype[i] != '0';i++) {
+      if (var->indextype[i] == 'n')
+	free(var->index[i]);
+      else if (var->indextype[i] != '0')
+	freeValue(var->index[i]);
+    }
+    free(var->indextype);
+    free(var->index);
     free(var);
   }
   return 0;
@@ -325,8 +330,10 @@ Variable* newVariable(char* name) {
   var->refcount = 1;
   var->name = name;
   var->type = 'v';
-  var->indextype = '0';
-  var->index = NULL;
+  var->indextype = malloc(1);
+  var->index = malloc(sizeof(void*));
+  var->indextype[0] = '0';
+  var->index[0] = NULL;
   return var;
 }
 

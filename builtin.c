@@ -516,7 +516,7 @@ Value* retDef(FuncDef* fd, List* arglist) {
 
 Value* setDef(FuncDef* fd, List* arglist) {
   Value* v, *u;
-  int i, j;
+  int i, j, k;
   List* l;
   if (lengthOfList(arglist) < 2) {
     errmsg("Not enough arguments for SET");
@@ -531,26 +531,33 @@ Value* setDef(FuncDef* fd, List* arglist) {
     return NULL;
   }
   u = findInTree(varlist->data, ((Variable*)arglist->data)->name);
-  if (((Variable*)arglist->data)->indextype == 'n' || ((Variable*)arglist->data)->indextype == 'v') {
-    if (u->type != 'l') {
-      errmsg("Only lists can be indexed.");
-      return NULL;
-    }
-    l = u->data;
-    if (((Variable*)arglist->data)->indextype == 'v') {
-      u = evaluateValue(((Variable*)arglist->data)->index);
-      j = (int)valueToDouble(u);
-    } else {
-      j = (int)*(double*)((Variable*)arglist->data)->index;
-    }
-    for (i=0;i<j;i++) {
-      if (l == NULL)
-	break;
-      l = l->next;
-    }
-    if (l == NULL) {
-      errmsg("List index out of bounds");
-      return NULL;
+  if (((Variable*)arglist->data)->indextype[0] == 'n' || ((Variable*)arglist->data)->indextype[0] == 'v') {
+    l = NULL;
+    for (k=0;((Variable*)arglist->data)->indextype[k] == 'n' || ((Variable*)arglist->data)->indextype[k] == 'v';k++) {
+      if (l != NULL) {
+	u = l->data;
+      }
+      if (u->type != 'l') {
+	errmsg("Only lists can be indexed.");
+	return NULL;
+      }
+      l = u->data;
+      if (((Variable*)arglist->data)->indextype[k] == 'v') {
+	u = evaluateValue(((Variable*)arglist->data)->index[k]);
+	if (u == NULL) return NULL;
+	j = (int)valueToDouble(u);
+      } else {
+	j = *(int*)((Variable*)arglist->data)->index[k];
+      }
+      for (i=0;i<j;i++) {
+	if (l == NULL)
+	  break;
+	l = l->next;
+      }
+      if (l == NULL) {
+	errmsg("List index out of bounds");
+	return NULL;
+      }
     }
     if (l->data != NULL)
       freeValue(l->data);

@@ -83,6 +83,7 @@ Variable* parseVariable(char* name) {
 %}
 
 %union {
+  int index;
   double num;
   char* symbol;
   struct List* llist;
@@ -91,6 +92,7 @@ Variable* parseVariable(char* name) {
   struct boolval* be;
 }
 
+%token <index> IND
 %token <num> NUM
 %token <symbol> STR
 %token <symbol> FUNC
@@ -217,29 +219,52 @@ value	: STR			{
 				  s = addToStringList(s);
 				  $$ = newValue('s', s);
 				}
-	| VAR '.' NUM		{
-				  Variable* var;
-				  double* n;
-				  var = parseVariable($1);
-				  n = malloc(sizeof(double));
-				  *n = $3;
-				  var->indextype = 'n';
-				  var->index = n;
-				  $$ = (Value*)var;
+	| value IND		{
+				  int* n, i;
+				  $$ = $1;
+				  if ($$->type == 'v') {
+				    n = malloc(sizeof(int));
+				    *n = $2;
+				    for (i=0;((Variable*)$$)->indextype[i] != '0';i++);
+				    ((Variable*)$$)->indextype[i] = 'n';
+				    ((Variable*)$$)->index[i] = n;
+				    i++;
+				    ((Variable*)$$)->indextype = realloc(((Variable*)$$)->indextype, ++i);
+				    ((Variable*)$$)->index = realloc(((Variable*)$$)->index, i*sizeof(void*));
+				    i--;
+				    ((Variable*)$$)->indextype[i] = '0';
+				    ((Variable*)$$)->index[i] = NULL;
+				  }
 				}
-	| VAR '.' VAR		{
-				  Variable* var;
-				  var = parseVariable($1);
-				  var->indextype = 'u';
-				  var->index = parseVariable($3);
-				  $$ = (Value*)var;
+	| value '.' VAR		{
+				  int i;
+				  $$ = $1;
+				  if ($$->type == 'v') {
+				    for (i=0;((Variable*)$$)->indextype[i] != '0';i++);
+				    ((Variable*)$$)->indextype[i] = 'u';
+				    ((Variable*)$$)->index[i] = parseVariable($3);
+				    i++;
+				    ((Variable*)$$)->indextype = realloc(((Variable*)$$)->indextype, ++i);
+				    ((Variable*)$$)->index = realloc(((Variable*)$$)->index, i*sizeof(void*));
+				    i--;
+				    ((Variable*)$$)->indextype[i] = '0';
+				    ((Variable*)$$)->index[i] = NULL;
+				  }
 				}
-	| VAR '.' '[' VAR ']'	{
-				  Variable* var;
-				  var = parseVariable($1);
-				  var->indextype = 'v';
-				  var->index = parseVariable($4);
-				  $$ = (Value*)var;
+	| value '.' '[' value ']' {
+				  int i;
+				  $$ = $1;
+				  if ($$->type == 'v') {
+				    for (i=0;((Variable*)$$)->indextype[i] != '0';i++);
+				    ((Variable*)$$)->indextype[i] = 'v';
+				    ((Variable*)$$)->index[i] = $4;
+				    i++;
+				    ((Variable*)$$)->indextype = realloc(((Variable*)$$)->indextype, ++i);
+				    ((Variable*)$$)->index = realloc(((Variable*)$$)->index, i*sizeof(void*));
+				    i--;
+				    ((Variable*)$$)->indextype[i] = '0';
+				    ((Variable*)$$)->index[i] = NULL;
+				  }
 				}
 	| NUM			{
 				  double* n;
@@ -386,7 +411,7 @@ int main(int argc, char** argv) {
   if (v != NULL && v != falsevalue) {
     freeValue(v);
   }
-  freeTree(globalvars);
+  /*freeTree(globalvars);*/
   freeList(varlist);
   l = lengthOfList(varnames) - 4;
   for (i=0;i<l;i++) {

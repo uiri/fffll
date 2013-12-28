@@ -318,7 +318,7 @@ double evaluateValueAsBool(Value* v) {
 Value* evaluateValue(Value* v) {
   FuncVal* fv;
   Value* u;
-  int i, j;
+  int i, j, k;
   List* l;
   if (v->type == 'c') {
     fv = (FuncVal*)v;
@@ -330,18 +330,23 @@ Value* evaluateValue(Value* v) {
   }
   if (v->type == 'v') {
     if (v == NULL) return NULL;
-    if (((Variable*)v)->indextype == 'n' || ((Variable*)v)->indextype == 'v') {
-      u = valueFromName(((Variable*)v)->name);
+    l = NULL;
+    for (k=0;((Variable*)v)->indextype[k] == 'n' || ((Variable*)v)->indextype[k] == 'v';k++) {
+      if (l == NULL)
+	u = valueFromName(((Variable*)v)->name);
+      else
+	u = l->data;
+      if (u == NULL) return NULL;
       if (u->type != 'l') {
         errmsg("Only lists can be indexed.");
         return NULL;
       }
       l = u->data;
-      if (((Variable*)v)->indextype == 'v') {
-        v = evaluateValue(((Variable*)v)->index);
-        j = (int)valueToDouble(v);
+      if (((Variable*)v)->indextype[k] == 'v') {
+        u = evaluateValue(((Variable*)v)->index[k]);
+        j = (int)valueToDouble(u);
       } else {
-        j = (int)*(double*)((Variable*)v)->index;
+        j = *(int*)((Variable*)v)->index[k];
       }
       for (i=0;i<j;i++) {
         if (l == NULL)
@@ -352,6 +357,8 @@ Value* evaluateValue(Value* v) {
         errmsg("List index out of bounds");
         return NULL;
       }
+    }
+    if (l != NULL) {
       v = l->data;
     } else {
       v = valueFromName(((Variable*)v)->name);

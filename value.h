@@ -66,16 +66,6 @@ struct httpval {
   int bufsize;
 };
 
-typedef struct itemval Item;
-struct itemval {
-  int refcount;
-  List* data;
-  char type;
-  char* parent;
-  char* name;
-  int indir;
-};
-
 typedef struct stringval String;
 struct stringval {
   int refcount;
@@ -101,7 +91,6 @@ Value* evaluateStatements(List* sl);
 int freeBoolExpr(BoolExpr* be);
 int freeFuncVal(FuncVal* fv);
 int freeHttpVal(HttpVal* hv);
-int freeItem(Item* item);
 int freeString(String* s);
 int freeValue(Value* val);
 int freeValueList(List* r);
@@ -114,7 +103,6 @@ int newBuiltinFuncDef(char* name, Value* (*evaluate)(FuncDef*, List*), int alloc
 FuncDef* newFuncDef(char* name, List* al, List* sl, int alloc);
 FuncVal* newFuncVal(char* name, List* arglist, int ln);
 HttpVal* newHttpVal(char* url);
-Item* newItem(char* name, char* parent, int j);
 String* newString(char* s);
 Value* newValue(char type, void* data);
 Variable* newVariable(char* name);

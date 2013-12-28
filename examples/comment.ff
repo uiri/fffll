@@ -1,8 +1,8 @@
 -- This is a comment
---{ whee }--
---{
+--* whee *--
+--*
 -- alright
 ok then
 -- whatever
-}--
+*--
 Write(stdout, "Commenting works") -- what

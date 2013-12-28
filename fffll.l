@@ -204,9 +204,9 @@ extern void yyerror(const char* msg);
 --			{
 			  char c;
 			  if ((c = input()) != '\n') {
-			    if (c == '{') {
+			    if (c == '*') {
 			      while (1) {
-			        while ((c = input()) != '}');
+			        while ((c = input()) != '*');
 				if ((c = input()) == '-')
 			          if ((c = input()) == '-')
 				    break;

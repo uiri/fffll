@@ -26,7 +26,36 @@ extern List* varlist;
 extern VarTree* globalvars;
 extern List* varnames;
 
+extern int funcnum;
+extern FuncDef** funcdeftable;
+
 /* Internal helper functions */
+
+FuncDef* getFunction(char* name) {
+  FuncDef* fd;
+  int i;
+  i = hashName(name);
+  fd = NULL;
+  while (i<funcnum) {
+    fd = funcdeftable[i++];
+    if (fd == NULL) {
+      errmsgf("Function %s is not defined", name);
+      break;
+    }
+    if (fd->name == name) break;
+  }
+  return fd;
+}
+
+Value* valueFromName(char* name) {
+  Value* v;
+  v = findInTree(varlist->data, name);
+  if (v == NULL) {
+    errmsgf("Variable named '%s' is not SET", name);
+    return NULL;
+  }
+  return v;
+}
 
 int freeEachValueInTree(VarTree* vt, Value* v) {
   if (vt == NULL)

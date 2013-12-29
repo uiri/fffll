@@ -31,6 +31,58 @@ extern List* stringlist;
 extern int funcnum;
 extern FuncDef** funcdeftable;
 
+/* Internal free functions */
+
+int freeFuncVal(FuncVal* fv) {
+  fv->refcount--;
+  if (fv->refcount < 1) {
+    free(fv->name);
+    freeValueList(fv->arglist);
+    free(fv);
+  }
+  return 0;
+}
+
+int freeHttpVal(HttpVal* hv) {
+  hv->refcount--;
+  if (hv->refcount < 1) {
+    curl_easy_cleanup(hv->curl);
+    free(hv->buf);
+    free(hv->url);
+    free(hv);
+  }
+  return 0;
+}
+
+int freeString(String* s) {
+  s->refcount--;
+  if (s->refcount < 1) {
+    free(s->val);
+    free(s);
+    deleteFromListData(stringlist, s);
+  }
+  return 0;
+}
+
+int freeVariable(Variable* var) {
+  int i;
+  var->refcount--;
+  if (var->refcount < 1) {
+    for (i=0;var->indextype[i] != '0';i++) {
+      if (var->indextype[i] == 'n')
+	free(var->index[i]);
+      else if (var->indextype[i] != '0')
+	freeValue(var->index[i]);
+    }
+    free(var->indextype);
+    free(var->index);
+    free(var);
+  }
+  return 0;
+}
+
+/* External functions */
+
 String* addToStringList(String* s) {
   int i, j, k, l;
   String* n;
@@ -106,37 +158,6 @@ int freeBoolExpr(BoolExpr* be) {
   return 0;
 }
 
-int freeFuncVal(FuncVal* fv) {
-  fv->refcount--;
-  if (fv->refcount < 1) {
-    free(fv->name);
-    freeValueList(fv->arglist);
-    free(fv);
-  }
-  return 0;
-}
-
-int freeHttpVal(HttpVal* hv) {
-  hv->refcount--;
-  if (hv->refcount < 1) {
-    curl_easy_cleanup(hv->curl);
-    free(hv->buf);
-    free(hv->url);
-    free(hv);
-  }
-  return 0;
-}
-
-int freeString(String* s) {
-  s->refcount--;
-  if (s->refcount < 1) {
-    free(s->val);
-    free(s);
-    deleteFromListData(stringlist, s);
-  }
-  return 0;
-}
-
 int freeValue(Value* val) {
   val->refcount--;
   if (val->refcount < 1) {
@@ -185,39 +206,6 @@ int freeValueList(List* r) {
   }
   freeList(r);
   return 0;
-}
-
-int freeVariable(Variable* var) {
-  int i;
-  var->refcount--;
-  if (var->refcount < 1) {
-    for (i=0;var->indextype[i] != '0';i++) {
-      if (var->indextype[i] == 'n')
-	free(var->index[i]);
-      else if (var->indextype[i] != '0')
-	freeValue(var->index[i]);
-    }
-    free(var->indextype);
-    free(var->index);
-    free(var);
-  }
-  return 0;
-}
-
-FuncDef* getFunction(char* name) {
-  FuncDef* fd;
-  int i;
-  i = hashName(name);
-  fd = NULL;
-  while (i<funcnum) {
-    fd = funcdeftable[i++];
-    if (fd == NULL) {
-      errmsgf("Function %s is not defined", name);
-      break;
-    }
-    if (fd->name == name) break;
-  }
-  return fd;
 }
 
 int hashName(char* name) {
@@ -335,14 +323,4 @@ Variable* newVariable(char* name) {
   var->indextype[0] = '0';
   var->index[0] = NULL;
   return var;
-}
-
-Value* valueFromName(char* name) {
-  Value* v;
-  v = findInTree(varlist->data, name);
-  if (v == NULL) {
-    errmsgf("Variable named '%s' is not SET", name);
-    return NULL;
-  }
-  return v;
 }

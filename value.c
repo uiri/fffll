@@ -161,35 +161,34 @@ int freeBoolExpr(BoolExpr* be) {
 int freeValue(Value* val) {
   val->refcount--;
   if (val->refcount < 1) {
-    if (val->type == 'n') {
+    switch (val->type) {
+    case 'n':
       free(val->data);
-    }
-    if (val->type == 's') {
+      break;
+    case 'l':
+    case 'd':
+      freeValueList(val->data);
+      break;
+    case 's':
       freeString(val->data);
-    }
-    if (val->type == 'f') {
+      break;
+    case 'f':
       if (*(FILE**)val->data != stdin && *(FILE**)val->data != stdout
 	  && *(FILE**)val->data != stderr) {
 	fclose(*(FILE**)val->data);
 	free(val->data);
       }
-    }
-    if (val->type == 'h') {
+      break;
+    case 'h':
       freeHttpVal((HttpVal*)val);
       return 1;
-    }
-    if (val->type == 'b') {
+    case 'b':
       freeBoolExpr((BoolExpr*)val);
       return 1;
-    }
-    if (val->type == 'c') {
+    case 'c':
       freeFuncVal((FuncVal*)val);
       return 1;
-    }
-    if (val->type == 'l' || val->type == 'd') {
-      freeValueList(val->data);
-    }
-    if (val->type == 'v') {
+    case 'v':
       freeVariable((Variable*)val);
       return 1;
     }
@@ -212,11 +211,10 @@ int hashName(char* name) {
   int i, s;
   s = 0;
   /* Hash from sdbm. See http://www.cse.yorku.ca/~oz/hash.html */
-  for (i=0;name[i] != '\0';i++) {
-    s += name[i] + (s << 6) + (s << 16) - s;
-    /* funcnum is always 2^n - 1 */
-    s = s&funcnum;
-  }
+  for (i=0;name[i] != '\0';i++)
+    s = name[i] + (s << 6) + (s << 16);
+  /* funcnum is always 2^n - 1 */
+  s = s&funcnum;
   return s;
 }
 

@@ -69,7 +69,7 @@ void* findInTree(VarTree* vt, char* key) {
   while (vt != NULL) {
     if (key == vt->key)
       return vt->data;
-    if (vt->key > key)
+    else if (vt->key > key)
       vt = vt->left;
     else
       vt = vt->right;

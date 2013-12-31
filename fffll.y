@@ -160,6 +160,34 @@ list		: list ',' value	{
 					  addToListEnd($1, $3);
 					  $$ = $1;
 					}
+		| NUM '.' IND '.' IND	{
+					  Value* v;
+					  double* n, d, e;
+					  $$ = newList();
+					  e = $1;
+					  d = ((double)$3) - e;
+					  for (;e != $5;e += d) {
+					    n = malloc(sizeof(double));
+					    *n = e;
+					    v = newValue('n', n);
+					    addToListEnd($$, v);
+					  }
+					}
+		| NUM '.' IND	{
+					  Value* v;
+					  double* n, d, e;
+					  $$ = newList();
+					  e = (double)$1;
+					  d = 1;
+					  if (e > $3)
+					    d = -1;
+					  for (;e != $3;e += d) {
+					    n = malloc(sizeof(double));
+					    *n = e;
+					    v = newValue('n', n);
+					    addToListEnd($$, v);
+					  }
+					}
 		| value			{
 					  $$ = newList();
 					  addToListEnd($$, $1);

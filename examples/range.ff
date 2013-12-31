@@ -1,0 +1,4 @@
+Write(stdout, [0..10])
+Write(stdout, [0..2..10])
+Write(stdout, [0..-2..-10])
+Write(stdout, [0..-10])

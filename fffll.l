@@ -167,7 +167,7 @@ extern void yyerror(const char* msg);
 			  yylval.num = atof((char*)yytext);
 			  return NUM;
 			}
-\.[0-9]+		{
+\.-?[0-9]+		{
 			  yylval.index = atoi((char*)yytext+1);
 			  return IND;
 			}

@@ -166,12 +166,17 @@ list		: list ',' value	{
 					  $$ = newList();
 					  e = $1;
 					  d = ((double)$3) - e;
-					  for (;e != $5;e += d) {
-					    n = malloc(sizeof(double));
-					    *n = e;
-					    v = newValue('n', n);
-					    addToListEnd($$, v);
-					  }
+					  if ((e < $5 && d > 0) ||
+					      (e > $5 && d < 0))
+					    for (;e != $5;e += d) {
+					      if ((e < $5 && e-d > $5) ||
+					          (e > $5 && e-d < $5))
+					        break;
+					      n = malloc(sizeof(double));
+					      *n = e;
+					      v = newValue('n', n);
+					      addToListEnd($$, v);
+					    }
 					}
 		| NUM '.' IND	{
 					  Value* v;

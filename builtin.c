@@ -517,7 +517,7 @@ Value* retDef(FuncDef* fd, List* arglist) {
 Value* setDef(FuncDef* fd, List* arglist) {
   Value* v, *u;
   int i, j, k;
-  List* l;
+  List* l, *m;
   if (lengthOfList(arglist) < 2) {
     errmsg("Not enough arguments for SET");
     return NULL;
@@ -548,6 +548,16 @@ Value* setDef(FuncDef* fd, List* arglist) {
 	j = (int)valueToDouble(u);
       } else {
 	j = *(int*)((Variable*)arglist->data)->index[k];
+      }
+      m = l;
+      if (j < 0) {
+	for (;j<0;j++) {
+	  m = m->next;
+	}
+	while (m != NULL) {
+	  m = m->next;
+	  l = l->next;
+	}
       }
       for (i=0;i<j;i++) {
 	if (l == NULL)

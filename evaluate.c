@@ -348,7 +348,7 @@ Value* evaluateValue(Value* v) {
   FuncVal* fv;
   Value* u;
   int i, j, k;
-  List* l;
+  List* l, *m;
   if (v->type == 'c') {
     fv = (FuncVal*)v;
     v = evaluateFuncVal((FuncVal*)v);
@@ -376,6 +376,16 @@ Value* evaluateValue(Value* v) {
         j = (int)valueToDouble(u);
       } else {
         j = *(int*)((Variable*)v)->index[k];
+      }
+      m = l;
+      if (j < 0) {
+	for (;j<0;j++) {
+	  m = m->next;
+	}
+	while (m != NULL) {
+	  m = m->next;
+	  l = l->next;
+	}
       }
       for (i=0;i<j;i++) {
         if (l == NULL)

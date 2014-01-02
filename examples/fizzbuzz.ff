@@ -1,10 +1,10 @@
 Def("Mod", [y, x], {
     Set(z, Rcp(x))
     Set(y, Mul(y, z))
-    While(!(y<1), {
+    For(!(y<1), {
         Set(w, 1)
 	Set(u, Mul(y, z))
-        While( (w<u) {
+        For( (w<u) {
             Set(w, Mul(w, x))
         })
 	Set(w, Mul(w, -1))
@@ -20,7 +20,7 @@ Def("Main",
     [], 
     {
 	Set(x, 1)
-	While( (x<101) {
+	For( (x<101) {
 	    If( (Mod(x, 3)=0) {
 		If( (Mod(x, 5)=0) {
 		    Write(stdout, "Fizzbuzz")

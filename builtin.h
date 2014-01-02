@@ -20,6 +20,7 @@
 Value* addDef(FuncDef* fd, List* arglist);
 Value* catDef(FuncDef* fd, List* arglist);
 Value* defDef(FuncDef* fd, List* arglist);
+Value* forDef(FuncDef* fd, List* arglist);
 Value* headDef(FuncDef* fd, List* arglist);
 Value* ifDef(FuncDef* fd, List* arglist);
 Value* lenDef(FuncDef* fd, List* arglist);
@@ -32,5 +33,4 @@ Value* retDef(FuncDef* fd, List* arglist);
 Value* setDef(FuncDef* fd, List* arglist);
 Value* tailDef(FuncDef* fd, List* arglist);
 Value* tokDef(FuncDef* fd, List* arglist);
-Value* whileDef(FuncDef* fd, List* arglist);
 Value* writeDef(FuncDef* fd, List* arglist);

@@ -332,7 +332,7 @@ int main(int argc, char** argv) {
   /* The value between str's [] should be the value of strsize */
   int strsize = 25;
   const char* str[] = { "=", "<", ">", "&", "|", "stdin", "stdout", "stderr",
-                        "DEF", "SET", "IF", "WHILE", "WRITE", "READ", "OPEN",
+                        "DEF", "SET", "IF", "FOR", "WRITE", "READ", "OPEN",
                         "ADD", "MUL", "RCP", "RETURN", "LEN", "TOK", "CAT",
                         "HEAD", "TAIL", "PUSH"};
   int lenconstants;
@@ -389,19 +389,19 @@ int main(int argc, char** argv) {
   addToListBeginning(funcnames, constants+36);
   addToListBeginning(funcnames, constants+40);
   addToListBeginning(funcnames, constants+44);
-  addToListBeginning(funcnames, constants+50);
-  addToListBeginning(funcnames, constants+56);
-  addToListBeginning(funcnames, constants+62);
-  addToListBeginning(funcnames, constants+68);
-  addToListBeginning(funcnames, constants+72);
-  addToListBeginning(funcnames, constants+76);
-  addToListBeginning(funcnames, constants+80);
-  addToListBeginning(funcnames, constants+88);
-  addToListBeginning(funcnames, constants+92);
-  addToListBeginning(funcnames, constants+96);
-  addToListBeginning(funcnames, constants+100);
-  addToListBeginning(funcnames, constants+106);
-  addToListBeginning(funcnames, constants+112);
+  addToListBeginning(funcnames, constants+48);
+  addToListBeginning(funcnames, constants+54);
+  addToListBeginning(funcnames, constants+60);
+  addToListBeginning(funcnames, constants+66);
+  addToListBeginning(funcnames, constants+70);
+  addToListBeginning(funcnames, constants+74);
+  addToListBeginning(funcnames, constants+78);
+  addToListBeginning(funcnames, constants+86);
+  addToListBeginning(funcnames, constants+90);
+  addToListBeginning(funcnames, constants+94);
+  addToListBeginning(funcnames, constants+98);
+  addToListBeginning(funcnames, constants+104);
+  addToListBeginning(funcnames, constants+110);
   parencount = malloc(16*sizeof(int));
   parencount[parencountind] = 0;
   curl_global_init(CURL_GLOBAL_ALL);
@@ -416,20 +416,20 @@ int main(int argc, char** argv) {
   newBuiltinFuncDef(constants+32, &defDef, 0);
   newBuiltinFuncDef(constants+36, &setDef, 0);
   newBuiltinFuncDef(constants+40, &ifDef, 0);
-  newBuiltinFuncDef(constants+44, &whileDef, 0);
-  newBuiltinFuncDef(constants+50, &writeDef, 0);
-  newBuiltinFuncDef(constants+56, &readDef, 1);
-  newBuiltinFuncDef(constants+62, &openDef, 1);
-  newBuiltinFuncDef(constants+68, &addDef, 1);
-  newBuiltinFuncDef(constants+72, &mulDef, 1);
-  newBuiltinFuncDef(constants+76, &rcpDef, 1);
-  newBuiltinFuncDef(constants+80, &retDef, 0);
-  newBuiltinFuncDef(constants+88, &lenDef, 1);
-  newBuiltinFuncDef(constants+92, &tokDef, 1);
-  newBuiltinFuncDef(constants+96, &catDef, 1);
-  newBuiltinFuncDef(constants+100, &headDef, 1);
-  newBuiltinFuncDef(constants+106, &tailDef, 1);
-  newBuiltinFuncDef(constants+112, &pushDef, 0);
+  newBuiltinFuncDef(constants+44, &forDef, 0);
+  newBuiltinFuncDef(constants+48, &writeDef, 0);
+  newBuiltinFuncDef(constants+54, &readDef, 1);
+  newBuiltinFuncDef(constants+60, &openDef, 1);
+  newBuiltinFuncDef(constants+66, &addDef, 1);
+  newBuiltinFuncDef(constants+70, &mulDef, 1);
+  newBuiltinFuncDef(constants+74, &rcpDef, 1);
+  newBuiltinFuncDef(constants+78, &retDef, 0);
+  newBuiltinFuncDef(constants+86, &lenDef, 1);
+  newBuiltinFuncDef(constants+90, &tokDef, 1);
+  newBuiltinFuncDef(constants+94, &catDef, 1);
+  newBuiltinFuncDef(constants+98, &headDef, 1);
+  newBuiltinFuncDef(constants+104, &tailDef, 1);
+  newBuiltinFuncDef(constants+110, &pushDef, 0);
   v = evaluateStatements(lastParseTree);
   for (i=0;i<funcnum;i++) {
     if (funcdeftable[i] != NULL) {

@@ -1,10 +1,10 @@
 Set(x, [[3, 2, 1], [4, 5, 6]])
 Set(i, 0)
 Set(l, Len(x))
-While( (i<l) {
+For( (i<l) {
     Set(m, Len(x.[i]))
     Set(j, 0)
-    While ((j<m) {
+    For ((j<m) {
         Write(stdout, x.[i].[j])
         Set(j, Add(j, 1))
     })

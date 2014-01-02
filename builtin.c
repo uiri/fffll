@@ -249,6 +249,25 @@ Value* defDef(FuncDef* fd, List* arglist) {
   return (Value*)arglist->data;
 }
 
+Value* forDef(FuncDef* fd, List* arglist) {
+  Value* v;
+  BoolExpr* be;
+  if (lengthOfList(arglist) < 2) {
+    errmsg("Not enough arguments for WHILE");
+    return NULL;
+  }
+  v = falsevalue;
+  v->refcount++;
+  for (be = evaluateBoolExpr(arglist->data);
+       be != NULL && be->lasteval;
+       be = evaluateBoolExpr(arglist->data)) {
+    v = evaluateStatements((List*)((Value*)arglist->next->data)->data);
+    if (v == NULL) return NULL;
+  }
+  if (be == NULL) return NULL;
+  return v;
+}
+
 Value* headDef(FuncDef* fd, List* arglist) {
   Value* v;
   if (lengthOfList(arglist) != 1) {
@@ -648,25 +667,6 @@ Value* tokDef(FuncDef* fd, List* arglist) {
   }
   freeValueList(arglist);
   return newValue('l', l);
-}
-
-Value* whileDef(FuncDef* fd, List* arglist) {
-  Value* v;
-  BoolExpr* be;
-  if (lengthOfList(arglist) < 2) {
-    errmsg("Not enough arguments for WHILE");
-    return NULL;
-  }
-  v = falsevalue;
-  v->refcount++;
-  for (be = evaluateBoolExpr(arglist->data);
-       be != NULL && be->lasteval;
-       be = evaluateBoolExpr(arglist->data)) {
-    v = evaluateStatements((List*)((Value*)arglist->next->data)->data);
-    if (v == NULL) return NULL;
-  }
-  if (be == NULL) return NULL;
-  return v;
 }
 
 Value* writeDef(FuncDef* fd, List* arglist) {

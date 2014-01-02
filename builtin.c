@@ -186,7 +186,7 @@ Value* addDef(FuncDef* fd, List* arglist) {
 
 Value* catDef(FuncDef* fd, List* arglist) {
   char* s, *t;
-  int i, j, k, l;
+  int h, i, j, k, l;
   String* str;
   arglist = evaluateList(arglist);
   if (arglist == NULL) {
@@ -194,19 +194,23 @@ Value* catDef(FuncDef* fd, List* arglist) {
     return NULL;
   }
   l = lengthOfList(arglist);
-  k = 0;
-  s = NULL;
+  k = 8;
+  h = 0;
+  s = malloc(8);
   for (i=0;i<l;i++) {
     t = valueToString(dataInListAtPosition(arglist, i));
     if (t == NULL) {
       free(s);
       return NULL;
     }
-    j = strlen(t);
-    k += j;
-    s = realloc(s, k+1);
-    strncat(s, t, j);
-    s[k] = '\0';
+    for (j=0;t[j] != '\0';j++) {
+      if (h == k) {
+	k *= 2;
+	s = realloc(s, k);
+      }
+      s[h++] = t[j];
+    }
+    s[h] = '\0';
     free(t);
   }
   str = newString(s);

@@ -27,3 +27,4 @@ List* evaluateList(List* l);
 Value* evaluateValue(Value* v);
 double evaluateValueAsBool(Value* v);
 double valueToDouble(Value* v);
+char* valueToString(Value* v);

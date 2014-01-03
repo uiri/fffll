@@ -34,6 +34,18 @@ extern void yyerror(const char* msg);
 %}
 %%
 
+\/.*\/			{
+			  char* s;
+			  int i;
+			  s = malloc(strlen(yytext - 1));
+			  for (i=0;(s[i] = yytext[i+1]);i++) {
+			    if (yytext[i+1] == '/')
+			      break;
+			  }
+			  s[i] = '\0';
+			  yylval.symbol = s;
+			  return RGX;
+			}
 \"([^\"]*(\"\")*)*\"	{
 			  int i, l, j, insert;
 			  char* funcname, rawchr, inpchr;
@@ -130,7 +142,7 @@ extern void yyerror(const char* msg);
 			  yylval.symbol = funcname;
 			  return STR;
 			}
-[,.()[\]\{\}<>=&|!]	{
+[,.()[\]\{\}<>=&|!~]	{
 			  int insert = 0;
 			  char inschr = ',', inpchr;
 			  if (yytext[0] == '(')

@@ -1,0 +1,9 @@
+Def("Main", [], {
+    If( ("2Av"~/[A-Z][a-z]/), {
+        Write(stdout, "Whatever")
+    })
+    If( ("vA"~/[A-Z][a-z]/), {
+        Write(stdout, "Well fuck")
+    })
+})
+Main()

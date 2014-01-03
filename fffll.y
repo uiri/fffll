@@ -51,7 +51,7 @@ void yyerror(const char* msg) {
  List* funcnames;
 
  List* lastParseTree;
- char* eq, *gt, *lt, *and, *or;
+ char* eq, *gt, *lt, *and, *or, *sq;
 
 Variable* parseVariable(char* name) {
   int i, j, k, l;
@@ -92,10 +92,11 @@ Variable* parseVariable(char* name) {
   struct boolval* be;
 }
 
+%token <symbol> FUNC
 %token <index> IND
 %token <num> NUM
+%token <symbol> RGX
 %token <symbol> STR
-%token <symbol> FUNC
 %token <symbol> VAR
 
 %type <llist> statementlist
@@ -143,7 +144,7 @@ funcall		: FUNC arglist	{
 				  if (j != k) {
 				    addToListBeginning(funcnames, $1);
 				  }
-				  if ($1 == constants+32) {
+				  if ($1 == constants+34) {
 				      funcnum++;
 				  }
 				  $$ = newFuncVal($1, $2, lineno);
@@ -242,6 +243,16 @@ compexpr	: value '>' value
 				  addToListEnd($$->stack, eq);
 				  addToListEnd($$->stack, $3);
 				}
+		| value '~' RGX
+				{
+				  Value* v;
+				  String* s;
+				  s = newString($3);
+				  v = newValue('s', s);
+				  $$ = newBoolExpr($1);
+				  addToListEnd($$->stack, sq);
+				  addToListEnd($$->stack, v);
+				}
 		| value		{
 				  $$ = newBoolExpr($1);
 				}
@@ -330,8 +341,8 @@ int main(int argc, char** argv) {
   FILE* fp;
   FILE** stdinp, **stdoutp, **stderrp;
   /* The value between str's [] should be the value of strsize */
-  int strsize = 25;
-  const char* str[] = { "=", "<", ">", "&", "|", "stdin", "stdout", "stderr",
+  int strsize = 26;
+  const char* str[] = { "=", "<", ">", "&", "|", "~", "stdin", "stdout", "stderr",
                         "DEF", "SET", "IF", "FOR", "WRITE", "READ", "OPEN",
                         "ADD", "MUL", "RCP", "RETURN", "LEN", "TOK", "CAT",
                         "HEAD", "TAIL", "PUSH"};
@@ -361,6 +372,7 @@ int main(int argc, char** argv) {
   gt = constants+4;
   and = constants+6;
   or = constants+8;
+  sq = constants+10;
   stdinp = malloc(sizeof(stdin));
   *stdinp = stdin;
   stdoutp = malloc(sizeof(stdout));
@@ -378,30 +390,30 @@ int main(int argc, char** argv) {
   stdfiles[0] = newValue('f', stdinp);
   stdfiles[1] = newValue('f', stdoutp);
   stdfiles[2] = newValue('f', stderrp);
-  globalvars = newTree(constants+10, stdfiles[0]);
-  globalvars = insertInTree(globalvars, constants+16, stdfiles[1]);
-  globalvars = insertInTree(globalvars, constants+24, stdfiles[2]);
-  addToListBeginning(varnames, constants+10);
-  addToListBeginning(varnames, constants+16);
-  addToListBeginning(varnames, constants+24);
+  globalvars = newTree(constants+12, stdfiles[0]);
+  globalvars = insertInTree(globalvars, constants+18, stdfiles[1]);
+  globalvars = insertInTree(globalvars, constants+26, stdfiles[2]);
+  addToListBeginning(varnames, constants+12);
+  addToListBeginning(varnames, constants+18);
+  addToListBeginning(varnames, constants+26);
   addToListBeginning(varlist, globalvars);
-  addToListBeginning(funcnames, constants+32);
-  addToListBeginning(funcnames, constants+36);
-  addToListBeginning(funcnames, constants+40);
-  addToListBeginning(funcnames, constants+44);
-  addToListBeginning(funcnames, constants+48);
-  addToListBeginning(funcnames, constants+54);
-  addToListBeginning(funcnames, constants+60);
-  addToListBeginning(funcnames, constants+66);
-  addToListBeginning(funcnames, constants+70);
-  addToListBeginning(funcnames, constants+74);
-  addToListBeginning(funcnames, constants+78);
-  addToListBeginning(funcnames, constants+86);
-  addToListBeginning(funcnames, constants+90);
-  addToListBeginning(funcnames, constants+94);
-  addToListBeginning(funcnames, constants+98);
-  addToListBeginning(funcnames, constants+104);
-  addToListBeginning(funcnames, constants+110);
+  addToListBeginning(funcnames, constants+34);
+  addToListBeginning(funcnames, constants+38);
+  addToListBeginning(funcnames, constants+42);
+  addToListBeginning(funcnames, constants+46);
+  addToListBeginning(funcnames, constants+50);
+  addToListBeginning(funcnames, constants+56);
+  addToListBeginning(funcnames, constants+62);
+  addToListBeginning(funcnames, constants+68);
+  addToListBeginning(funcnames, constants+72);
+  addToListBeginning(funcnames, constants+76);
+  addToListBeginning(funcnames, constants+80);
+  addToListBeginning(funcnames, constants+88);
+  addToListBeginning(funcnames, constants+92);
+  addToListBeginning(funcnames, constants+96);
+  addToListBeginning(funcnames, constants+100);
+  addToListBeginning(funcnames, constants+106);
+  addToListBeginning(funcnames, constants+112);
   parencount = malloc(16*sizeof(int));
   parencount[parencountind] = 0;
   curl_global_init(CURL_GLOBAL_ALL);
@@ -413,23 +425,23 @@ int main(int argc, char** argv) {
     i *= 2;
   funcnum = i - 1;
   funcdeftable = calloc(funcnum, sizeof(FuncDef));
-  newBuiltinFuncDef(constants+32, &defDef, 0);
-  newBuiltinFuncDef(constants+36, &setDef, 0);
-  newBuiltinFuncDef(constants+40, &ifDef, 0);
-  newBuiltinFuncDef(constants+44, &forDef, 0);
-  newBuiltinFuncDef(constants+48, &writeDef, 0);
-  newBuiltinFuncDef(constants+54, &readDef, 1);
-  newBuiltinFuncDef(constants+60, &openDef, 1);
-  newBuiltinFuncDef(constants+66, &addDef, 1);
-  newBuiltinFuncDef(constants+70, &mulDef, 1);
-  newBuiltinFuncDef(constants+74, &rcpDef, 1);
-  newBuiltinFuncDef(constants+78, &retDef, 0);
-  newBuiltinFuncDef(constants+86, &lenDef, 1);
-  newBuiltinFuncDef(constants+90, &tokDef, 1);
-  newBuiltinFuncDef(constants+94, &catDef, 1);
-  newBuiltinFuncDef(constants+98, &headDef, 1);
-  newBuiltinFuncDef(constants+104, &tailDef, 1);
-  newBuiltinFuncDef(constants+110, &pushDef, 0);
+  newBuiltinFuncDef(constants+34, &defDef, 0);
+  newBuiltinFuncDef(constants+38, &setDef, 0);
+  newBuiltinFuncDef(constants+42, &ifDef, 0);
+  newBuiltinFuncDef(constants+46, &forDef, 0);
+  newBuiltinFuncDef(constants+50, &writeDef, 0);
+  newBuiltinFuncDef(constants+56, &readDef, 1);
+  newBuiltinFuncDef(constants+62, &openDef, 1);
+  newBuiltinFuncDef(constants+68, &addDef, 1);
+  newBuiltinFuncDef(constants+72, &mulDef, 1);
+  newBuiltinFuncDef(constants+76, &rcpDef, 1);
+  newBuiltinFuncDef(constants+80, &retDef, 0);
+  newBuiltinFuncDef(constants+88, &lenDef, 1);
+  newBuiltinFuncDef(constants+92, &tokDef, 1);
+  newBuiltinFuncDef(constants+96, &catDef, 1);
+  newBuiltinFuncDef(constants+100, &headDef, 1);
+  newBuiltinFuncDef(constants+106, &tailDef, 1);
+  newBuiltinFuncDef(constants+112, &pushDef, 0);
   v = evaluateStatements(lastParseTree);
   for (i=0;i<funcnum;i++) {
     if (funcdeftable[i] != NULL) {

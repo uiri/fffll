@@ -17,6 +17,9 @@
 
 #include "value.h"
 
+/* Constant for PCRE */
+#define PCREOVECCOUNT 30
+
 BoolExpr* evaluateBoolExpr(BoolExpr* be);
 Value* evaluateFuncDef(FuncDef* fd, List* arglist);
 Value* evaluateFuncVal(FuncVal* fv);

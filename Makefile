@@ -1,6 +1,6 @@
 CC=gcc
 CFLAGS=-Wall -g -pedantic
-LIBS=-L. -lm -lcurl -lffflllist -lfffllstd
+LIBS=-L. -lm -lcurl -lpcre -lffflllist -lfffllstd
 # you may possible also want the following for profiling:
 # -fprofile-arcs -ftest-coverage -pg
 

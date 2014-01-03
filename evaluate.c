@@ -16,6 +16,7 @@
 */
 
 #include <math.h>
+#include <pcre.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -118,11 +119,14 @@ int scope(FuncDef* fd, List* arglist) {
 /* External evaluation functions */
 
 BoolExpr* evaluateBoolExpr(BoolExpr* be) {
-  int i, l, m, p;
+  int i, l, m, p, erroff, ovec[PCREOVECCOUNT];
   double j, k, **n, *o;
   char* c, *s, *t;
+  const char* err;
   List* stack;
   Value* v, *u;
+  pcre *re;
+  re = NULL;
   stack = newList();
   l = lengthOfList(be->stack);
   m = -1;
@@ -202,7 +206,11 @@ BoolExpr* evaluateBoolExpr(BoolExpr* be) {
       addToListEnd(stack, n[m]);
       continue;
     }
-    if (t != NULL && s != NULL) {
+    if (c[0] == '~') {
+      re = pcre_compile(((String*)t)->val, 0, &err, &erroff, NULL);
+      if (pcre_exec(re, NULL, ((String*)s)->val, strlen(((String*)s)->val), 0, 0, ovec, PCREOVECCOUNT) > -1)
+	*n[m] = 1;
+    } else if (t != NULL && s != NULL) {
       if (s == t && c[0] == '=') {
 	  *n[m] = 1;
       } else {
@@ -233,6 +241,7 @@ BoolExpr* evaluateBoolExpr(BoolExpr* be) {
 	*n[m] = 1;
       }
     }
+    if (re) pcre_free(re);
   }
   if (m > -1)
     o = n[m];

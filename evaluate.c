@@ -21,7 +21,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include "evaluate.h"
-#include "tree.h"
 
 extern List* varlist;
 extern VarTree* globalvars;
@@ -56,16 +55,6 @@ Value* valueFromName(char* name) {
     return NULL;
   }
   return v;
-}
-
-int freeEachValueInTree(VarTree* vt, Value* v) {
-  if (vt == NULL)
-    return 1;
-  if (vt->data != v)
-    freeValue(vt->data);
-  freeEachValueInTree(vt->left, v);
-  freeEachValueInTree(vt->right, v);
-  return 0;
 }
 
 int descope(Value* v) {
@@ -349,6 +338,8 @@ double evaluateValueAsBool(Value* v) {
   if (v->type == 'l') {
     return lengthOfList((List*)v->data);
   }
+  if (v->type == 'm')
+    return (double)((VarTree*)v->data)->count;
   if (v->type == 'd') {
     return evaluateValueAsBool(evaluateStatements((List*)v->data));
   }
@@ -424,6 +415,16 @@ Value* evaluateValue(Value* v) {
   }
   v->refcount++;
   return v;
+}
+
+int freeEachValueInTree(VarTree* vt, Value* v) {
+  if (vt == NULL)
+    return 1;
+  if (vt->data != v)
+    freeValue(vt->data);
+  freeEachValueInTree(vt->left, v);
+  freeEachValueInTree(vt->right, v);
+  return 0;
 }
 
 double valueToDouble(Value* v) {

@@ -15,6 +15,7 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "tree.h"
 #include "value.h"
 
 /* Constant for PCRE */
@@ -26,5 +27,6 @@ Value* evaluateFuncVal(FuncVal* fv);
 List* evaluateList(List* l);
 Value* evaluateValue(Value* v);
 double evaluateValueAsBool(Value* v);
+int freeEachValueInTree(VarTree* vt, Value* v);
 double valueToDouble(Value* v);
 char* valueToString(Value* v);

@@ -64,23 +64,6 @@ int freeString(String* s) {
   return 0;
 }
 
-int freeVariable(Variable* var) {
-  int i;
-  var->refcount--;
-  if (var->refcount < 1) {
-    for (i=0;var->indextype[i] != '0';i++) {
-      if (var->indextype[i] == 'n')
-	free(var->index[i]);
-      else if (var->indextype[i] != '0')
-	freeValue(var->index[i]);
-    }
-    free(var->indextype);
-    free(var->index);
-    free(var);
-  }
-  return 0;
-}
-
 /* External functions */
 
 String* addToStringList(String* s) {
@@ -172,6 +155,10 @@ int freeValue(Value* val) {
     case 's':
       freeString(val->data);
       break;
+    case 'm':
+      freeEachValueInTree(val->data, NULL);
+      freeTree(val->data);
+      break;
     case 'f':
       if (*(FILE**)val->data != stdin && *(FILE**)val->data != stdout
 	  && *(FILE**)val->data != stderr) {
@@ -204,6 +191,23 @@ int freeValueList(List* r) {
     freeValue(dataInListAtPosition(r, i));
   }
   freeList(r);
+  return 0;
+}
+
+int freeVariable(Variable* var) {
+  int i;
+  var->refcount--;
+  if (var->refcount < 1) {
+    for (i=0;var->indextype[i] != '0';i++) {
+      if (var->indextype[i] == 'n')
+	free(var->index[i]);
+      else if (var->indextype[i] != '0')
+	freeValue(var->index[i]);
+    }
+    free(var->indextype);
+    free(var->index);
+    free(var);
+  }
   return 0;
 }
 

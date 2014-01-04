@@ -142,7 +142,7 @@ extern void yyerror(const char* msg);
 			  yylval.symbol = funcname;
 			  return STR;
 			}
-[,.()[\]\{\}<>=&|!~]	{
+[,.:()[\]\{\}<>=&|!~]	{
 			  int insert = 0;
 			  char inschr = ',', inpchr;
 			  if (yytext[0] == '(')

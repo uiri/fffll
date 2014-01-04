@@ -20,7 +20,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include "evaluate.h"
-#include "tree.h"
 
 extern Value* falsevalue;
 extern List* varlist;

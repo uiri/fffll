@@ -1,0 +1,8 @@
+Def("Main", [], {
+    Set(x, [ f: 0, g: 1, b: 3, e: 2 ])
+    If( (4=x), {
+        Write(stdout, "cool")
+    })
+    --Write(stdout, x.b)
+})
+Main()

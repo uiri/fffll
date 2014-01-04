@@ -90,6 +90,7 @@ Variable* parseVariable(char* name) {
   struct value* val;
   struct funcval* fv;
   struct boolval* be;
+  struct VarTree* tree;
 }
 
 %token <symbol> FUNC
@@ -103,6 +104,7 @@ Variable* parseVariable(char* name) {
 %type <fv> funcall
 %type <llist> arglist
 %type <llist> list
+%type <tree> map
 %type <val> value;
 %type <be> boolexpr;
 %type <be> bexpr;
@@ -198,7 +200,19 @@ list		: list ',' value	{
 					  $$ = newList();
 					  addToListEnd($$, $1);
 					}
-
+map		: map ',' VAR ':' value	{
+					  Variable* var;
+					  $$ = $1;
+					  var = parseVariable($3);
+					  $$ = insertInTree($$, var->name, $5);
+					  freeVariable(var);
+					}
+		| VAR ':' value		{
+					  Variable* var;
+					  var = parseVariable($1);
+					  $$ = newTree(var->name, $3);
+					  freeVariable(var);
+					}
 boolexpr	: '!' '(' bexpr ')'	{
 					  $$ = $3;
 					  $$->neg = 1;
@@ -282,17 +296,20 @@ value	: STR			{
 				}
 	| value '.' VAR		{
 				  int i;
+				  Variable* var;
 				  $$ = $1;
 				  if ($$->type == 'v') {
+				    var = parseVariable($3);
 				    for (i=0;((Variable*)$$)->indextype[i] != '0';i++);
 				    ((Variable*)$$)->indextype[i] = 'u';
-				    ((Variable*)$$)->index[i] = parseVariable($3);
+				    ((Variable*)$$)->index[i] = var->name;
 				    i++;
 				    ((Variable*)$$)->indextype = realloc(((Variable*)$$)->indextype, ++i);
 				    ((Variable*)$$)->index = realloc(((Variable*)$$)->index, i*sizeof(void*));
 				    i--;
 				    ((Variable*)$$)->indextype[i] = '0';
 				    ((Variable*)$$)->index[i] = NULL;
+				    freeVariable(var);
 				  }
 				}
 	| value '.' '[' value ']' {
@@ -327,6 +344,9 @@ value	: STR			{
 				}
 	| '[' ']'               {
 				  $$ = newValue('l', NULL);
+				}
+	| '[' map ']'		{
+				  $$ = newValue('m', $2);
 				}
 	| '{' statementlist '}' {
 				  $$ = newValue('d', $2);

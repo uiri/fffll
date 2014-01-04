@@ -91,6 +91,7 @@ Value* evaluateStatements(List* sl);
 int freeBoolExpr(BoolExpr* be);
 int freeValue(Value* val);
 int freeValueList(List* r);
+int freeVariable(Variable* var);
 int hashName(char* name);
 int insertFunction(FuncDef* fd);
 BoolExpr* newBoolExpr(Value* val);

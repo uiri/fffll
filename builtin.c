@@ -170,19 +170,25 @@ Value* headDef(FuncDef* fd, List* arglist) {
 Value* ifDef(FuncDef* fd, List* arglist) {
   int l;
   BoolExpr* be;
+  List* cond;
   l = lengthOfList(arglist);
   if (l < 2) {
     errmsg("Not enough arguments for IF");
     return NULL;
   }
-  be = evaluateBoolExpr(arglist->data);
-  if (be == NULL) return NULL;
-  if (be->lasteval) {
-    return evaluateStatements((List*)((Value*)arglist->next->data)->data);
+  cond = arglist;
+  while (1) {
+    be = evaluateBoolExpr(cond->data);
+    if (be == NULL) return NULL;
+    if (be->lasteval) {
+      return evaluateStatements((List*)((Value*)cond->next->data)->data);
+    }
+    cond = cond->next->next;
+    if (cond == NULL || cond->next == NULL)
+      break;
   }
-  if (l > 2) {
-    arglist = arglist->next;
-    return evaluateStatements((List*)((Value*)arglist->next->data)->data);
+  if (cond) {
+    return evaluateStatements((List*)((Value*)cond->data)->data);
   }
   return falsevalue;
 }

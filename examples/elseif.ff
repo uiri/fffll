@@ -1,0 +1,8 @@
+Set(x, 3)
+If( (x=2) {
+    Write(stdout, "Should not appear")
+} (x=3) {
+    Write(stdout, "Elseif works")
+} {
+    Write(stdout, "Huh?")
+})

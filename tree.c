@@ -168,6 +168,8 @@ VarTree* rebalanceTree(VarTree* vt) {
       root->right = NULL;
       return mergeTree(root, right);
     }
+    /* Just in case */
+    return root;
   }
   if ((2 > left->count - right->count && left->count - right->count > -1) ||
       (2 > right->count - left->count && right->count - left->count > -1))

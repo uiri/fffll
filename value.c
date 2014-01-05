@@ -57,9 +57,9 @@ int freeHttpVal(HttpVal* hv) {
 int freeString(String* s) {
   s->refcount--;
   if (s->refcount < 1) {
+    deleteFromListData(stringlist, s);
     free(s->val);
     free(s);
-    deleteFromListData(stringlist, s);
   }
   return 0;
 }

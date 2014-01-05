@@ -126,9 +126,11 @@ BoolExpr* evaluateBoolExpr(BoolExpr* be) {
     n[++m] = calloc(1, sizeof(double));
     s = NULL;
     t = NULL;
+    w = NULL;
     u = dataInListAtPosition(be->stack, i);
     if (u->type != 'b') {
       v = evaluateValue(u);
+      w = v;
       if (v == NULL) {
 	freeList(stack);
 	m++;
@@ -163,7 +165,6 @@ BoolExpr* evaluateBoolExpr(BoolExpr* be) {
     c = (char*)dataInListAtPosition(be->stack, i++);
     u = dataInListAtPosition(be->stack, i);
     if (u->type != 'b') {
-      w = v;
       v = evaluateValue(u);
       if (v == NULL) {
 	freeList(stack);
@@ -197,6 +198,10 @@ BoolExpr* evaluateBoolExpr(BoolExpr* be) {
       continue;
     }
     if (c[0] == '~') {
+      if (w == NULL) {
+	*n[m] = 0;
+	continue;
+      }
       s = valueToString(w);
       t = valueToString(v);
       re = pcre_compile(t, 0, &err, &erroff, NULL);
@@ -204,38 +209,40 @@ BoolExpr* evaluateBoolExpr(BoolExpr* be) {
 	*n[m] = 1;
       free(s);
       free(t);
-    } else if (t != NULL && s != NULL) {
+      if (re) pcre_free(re);
+      continue;
+    }
+    if (t != NULL && s != NULL) {
       if (s == t && c[0] == '=') {
 	  *n[m] = 1;
-      } else {
-	for (p=0;s[p] != '\0' && s[p] == t[p];p++);
-	if ((c[0] == '<' && s[p] < t[p]) || (c[0] == '>' && s[p] > t[p]))
-	  *n[m] = 1;
+	  continue;
       }
-    } else {
-      p = 0;
-      if (j>k) {
-	if (j<0.0) {
-	  if (((j-k)/k)>=0.0000005)
-	    p = 1;
-	} else if (j>0.0) {
-	  if (((j-k)/j)>=0.0000005)
-	    p = 1;
-	}
-      } else if (j<k) {
-	if (k<0.0) {
-	  if (((k-j)/j)>=0.0000005)
-	    p = -1;
-	} else if (k>0.0) {
-	  if (((k-j)/k)>=0.0000005)
-	    p = -1;
-	}
-      }
-      if ((c[0] == '<' && p<0) || (c[0] == '>' && p>0) || (c[0] == '=' && !p)) {
+      for (p=0;s[p] != '\0' && s[p] == t[p];p++);
+      if ((c[0] == '<' && s[p] < t[p]) || (c[0] == '>' && s[p] > t[p]))
 	*n[m] = 1;
+      continue;
+    }
+    p = 0;
+    if (j>k) {
+      if (j<0.0) {
+	if (((j-k)/k)>=0.0000005)
+	  p = 1;
+      } else if (j>0.0) {
+	if (((j-k)/j)>=0.0000005)
+	  p = 1;
+      }
+    } else if (j<k) {
+      if (k<0.0) {
+	if (((k-j)/j)>=0.0000005)
+	  p = -1;
+      } else if (k>0.0) {
+	if (((k-j)/k)>=0.0000005)
+	  p = -1;
       }
     }
-    if (re) pcre_free(re);
+    if ((c[0] == '<' && p<0) || (c[0] == '>' && p>0) || (c[0] == '=' && !p)) {
+      *n[m] = 1;
+    }
   }
   if (m > -1)
     o = n[m];

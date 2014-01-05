@@ -137,17 +137,21 @@ Value* defDef(FuncDef* fd, List* arglist) {
 Value* forDef(FuncDef* fd, List* arglist) {
   Value* v;
   BoolExpr* be;
-  if (lengthOfList(arglist) < 2) {
-    errmsg("Not enough arguments for WHILE");
+  if (!lengthOfList(arglist)) {
+    errmsg("Not enough arguments for FOR");
     return NULL;
   }
   v = falsevalue;
   v->refcount++;
+  if (arglist->next == NULL)
+    v->refcount++;
   for (be = evaluateBoolExpr(arglist->data);
        be != NULL && be->lasteval;
        be = evaluateBoolExpr(arglist->data)) {
-    v = evaluateStatements((List*)((Value*)arglist->next->data)->data);
-    if (v == NULL) return NULL;
+    if (arglist->next) {
+      v = evaluateStatements((List*)((Value*)arglist->next->data)->data);
+      if (v == NULL) return NULL;
+    }
   }
   if (be == NULL) return NULL;
   return v;

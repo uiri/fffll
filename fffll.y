@@ -104,7 +104,6 @@ Variable* parseVariable(char* name) {
 %type <fv> funcall
 %type <llist> arglist
 %type <llist> list
-%type <tree> map
 %type <val> value;
 %type <be> boolexpr;
 %type <be> bexpr;
@@ -160,13 +159,14 @@ arglist		: '(' list ')'	{
 				}
 		;
 list		: list ',' value	{
-					  addToListEnd($1, $3);
+					  addToListEnd($1->next, $3);
 					  $$ = $1;
 					}
 		| NUM '.' IND '.' IND	{
 					  Value* v;
 					  double* n, d, e;
 					  $$ = newList();
+					  $$->next = newList();
 					  e = $1;
 					  d = ((double)$3) - e;
 					  if ((e < $5 && d > 0) ||
@@ -178,13 +178,14 @@ list		: list ',' value	{
 					      n = malloc(sizeof(double));
 					      *n = e;
 					      v = newValue('n', n);
-					      addToListEnd($$, v);
+					      addToListEnd($$->next, v);
 					    }
 					}
 		| NUM '.' IND	{
 					  Value* v;
 					  double* n, d, e;
 					  $$ = newList();
+					  $$->next = newList();
 					  e = (double)$1;
 					  d = 1;
 					  if (e > $3)
@@ -193,24 +194,30 @@ list		: list ',' value	{
 					    n = malloc(sizeof(double));
 					    *n = e;
 					    v = newValue('n', n);
-					    addToListEnd($$, v);
+					    addToListEnd($$->next, v);
 					  }
 					}
 		| value			{
 					  $$ = newList();
-					  addToListEnd($$, $1);
+					  $$->next = newList();
+					  addToListEnd($$->next, $1);
 					}
-map		: map ',' VAR ':' value	{
+		| list ',' VAR ':' value {
 					  Variable* var;
 					  $$ = $1;
 					  var = parseVariable($3);
-					  $$ = insertInTree($$, var->name, $5);
+					  if ($$->data == NULL)
+					    $$->data = newTree(var->name, $5);
+					  else
+					    $$->data = insertInTree($$->data, var->name, $5);
 					  freeVariable(var);
 					}
 		| VAR ':' value		{
 					  Variable* var;
+					  $$ = newList();
+					  $$->next = newList();
 					  var = parseVariable($1);
-					  $$ = newTree(var->name, $3);
+					  $$->data = newTree(var->name, $3);
 					  freeVariable(var);
 					}
 boolexpr	: '!' '(' bexpr ')'	{
@@ -344,9 +351,6 @@ value	: STR			{
 				}
 	| '[' ']'               {
 				  $$ = newValue('l', NULL);
-				}
-	| '[' map ']'		{
-				  $$ = newValue('m', $2);
 				}
 	| '{' statementlist '}' {
 				  $$ = newValue('d', $2);

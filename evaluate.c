@@ -80,10 +80,14 @@ int scope(FuncDef* fd, List* arglist) {
   VarTree* vt;
   List* fdname, *al;
   Value* v;
-  fdname = fd->arguments;
-  al = arglist;
   vt = copyTree(globalvars);
   incEachRefcountInTree(vt);
+  if (fd->arguments == NULL || arglist == NULL) {
+    addToListBeginning(varlist, vt);
+    return 0;
+  }
+  fdname = fd->arguments->next;
+  al = arglist->next;
   while (fdname != NULL && al != NULL) {
     v = evaluateValue(al->data);
     v->refcount++;
@@ -343,10 +347,9 @@ double evaluateValueAsBool(Value* v) {
     return ((BoolExpr*)v)->lasteval;
   }
   if (v->type == 'l') {
-    return lengthOfList((List*)v->data);
+    return lengthOfList(((List*)v->data)->next) + 
+      (double)((VarTree*)((List*)v->data)->data)->count;
   }
-  if (v->type == 'm')
-    return (double)((VarTree*)v->data)->count;
   if (v->type == 'd') {
     return evaluateValueAsBool(evaluateStatements((List*)v->data));
   }
@@ -382,7 +385,7 @@ Value* evaluateValue(Value* v) {
         errmsg("Only lists can be indexed.");
         return NULL;
       }
-      l = u->data;
+      l = ((List*)u->data)->next;
       if (((Variable*)v)->indextype[k] == 'v') {
         u = evaluateValue(((Variable*)v)->index[k]);
         j = (int)valueToDouble(u);
@@ -459,9 +462,9 @@ double valueToDouble(Value* v) {
   if (v->type == 'd')
     return valueToDouble(evaluateStatements(v->data));
   if (v->type == 'l') {
-    l = lengthOfList(v->data);
+    l = lengthOfList(((List*)v->data)->next);
     for (i=0;i<l;i++) {
-      u = evaluateValue(dataInListAtPosition(v->data, i));
+      u = evaluateValue(dataInListAtPosition(((List*)v->data)->next, i));
       d = valueToDouble(u);
       freeValue(u);
       if (d < 0) return d;
@@ -535,14 +538,14 @@ char* valueToString(Value* v) {
     return s;
   }
   if (v->type == 'l') {
-    l = lengthOfList(v->data);
+    l = lengthOfList(((List*)v->data)->next);
     s = malloc(4);
     s[0] = '[';
     k = 0;
     for (i=0;i<l;i++) {
       if (k) s[k] = ' ';
       k++;
-      u = evaluateValue(dataInListAtPosition(v->data, i));
+      u = evaluateValue(dataInListAtPosition(((List*)v->data)->next, i));
       if (u == NULL) {
 	free(s);
 	return NULL;

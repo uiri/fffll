@@ -47,17 +47,18 @@ size_t writeHttpBuffer(void* contents, size_t size, size_t nmemb, void* userp) {
 Value* addDef(FuncDef* fd, List* arglist) {
   double d, *n;
   int i,l;
-  arglist = evaluateList(arglist);
-  if (arglist == NULL)
+  List* al;
+  al = evaluateList(arglist->next);
+  if (al == NULL)
     return NULL;
-  l = lengthOfList(arglist);
+  l = lengthOfList(al);
   n = malloc(sizeof(double));
   *n = 0.0;
   for (i=0;i<l;i++) {
-    d = valueToDouble(dataInListAtPosition(arglist, i));
+    d = valueToDouble(dataInListAtPosition(al, i));
     *n += d;
   }
-  freeValueList(arglist);
+  freeValueList(al);
   if (isnan(*n)) {
     free(n);
     return NULL;
@@ -69,17 +70,18 @@ Value* catDef(FuncDef* fd, List* arglist) {
   char* s, *t;
   int h, i, j, k, l;
   String* str;
-  arglist = evaluateList(arglist);
+  List* al;
+  al = evaluateList(arglist->next);
   if (arglist == NULL) {
     errmsg("CAT requires at least one argument");
     return NULL;
   }
-  l = lengthOfList(arglist);
+  l = lengthOfList(al);
   k = 8;
   h = 0;
   s = malloc(8);
   for (i=0;i<l;i++) {
-    t = valueToString(dataInListAtPosition(arglist, i));
+    t = valueToString(dataInListAtPosition(al, i));
     if (t == NULL) {
       free(s);
       return NULL;
@@ -102,12 +104,12 @@ Value* catDef(FuncDef* fd, List* arglist) {
 Value* defDef(FuncDef* fd, List* arglist) {
   char* name, *fn;
   int i, j, k, l;
-  l = lengthOfList(arglist);
+  l = lengthOfList(arglist->next);
   if (l < 3) {
     errmsg("Not enough arguments for DEF");
     return NULL;
   }
-  name = valueToString(arglist->data);
+  name = valueToString(arglist->next->data);
   for (i=0;name[i] != '\0';i++) {
     if (name[i] > 90) {
       name[i] -= 32;
@@ -128,28 +130,28 @@ Value* defDef(FuncDef* fd, List* arglist) {
       }
     }
   }
-  insertFunction(newFuncDef(name, ((Value*)arglist->next->data)->data,
-			    ((Value*)arglist->next->next->data)->data, 0));
-  ((Value*)arglist->data)->refcount++;
-  return (Value*)arglist->data;
+  insertFunction(newFuncDef(name, ((Value*)arglist->next->next->data)->data,
+			    ((Value*)arglist->next->next->next->data)->data, 0));
+  ((Value*)arglist->next->data)->refcount++;
+  return (Value*)arglist->next->data;
 }
 
 Value* forDef(FuncDef* fd, List* arglist) {
   Value* v;
   BoolExpr* be;
-  if (!lengthOfList(arglist)) {
+  if (!arglist) {
     errmsg("Not enough arguments for FOR");
     return NULL;
   }
   v = falsevalue;
   v->refcount++;
-  if (arglist->next == NULL)
+  if (arglist->next->next == NULL)
     v->refcount++;
-  for (be = evaluateBoolExpr(arglist->data);
+  for (be = evaluateBoolExpr(arglist->next->data);
        be != NULL && be->lasteval;
-       be = evaluateBoolExpr(arglist->data)) {
-    if (arglist->next) {
-      v = evaluateStatements((List*)((Value*)arglist->next->data)->data);
+       be = evaluateBoolExpr(arglist->next->data)) {
+    if (arglist->next->next) {
+      v = evaluateStatements((List*)((Value*)arglist->next->next->data)->data);
       if (v == NULL) return NULL;
     }
   }
@@ -159,28 +161,28 @@ Value* forDef(FuncDef* fd, List* arglist) {
 
 Value* headDef(FuncDef* fd, List* arglist) {
   Value* v;
-  if (lengthOfList(arglist) != 1) {
+  if (lengthOfList(arglist->next) != 1) {
     errmsg("HEAD only takes one argument");
     return NULL;
   }
-  v = evaluateValue(arglist->data);
+  v = evaluateValue(arglist->next->data);
   if (v->type != 'l') {
     errmsg("HEAD's argument must be a list");
     return NULL;
   }
-  return evaluateValue(((List*)v->data)->data);
+  return evaluateValue(((List*)v->data)->next->data);
 }
 
 Value* ifDef(FuncDef* fd, List* arglist) {
   int l;
   BoolExpr* be;
   List* cond;
-  l = lengthOfList(arglist);
+  l = lengthOfList(arglist->next);
   if (l < 2) {
     errmsg("Not enough arguments for IF");
     return NULL;
   }
-  cond = arglist;
+  cond = arglist->next;
   while (1) {
     be = evaluateBoolExpr(cond->data);
     if (be == NULL) return NULL;
@@ -201,25 +203,28 @@ Value* lenDef(FuncDef* fd, List* arglist) {
   double* a;
   int i, l;
   Value* v;
+  List* al;
   if (arglist == NULL) {
     errmsg("Not enough arguments for LEN");
   }
-  arglist = evaluateList(arglist);
-  if (arglist == NULL)
+  al = evaluateList(arglist->next);
+  if (al == NULL)
     return NULL;
   a = malloc(sizeof(double));
   *a = 0.0;
-  l = lengthOfList(arglist);
+  l = lengthOfList(al);
   for (i=0;i<l;i++) {
-    v = dataInListAtPosition(arglist, i);
+    v = dataInListAtPosition(al, i);
     if (v->type == 's') {
       *a += (double)strlen(v->data);
-    } else if (v->type == 'l' || v->type == 'd') {
+    } else if (v->type == 'd') {
       *a += (double)lengthOfList(v->data);
+    } else if (v->type == 'l') {
+      *a += (double)lengthOfList(((List*)v->data)->next);
     } else if (v->type != '0') {
       errmsg("LEN only takes variables, function calls, strings, lists or "
 	     "blocks as arguments");
-      freeValueList(arglist);
+      freeValueList(al);
       free(a);
       return NULL;
     }
@@ -230,22 +235,23 @@ Value* lenDef(FuncDef* fd, List* arglist) {
 Value* mulDef(FuncDef* fd, List* arglist) {
   double d, *n;
   int i,l;
-  arglist = evaluateList(arglist);
-  if (arglist == NULL)
+  List* al;
+  al = evaluateList(arglist->next);
+  if (al == NULL)
     return NULL;
-  l = lengthOfList(arglist);
+  l = lengthOfList(al);
   n = malloc(sizeof(double));
   *n = 1.0;
   for (i=0;i<l;i++) {
-    d = valueToDouble(dataInListAtPosition(arglist, i));
+    d = valueToDouble(dataInListAtPosition(al, i));
     if (isnan(d)) {
-      freeValueList(arglist);
+      freeValueList(al);
       free(n);
       return NULL;
     }
     *n *= d;
   }
-  freeValueList(arglist);
+  freeValueList(al);
   return newValue('n', n);
 }
 
@@ -257,7 +263,7 @@ Value* openDef(FuncDef* fd, List* arglist) {
     errmsg("Not enough arguments for OPEN");
     return NULL;
   }
-  v = evaluateValue(arglist->data);
+  v = evaluateValue(arglist->next->data);
   if (v == NULL) return NULL;
   s = valueToString(v);
   if ((s[0] == 'h' || s[0] == 'H') && (s[1] == 't' || s[1] == 'T') &&
@@ -274,20 +280,20 @@ Value* openDef(FuncDef* fd, List* arglist) {
 Value* pushDef(FuncDef* fd, List* arglist) {
   Value* v, *u;
   int i, l;
-  l = lengthOfList(arglist);
+  l = lengthOfList(arglist->next);
   if (l < 2) {
     errmsg("PUSH needs at least two arguments");
     return NULL;
   }
-  v = evaluateValue(arglist->data);
+  v = evaluateValue(arglist->next->data);
   if (v->type != 'l') {
     errmsg("PUSH's first argument must be a list");
     freeValue(v);
     return NULL;
   }
   for (i=1;i<l;i++) {
-    u = evaluateValue(dataInListAtPosition(arglist, i));
-    addToListEnd(v->data, u);
+    u = evaluateValue(dataInListAtPosition(arglist->next, i));
+    addToListEnd(((List*)v->data)->next, u);
   }
   return v;
 }
@@ -295,12 +301,12 @@ Value* pushDef(FuncDef* fd, List* arglist) {
 Value* rcpDef(FuncDef* fd, List* arglist) {
   double b, d, *n;
   int i, e;
-  if (lengthOfList(arglist) != 1) {
+  if (lengthOfList(arglist->next) != 1) {
     errmsg("RCP only takes 1 argument, the number whose reciprocal"
 	   " is to be computed");
     return NULL;
   }
-  d = valueToDouble(arglist->data);
+  d = valueToDouble(arglist->next->data);
   if (isnan(d))
     return NULL;
   n = malloc(sizeof(double));
@@ -330,12 +336,12 @@ Value* readDef(FuncDef* fd, List* arglist) {
     errmsg("Not enough arguments for READ");
     return NULL;
   }
-  v = evaluateValue(arglist->data);
+  v = evaluateValue(arglist->next->data);
   if (v == NULL) return NULL;
   if (v->type != 'f' && v->type != 'h') {
     errmsg("READ only takes a file or http request as its argument");
-    if (((Value*)arglist->data)->type != 'v' &&
-	((Value*)arglist->data)->type != 'c')
+    if (((Value*)arglist->next->data)->type != 'v' &&
+	((Value*)arglist->next->data)->type != 'c')
       freeValue(v);
     return NULL;
   }
@@ -368,8 +374,8 @@ Value* readDef(FuncDef* fd, List* arglist) {
     }
     n = 0;
     if (fp != stdin && fp != stdout && fp != stderr &&
-	lengthOfList(arglist) > 1) {
-      v = evaluateValue(arglist->next->data);
+	lengthOfList(arglist->next) > 1) {
+      v = evaluateValue(arglist->next->next->data);
       if (v->type == 'n') {
 	n = *(double*)v->data;
 	l = n;
@@ -408,7 +414,7 @@ Value* readDef(FuncDef* fd, List* arglist) {
   }
   str = newString(s);
   str = addToStringList(str);
-  if (((Value*)arglist->data)->type != 'v')
+  if (((Value*)arglist->next->data)->type != 'v')
     freeValue(v);
   return newValue('s', str);
 }
@@ -419,11 +425,11 @@ Value* retDef(FuncDef* fd, List* arglist) {
     falsevalue->refcount++;
     return falsevalue;
   }
-  if (((Value*)arglist->data)->type != 'd') {
+  if (((Value*)arglist->next->data)->type != 'd') {
     errmsg("RETURN only takes a statement block as its argument");
     return NULL;
   }
-  v = evaluateStatements(((Value*)arglist->data)->data);
+  v = evaluateStatements(((Value*)arglist->next->data)->data);
   v->refcount++;
   return v;
 }
@@ -432,22 +438,22 @@ Value* setDef(FuncDef* fd, List* arglist) {
   Value* v, *u;
   int i, j, k;
   List* l, *m;
-  if (lengthOfList(arglist) < 2) {
+  if (lengthOfList(arglist->next) < 2) {
     errmsg("Not enough arguments for SET");
     return NULL;
   }
-  if (((Value*)arglist->data)->type != 'v') {
+  if (((Value*)arglist->next->data)->type != 'v') {
     errmsg("SET requires a variable to be its first argument");
     return NULL;
   }
-  v = evaluateValue(arglist->next->data);
+  v = evaluateValue(arglist->next->next->data);
   if (v == NULL) {
     return NULL;
   }
-  u = findInTree(varlist->data, ((Variable*)arglist->data)->name);
-  if (((Variable*)arglist->data)->indextype[0] == 'n' || ((Variable*)arglist->data)->indextype[0] == 'v') {
+  u = findInTree(varlist->data, ((Variable*)arglist->next->data)->name);
+  if (((Variable*)arglist->next->data)->indextype[0] == 'n' || ((Variable*)arglist->next->data)->indextype[0] == 'v') {
     l = NULL;
-    for (k=0;((Variable*)arglist->data)->indextype[k] == 'n' || ((Variable*)arglist->data)->indextype[k] == 'v';k++) {
+    for (k=0;((Variable*)arglist->next->data)->indextype[k] == 'n' || ((Variable*)arglist->next->data)->indextype[k] == 'v';k++) {
       if (l != NULL) {
 	u = l->data;
       }
@@ -455,13 +461,13 @@ Value* setDef(FuncDef* fd, List* arglist) {
 	errmsg("Only lists can be indexed.");
 	return NULL;
       }
-      l = u->data;
-      if (((Variable*)arglist->data)->indextype[k] == 'v') {
-	u = evaluateValue(((Variable*)arglist->data)->index[k]);
+      l = ((List*)u->data)->next;
+      if (((Variable*)arglist->next->data)->indextype[k] == 'v') {
+	u = evaluateValue(((Variable*)arglist->next->data)->index[k]);
 	if (u == NULL) return NULL;
 	j = (int)valueToDouble(u);
       } else {
-	j = *(int*)((Variable*)arglist->data)->index[k];
+	j = *(int*)((Variable*)arglist->next->data)->index[k];
       }
       m = l;
       if (j < 0) {
@@ -490,7 +496,7 @@ Value* setDef(FuncDef* fd, List* arglist) {
     if (u != NULL) {
       freeValue(u);
     }
-    varlist->data = insertInTree(varlist->data, ((Variable*)arglist->data)->name,
+    varlist->data = insertInTree(varlist->data, ((Variable*)arglist->next->data)->name,
                                  v);
   }
   return v;
@@ -499,17 +505,18 @@ Value* setDef(FuncDef* fd, List* arglist) {
 Value* tailDef(FuncDef* fd, List* arglist) {
   Value* v;
   List* ll, *tl;
-  if (lengthOfList(arglist) != 1) {
+  if (lengthOfList(arglist->next) != 1) {
     errmsg("TAIL only takes one argument");
     return NULL;
   }
-  v = evaluateValue(arglist->data);
+  ll = newList();
+  v = evaluateValue(arglist->next->data);
   if (v->type != 'l') {
     errmsg("TAIL's argument must be a list");
     return NULL;
   }
-  ll = cloneList(((List*)v->data)->next);
-  tl = ((List*)v->data)->next;
+  ll->next = cloneList(((List*)v->data)->next->next);
+  tl = ((List*)v->data)->next->next;
   while (tl != NULL) {
     ((Value*)tl->data)->refcount++;
     tl = tl->next;
@@ -518,27 +525,28 @@ Value* tailDef(FuncDef* fd, List* arglist) {
 }
 
 Value* tokDef(FuncDef* fd, List* arglist) {
-  List* l;
+  List* l, *al;
   Value* v;
   char* s, *t, *r;
   int h, i, j, k;
   String* str;
-  if (lengthOfList(arglist) != 2) {
+  if (lengthOfList(arglist->next) != 2) {
     errmsg("TOK takes exactly two arguments, a string to tokenize and a "
 	   "delimiter");
     return NULL;
   }
-  arglist = evaluateList(arglist);
-  if (arglist == NULL)
+  al = evaluateList(arglist->next);
+  if (al == NULL)
     return NULL;
   l = newList();
-  if (((Value*)arglist->data)->type != 's' ||
-      ((Value*)arglist->next->data)->type != 's') {
+  l->next = newList();
+  if (((Value*)al->data)->type != 's' ||
+      ((Value*)al->next->data)->type != 's') {
     errmsg("The arguments to TOK must be strings");
     return NULL;
   }
-  r = ((String*)((Value*)arglist->data)->data)->val;
-  t = ((String*)((Value*)arglist->next->data)->data)->val;
+  r = ((String*)((Value*)al->data)->data)->val;
+  t = ((String*)((Value*)al->next->data)->data)->val;
   h = 0;
   for (i=0;r[i] != '\0';i++) {
     k = i;
@@ -557,10 +565,10 @@ Value* tokDef(FuncDef* fd, List* arglist) {
     str = newString(s);
     str = addToStringList(str);
     v = newValue('s', str);
-    addToListEnd(l, v);
+    addToListEnd(l->next, v);
     h = i;
   }
-  freeValueList(arglist);
+  freeValueList(al);
   return newValue('l', l);
 }
 
@@ -574,13 +582,13 @@ Value* writeDef(FuncDef* fd, List* arglist) {
     errmsg("Not enough arguments for WRITE");
     return NULL;
   }
-  v = evaluateValue(arglist->data);
+  v = evaluateValue(arglist->next->data);
   if (v == NULL) return NULL;
   if (v->type != 'f' && v->type != 'h') {
     errmsg("WRITE only takes a file or a http request as its first argument");
     return NULL;
   }
-  l = lengthOfList(arglist);
+  l = lengthOfList(arglist->next);
   j = -1;
   if (v->type == 'f') {
     fp = *(FILE**)v->data;
@@ -589,7 +597,7 @@ Value* writeDef(FuncDef* fd, List* arglist) {
       k = 1;
     }
     for (i=1;i<l;i++) {
-      s = valueToString(dataInListAtPosition(arglist, i));
+      s = valueToString(dataInListAtPosition(arglist->next, i));
       if (s == NULL) {
 	return NULL;
       }
@@ -606,7 +614,7 @@ Value* writeDef(FuncDef* fd, List* arglist) {
     t = malloc(k);
     h = 0;
     for (i=1;i<l;i++) {
-      s = valueToString(dataInListAtPosition(arglist, i));
+      s = valueToString(dataInListAtPosition(arglist->next, i));
       for (j=0;s[j] != '\0';j++) {
 	if (h == k) {
 	  k *= 2;

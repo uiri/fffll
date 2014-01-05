@@ -149,15 +149,15 @@ int freeValue(Value* val) {
       free(val->data);
       break;
     case 'l':
+      freeEachValueInTree(((List*)val->data)->data, NULL);
+      freeTree(((List*)val->data)->data);
+      freeListNode(val->data);
+      val->data = ((List*)val->data)->next;
     case 'd':
       freeValueList(val->data);
       break;
     case 's':
       freeString(val->data);
-      break;
-    case 'm':
-      freeEachValueInTree(val->data, NULL);
-      freeTree(val->data);
       break;
     case 'f':
       if (*(FILE**)val->data != stdin && *(FILE**)val->data != stdout

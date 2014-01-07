@@ -451,6 +451,9 @@ Value* setDef(FuncDef* fd, List* arglist) {
     return NULL;
   }
   u = findInTree(varlist->data, ((Variable*)arglist->next->data)->name);
+  if (((Variable*)arglist->next->data)->name[0] == '_' && u) {
+    return v;
+  }
   if (((Variable*)arglist->next->data)->indextype[0] == 'n' || ((Variable*)arglist->next->data)->indextype[0] == 'v') {
     l = NULL;
     for (k=0;((Variable*)arglist->next->data)->indextype[k] == 'n' || ((Variable*)arglist->next->data)->indextype[k] == 'v';k++) {

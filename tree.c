@@ -92,7 +92,7 @@ VarTree* insertInTree(VarTree* vt, char* key, void* data) {
   while (1) {
     if (key == t->key) {
       t->data = data;
-      return vt;
+      break;
     }
     t->count++;
     if (key < t->key) {

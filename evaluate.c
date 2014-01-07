@@ -76,15 +76,15 @@ int incEachRefcountInTree(VarTree* vt) {
   return 0;
 }
 
-int insertEachKeywordInTree(VarTree* vt, VarTree* argt) {
+VarTree* insertEachKeywordInTree(VarTree* vt, VarTree* argt) {
   if (argt == NULL)
-    return 1;
+    return vt;
   if (argt->key[0] != '_' || findInTree(vt, argt->key) == NULL) {
-    insertInTree(vt, argt->key, argt->data);
+    vt = insertInTree(vt, argt->key, argt->data);
   }
-  insertEachKeywordInTree(vt, argt->left);
-  insertEachKeywordInTree(vt, argt->right);
-  return 0;
+  vt = insertEachKeywordInTree(vt, argt->left);
+  vt = insertEachKeywordInTree(vt, argt->right);
+  return vt;
 }
 
 int scope(FuncDef* fd, List* arglist) {
@@ -101,7 +101,7 @@ int scope(FuncDef* fd, List* arglist) {
     else
       vt = mergeTree(vt, copyTree(((List*)fd->arguments->data)->data));
     if (arglist != NULL && arglist->data != NULL)
-      insertEachKeywordInTree(vt, ((List*)arglist->data)->data);
+      vt = insertEachKeywordInTree(vt, ((List*)arglist->data)->data);
   }
   incEachRefcountInTree(vt);
   if (fd->arguments == NULL || arglist == NULL) {
@@ -121,7 +121,7 @@ int scope(FuncDef* fd, List* arglist) {
       addToListBeginning(varlist, vt);
       return 1;
     }
-    if (kw && arglist->data) {
+    if (arglist->data) {
       while (fdname != NULL && findInTree(((List*)arglist->data)->data, ((Variable*)fdname->data)->name))
 	fdname = fdname->next;
       if (fdname == NULL)

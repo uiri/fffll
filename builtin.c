@@ -437,7 +437,7 @@ Value* retDef(FuncDef* fd, List* arglist) {
 Value* setDef(FuncDef* fd, List* arglist) {
   Value* v, *u;
   int i, j, k;
-  List* l, *m;
+  List* l, *m, *vl;
   if (lengthOfList(arglist->next) < 2) {
     errmsg("Not enough arguments for SET");
     return NULL;
@@ -450,13 +450,21 @@ Value* setDef(FuncDef* fd, List* arglist) {
   if (v == NULL) {
     return NULL;
   }
-  u = findInTree(varlist->data, ((Variable*)arglist->next->data)->name);
+  u = NULL;
+  vl = varlist;
+  do {
+    if (vl->data)
+      u = findInTree(vl->data, ((Variable*)arglist->next->data)->name);
+    vl = vl->next;
+  } while (u == NULL && vl != NULL);
   if (((Variable*)arglist->next->data)->name[0] == '_' && u) {
     return v;
   }
-  if (((Variable*)arglist->next->data)->indextype[0] == 'n' || ((Variable*)arglist->next->data)->indextype[0] == 'v') {
+  if (((Variable*)arglist->next->data)->indextype[0] == 'n' ||
+      ((Variable*)arglist->next->data)->indextype[0] == 'v') {
     l = NULL;
-    for (k=0;((Variable*)arglist->next->data)->indextype[k] == 'n' || ((Variable*)arglist->next->data)->indextype[k] == 'v';k++) {
+    for (k=0;((Variable*)arglist->next->data)->indextype[k] == 'n' ||
+             ((Variable*)arglist->next->data)->indextype[k] == 'v';k++) {
       if (l != NULL) {
 	u = l->data;
       }
@@ -499,8 +507,12 @@ Value* setDef(FuncDef* fd, List* arglist) {
     if (u != NULL) {
       freeValue(u);
     }
-    varlist->data = insertInTree(varlist->data, ((Variable*)arglist->next->data)->name,
-                                 v);
+    if (varlist->data)
+      varlist->data = insertInTree(varlist->data,
+                                   ((Variable*)arglist->next->data)->name,
+                                   v);
+    else
+      varlist->data = newTree(((Variable*)arglist->next->data)->name, v);
   }
   return v;
 }

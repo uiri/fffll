@@ -49,7 +49,12 @@ FuncDef* getFunction(char* name) {
 
 Value* valueFromName(char* name) {
   Value* v;
-  v = findInTree(varlist->data, name);
+  List* vl;
+  vl = varlist;
+  do {
+    v = findInTree(vl->data, name);
+    vl = vl->next;
+  } while (v == NULL && vl != NULL);
   if (v == NULL) {
     errmsgf("Variable named '%s' is not SET", name);
     return NULL;
@@ -94,16 +99,13 @@ int scope(FuncDef* fd, List* arglist) {
   Value* v;
   FuncDef* tfd;
   kw = 0;
-  vt = copyTree(globalvars);
+  vt = NULL;
   if (fd->arguments != NULL && fd->arguments->data != NULL) {
-    if (vt->key > ((VarTree*)((List*)fd->arguments->data)->data)->key)
-      vt = mergeTree(copyTree(((List*)fd->arguments->data)->data), vt);
-    else
-      vt = mergeTree(vt, copyTree(((List*)fd->arguments->data)->data));
+    vt = copyTree(((List*)fd->arguments->data)->data);
     if (arglist != NULL && arglist->data != NULL)
       vt = insertEachKeywordInTree(vt, ((List*)arglist->data)->data);
+    incEachRefcountInTree(vt);
   }
-  incEachRefcountInTree(vt);
   if (fd->arguments == NULL || arglist == NULL) {
     addToListBeginning(varlist, vt);
     return 0;
@@ -116,18 +118,21 @@ int scope(FuncDef* fd, List* arglist) {
   }
   while (fdname != NULL && al != NULL) {
     v = evaluateValue(al->data);
-    v->refcount++;
     if (v == NULL) {
       addToListBeginning(varlist, vt);
       return 1;
     }
+    v->refcount++;
     if (arglist->data) {
       while (fdname != NULL && findInTree(((List*)arglist->data)->data, ((Variable*)fdname->data)->name))
 	fdname = fdname->next;
       if (fdname == NULL)
 	break;
     }
-    vt = insertInTree(vt, ((Variable*)fdname->data)->name, v);
+    if (vt)
+      vt = insertInTree(vt, ((Variable*)fdname->data)->name, v);
+    else
+      vt = newTree(((Variable*)fdname->data)->name, v);
     if (((Value*)al->data)->type == 'c') {
       tfd = getFunction(((FuncVal*)al->data)->name);
       if (tfd->alloc == 1) {

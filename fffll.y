@@ -478,9 +478,9 @@ int main(int argc, char** argv) {
   }
   free(funcdeftable);
   /*freeValueList(lastParseTree);*/
-  for (i=0;i<3;i++) {
+  /*for (i=0;i<3;i++) {
     freeValue(stdfiles[i]);
-  }
+    }*/
   if (v != NULL && v != falsevalue) {
     freeValue(v);
   }

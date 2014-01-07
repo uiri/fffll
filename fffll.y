@@ -159,6 +159,8 @@ arglist		: '(' list ')'	{
 				}
 		;
 list		: list ',' value	{
+					  if ($1->next == NULL)
+					    $1->next = newList();
 					  addToListEnd($1->next, $3);
 					  $$ = $1;
 					}
@@ -206,19 +208,21 @@ list		: list ',' value	{
 					  Variable* var;
 					  $$ = $1;
 					  var = parseVariable($3);
-					  if ($$->data == NULL)
-					    $$->data = newTree(var->name, $5);
-					  else
-					    $$->data = insertInTree($$->data, var->name, $5);
-					  freeVariable(var);
+					  if ($$->data == NULL) {
+					    $$->data = newList();
+					    ((List*)$$->data)->data = newTree(var->name, $5);
+					  } else {
+					    ((List*)$$->data)->data = insertInTree(((List*)$$->data)->data, var->name, $5);
+					  }
+					  addToListEnd($$->data, var);
 					}
 		| VAR ':' value		{
 					  Variable* var;
 					  $$ = newList();
-					  $$->next = newList();
 					  var = parseVariable($1);
-					  $$->data = newTree(var->name, $3);
-					  freeVariable(var);
+					  $$->data = newList();
+					  ((List*)$$->data)->data = newTree(var->name, $3);
+					  addToListEnd($$->data, var);
 					}
 boolexpr	: '!' '(' bexpr ')'	{
 					  $$ = $3;

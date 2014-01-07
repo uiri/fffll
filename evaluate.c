@@ -76,11 +76,33 @@ int incEachRefcountInTree(VarTree* vt) {
   return 0;
 }
 
+int insertEachKeywordInTree(VarTree* vt, VarTree* argt) {
+  if (argt == NULL)
+    return 1;
+  if (argt->key[0] != '_' || findInTree(vt, argt->key) == NULL) {
+    insertInTree(vt, argt->key, argt->data);
+  }
+  insertEachKeywordInTree(vt, argt->left);
+  insertEachKeywordInTree(vt, argt->right);
+  return 0;
+}
+
 int scope(FuncDef* fd, List* arglist) {
+  int kw;
   VarTree* vt;
   List* fdname, *al;
   Value* v;
+  FuncDef* tfd;
+  kw = 0;
   vt = copyTree(globalvars);
+  if (fd->arguments != NULL && fd->arguments->data != NULL) {
+    if (vt->key > ((VarTree*)((List*)fd->arguments->data)->data)->key)
+      vt = mergeTree(copyTree(((List*)fd->arguments->data)->data), vt);
+    else
+      vt = mergeTree(vt, copyTree(((List*)fd->arguments->data)->data));
+    if (arglist != NULL && arglist->data != NULL)
+      insertEachKeywordInTree(vt, ((List*)arglist->data)->data);
+  }
   incEachRefcountInTree(vt);
   if (fd->arguments == NULL || arglist == NULL) {
     addToListBeginning(varlist, vt);
@@ -88,6 +110,10 @@ int scope(FuncDef* fd, List* arglist) {
   }
   fdname = fd->arguments->next;
   al = arglist->next;
+  if (fdname == NULL && fd->arguments->data != NULL) {
+    fdname = ((List*)fd->arguments->data)->next;
+    kw = 1;
+  }
   while (fdname != NULL && al != NULL) {
     v = evaluateValue(al->data);
     v->refcount++;
@@ -95,14 +121,24 @@ int scope(FuncDef* fd, List* arglist) {
       addToListBeginning(varlist, vt);
       return 1;
     }
+    if (kw && arglist->data) {
+      while (fdname != NULL && findInTree(((List*)arglist->data)->data, ((Variable*)fdname->data)->name))
+	fdname = fdname->next;
+      if (fdname == NULL)
+	break;
+    }
     vt = insertInTree(vt, ((Variable*)fdname->data)->name, v);
     if (((Value*)al->data)->type == 'c') {
-      fd = getFunction(((FuncVal*)al->data)->name);
-      if (fd->alloc == 1) {
+      tfd = getFunction(((FuncVal*)al->data)->name);
+      if (tfd->alloc == 1) {
 	freeValue(v);
       }
     }
     fdname = fdname->next;
+    if (!kw && fdname == NULL && fd->arguments->data != NULL) {
+      fdname = ((List*)fd->arguments->data)->next;
+      kw = 1;
+    }
     al = al->next;
   }
   addToListBeginning(varlist, vt);
@@ -348,7 +384,7 @@ double evaluateValueAsBool(Value* v) {
   }
   if (v->type == 'l') {
     return lengthOfList(((List*)v->data)->next) + 
-      (double)((VarTree*)((List*)v->data)->data)->count;
+      (double)((VarTree*)((List*)((List*)v->data)->data)->data)->count;
   }
   if (v->type == 'd') {
     return evaluateValueAsBool(evaluateStatements((List*)v->data));

@@ -149,9 +149,12 @@ int freeValue(Value* val) {
       free(val->data);
       break;
     case 'l':
-      freeEachValueInTree(((List*)val->data)->data, NULL);
-      freeTree(((List*)val->data)->data);
-      freeListNode(val->data);
+      if (val->data && ((List*)val->data)->data) {
+	freeEachValueInTree(((List*)((List*)val->data)->data)->data, NULL);
+	freeTree(((List*)((List*)val->data)->data)->data);
+	freeValueList(((List*)((List*)val->data)->data)->next);
+	freeListNode(((List*)val->data)->data);
+      }
       val->data = ((List*)val->data)->next;
     case 'd':
       freeValueList(val->data);

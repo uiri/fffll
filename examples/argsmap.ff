@@ -1,0 +1,14 @@
+Def("Print", [x: "Hello World!"], {
+    Write(stdout, x)
+})
+Def("Sum", [a: 2, b], {
+    Write(stdout, Add(a, b))
+})
+Def("Main", [], {
+    Print("OK.")
+    Print()
+    Print(x: "oh what")
+    Sum(a: 3, 5)
+    Sum(3)
+})
+Main()

@@ -1,4 +1,4 @@
-Def(mod, [y, x], {
+Def(mod, [y, x] {
     Set(z, Rcp(x))
     Set(y, Mul(y, z))
     For(!(y<1), {
@@ -17,8 +17,7 @@ Def(mod, [y, x], {
 })
 
 Def(main, 
-    [], 
-    {
+    []{
 	Set(x, 1)
 	For( (x<101) {
 	    If( (Mod(x, 3)=0) {

@@ -1,4 +1,4 @@
-Def(main, [], {
+Def(main, [] {
     If( ("2Av"~/[A-Z][a-z]/), {
         Write(stdout, "Whatever")
     })

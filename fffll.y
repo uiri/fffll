@@ -350,6 +350,12 @@ value	: STR			{
 	| funcall               {
 				  $$ = (Value*)$1;
 				}
+	| '[' list ']' '{' statementlist '}' {
+				  $$ = newValue('a', newFuncDef(NULL, $2, $5, 0));
+				}
+	| '[' ']' '{' statementlist '}' {
+				  $$ = newValue('a', newFuncDef(NULL, NULL, $4, 0));
+				}
 	| '[' list ']'          {
 				  $$ = newValue('l', $2);
 				}

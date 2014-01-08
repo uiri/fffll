@@ -105,12 +105,16 @@ Value* defDef(FuncDef* fd, List* arglist) {
   char* name, *fn;
   int i, j, k, l;
   l = lengthOfList(arglist->next);
-  if (l < 3) {
+  if (l < 2) {
     errmsg("Not enough arguments for DEF");
     return NULL;
   }
   if (((Value*)arglist->next->data)->type != 'v') {
     errmsg("First argument for DEF must be a variable");
+    return NULL;
+  }
+  if (((Value*)arglist->next->next->data)->type != 'a') {
+    errmsg("Second argument for DEF must be a function definition");
     return NULL;
   }
   l = 32;
@@ -141,8 +145,8 @@ Value* defDef(FuncDef* fd, List* arglist) {
       }
     }
   }
-  insertFunction(newFuncDef(name, ((Value*)arglist->next->next->data)->data,
-			    ((Value*)arglist->next->next->next->data)->data, 0));
+  ((FuncDef*)((Value*)arglist->next->next->data)->data)->name = name;
+  insertFunction(((Value*)arglist->next->next->data)->data);
   ((Value*)arglist->next->data)->refcount++;
   return (Value*)arglist->next->data;
 }

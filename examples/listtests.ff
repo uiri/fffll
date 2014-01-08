@@ -1,4 +1,4 @@
-Def(main, [], {
+Def(main, [] {
     Set(x, [4, 2, 6, 4.6, 10])
     Write(stdout, Head(x))
     Write(stdout, Tail(x))

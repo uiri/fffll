@@ -1,12 +1,12 @@
-Def(print, [x: "Hello World!"], {
+Def(print, [x: "Hello World!"] {
     Write(stdout, x)
 })
-Def(sum, [a: 2, b], {
+Def(sum, [a: 2, b] {
     Set(y, ": ")
     Write(stdout, Cat("a", y, a))
     Write(stdout, Cat("b", y, b))
 })
-Def(main, [], {
+Def(main, [] {
     Print("OK.")
     Print()
     Print(x: "oh what")

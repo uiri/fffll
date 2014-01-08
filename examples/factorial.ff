@@ -1,4 +1,4 @@
-Def( fac, [n], {
+Def( fac, [n] {
     If( (n<2), {
         Set(m, 1)
     }, {

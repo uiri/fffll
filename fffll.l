@@ -169,6 +169,8 @@ extern void yyerror(const char* msg);
 			    unput(inpchr);
 			    if (inpchr != '{' && inpchr != '[' && inpchr != '(' && inpchr != '"')
 			      insert = 0;
+			    else if (yytext[0] == ']' && inpchr == '{')
+			      insert = 0;
 			  }
 			  if (insert) {
 			    unput(inschr);

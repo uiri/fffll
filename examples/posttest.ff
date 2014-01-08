@@ -1,4 +1,4 @@
-Def( "Main" [] {
+Def( main, [] {
     Set(x, Open("http://httpbin.org/post"))
     Write(x, "")
     Write(stdout, "")

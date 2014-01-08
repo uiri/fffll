@@ -109,7 +109,18 @@ Value* defDef(FuncDef* fd, List* arglist) {
     errmsg("Not enough arguments for DEF");
     return NULL;
   }
-  name = valueToString(arglist->next->data);
+  if (((Value*)arglist->next->data)->type != 'v') {
+    errmsg("First argument for DEF must be a variable");
+    return NULL;
+  }
+  l = 32;
+  name = malloc(l);
+  k = 0;
+  while ((name[k] = ((Variable*)arglist->next->data)->name[k]))
+    if (++k == l) {
+      l *= 2;
+      name = realloc(name, l);
+    }
   for (i=0;name[i] != '\0';i++) {
     if (name[i] > 90) {
       name[i] -= 32;

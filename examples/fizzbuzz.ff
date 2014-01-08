@@ -1,4 +1,4 @@
-Def("Mod", [y, x], {
+Def(mod, [y, x], {
     Set(z, Rcp(x))
     Set(y, Mul(y, z))
     For(!(y<1), {
@@ -16,7 +16,7 @@ Def("Mod", [y, x], {
     Set(y, Mul(y, x))
 })
 
-Def("Main", 
+Def(main, 
     [], 
     {
 	Set(x, 1)

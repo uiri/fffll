@@ -1,4 +1,4 @@
-Def("Main" [] {
+Def(main, [] {
 	Set(x, Open("HtTp://checkip.dyndns.org/"))
 	Write(stdout, Read(x))
 	Write(stdout, Read(x))

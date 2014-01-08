@@ -1,4 +1,4 @@
-Def("Pow", [x, n], {
+Def(pow, [x, n], {
     If((n=2), {
 	  Set(x, Mul(x, x))
       }, {
@@ -6,7 +6,7 @@ Def("Pow", [x, n], {
       })
 })
 
-Def("QuitLoop", [], {
+Def(quitLoop, [], {
     Set(x, "")
     For(!(x="QUIT"), {
         Write(stdout, "Type QUIT to exit")
@@ -14,11 +14,11 @@ Def("QuitLoop", [], {
     })
 })
 
-Def("Print", [x], {
+Def(print, [x], {
     Write(stdout, x)
 })
 
-Def("Main", [], {
+Def(main, [], {
     Quitloop()
     Print([1, 2.2, 3, 4.36])
 })

@@ -1,7 +1,7 @@
-DEF("Print" [x] {
+DEF(print, [x] {
     Write(stdout, x)
 })
-Def( "Main" [] {
+Def( main, [] {
     Print(""@57@68"at"@3f)
 })
 Main()

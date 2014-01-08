@@ -1,8 +1,8 @@
-Def( "Print" [x] {
+Def( print, [x] {
      Write(stdout, "Printing...", x)
 })
 
-Def( "Print" [x] {
+Def( print, [x] {
      Write(stdout, x)
 })
 

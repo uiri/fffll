@@ -1,8 +1,8 @@
-Set(x, 3)
-If( (x=2) {
-    Write(stdout, "Should not appear")
+set(x, 3)
+if( (x=2) {
+    write(stdout, "Should not appear")
 } (x=3) {
-    Write(stdout, "Elseif works")
+    write(stdout, "Elseif works")
 } {
-    Write(stdout, "Huh?")
+    write(stdout, "Huh?")
 })

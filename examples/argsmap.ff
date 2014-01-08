@@ -1,19 +1,19 @@
-Def(print, [x: "Hello World!"] {
-    Write(stdout, x)
+set(print, [x: "Hello World!"] {
+    write(stdout, x)
 })
-Def(sum, [a: 2, b] {
-    Set(y, ": ")
-    Write(stdout, Cat("a", y, a))
-    Write(stdout, Cat("b", y, b))
+set(sum, [a: 2, b] {
+    set(y, ": ")
+    write(stdout, 'cat("a", y, a))
+    write(stdout, 'cat("b", y, b))
 })
-Def(main, [] {
-    Print("OK.")
-    Print()
-    Print(x: "oh what")
-    Sum(7, 12)
-    Sum(3)
-    Sum(8, 1, c: 3)
-    Sum(a: 3, 5)
-    Sum(6, b: 4)
+set(main, [] {
+    print("OK.")
+    print()
+    print(x: "oh what")
+    sum(7, 12)
+    sum(3)
+    sum(8, 1, c: 3)
+    sum(a: 3, 5)
+    sum(6, b: 4)
 })
-Main()
+main()

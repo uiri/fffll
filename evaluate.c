@@ -31,22 +31,6 @@ extern FuncDef** funcdeftable;
 
 /* Internal helper functions */
 
-FuncDef* getFunction(char* name) {
-  FuncDef* fd;
-  int i;
-  i = hashName(name);
-  fd = NULL;
-  while (i<funcnum) {
-    fd = funcdeftable[i++];
-    if (fd == NULL) {
-      errmsgf("Function %s is not defined", name);
-      break;
-    }
-    if (fd->name == name) break;
-  }
-  return fd;
-}
-
 Value* valueFromName(char* name) {
   Value* v;
   List* vl;
@@ -96,8 +80,7 @@ int scope(FuncDef* fd, List* arglist) {
   int kw;
   VarTree* vt;
   List* fdname, *al;
-  Value* v;
-  FuncDef* tfd;
+  Value* v, *u;
   kw = 0;
   vt = NULL;
   if (fd->arguments != NULL && fd->arguments->data != NULL) {
@@ -134,8 +117,10 @@ int scope(FuncDef* fd, List* arglist) {
     else
       vt = newTree(((Variable*)fdname->data)->name, v);
     if (((Value*)al->data)->type == 'c') {
-      tfd = getFunction(((FuncVal*)al->data)->name);
-      if (tfd->alloc == 1) {
+      u = ((Value*)al->data)->data;
+      if (u->type == 'v' || u->type == 'c')
+	u = evaluateValue(u);
+      if (u->type == 'a' && ((FuncDef*)u->data)->alloc == 1) {
 	freeValue(v);
       }
     }
@@ -334,8 +319,24 @@ Value* evaluateFuncDef(FuncDef* fd, List* arglist) {
 
 Value* evaluateFuncVal(FuncVal* fv) {
   FuncDef* fd;
-  fd = getFunction(fv->name);
-  if (fd == NULL) return NULL;
+  Value* v, *u;
+  v = fv->val;
+  u = NULL;
+  if (v->type == 'v' || v->type == 'c') {
+    u = v;
+    v = evaluateValue(u);
+    if (v == NULL) return NULL;
+  }
+  if (v->type != 'a')
+    return evaluateValue(v);
+  fd = v->data;
+  if (fd == NULL) {
+    if (u && u->type == 'v')
+      errmsgfd("In %s at line %d", ((Variable*)u)->name, fv->lineno);
+    else
+      errmsgfd("In %s at line %d", "some function", fv->lineno);
+    return NULL;
+  }
   return (*fd->evaluate)(fd, fv->arglist);
 }
 
@@ -401,16 +402,11 @@ double evaluateValueAsBool(Value* v) {
 }
 
 Value* evaluateValue(Value* v) {
-  FuncVal* fv;
   Value* u;
   int i, j, k;
   List* l, *m;
   if (v->type == 'c') {
-    fv = (FuncVal*)v;
     v = evaluateFuncVal((FuncVal*)v);
-    if (v == NULL) {
-      errmsgfd("In %s at line %d", fv->name, fv->lineno);
-    }
     return v;
   }
   if (v->type == 'v') {

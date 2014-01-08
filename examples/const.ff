@@ -1,4 +1,4 @@
-Set(_x, "This is a constant.")
-Write(stdout, _x)
-Set(_x, "This is no longer constant.")
-Write(stdout, _x)
+set(_x, "This is a constant.")
+write(stdout, _x)
+set(_x, "This is no longer constant.")
+write(stdout, _x)

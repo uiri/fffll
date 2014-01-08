@@ -101,56 +101,6 @@ Value* catDef(FuncDef* fd, List* arglist) {
   return newValue('s', str);
 }
 
-Value* defDef(FuncDef* fd, List* arglist) {
-  char* name, *fn;
-  int i, j, k, l;
-  l = lengthOfList(arglist->next);
-  if (l < 2) {
-    errmsg("Not enough arguments for DEF");
-    return NULL;
-  }
-  if (((Value*)arglist->next->data)->type != 'v') {
-    errmsg("First argument for DEF must be a variable");
-    return NULL;
-  }
-  if (((Value*)arglist->next->next->data)->type != 'a') {
-    errmsg("Second argument for DEF must be a function definition");
-    return NULL;
-  }
-  l = 32;
-  name = malloc(l);
-  k = 0;
-  while ((name[k] = ((Variable*)arglist->next->data)->name[k]))
-    if (++k == l) {
-      l *= 2;
-      name = realloc(name, l);
-    }
-  for (i=0;name[i] != '\0';i++) {
-    if (name[i] > 90) {
-      name[i] -= 32;
-    }
-  }
-  l = lengthOfList(funcnames);
-  k = strlen(name);
-  for (i=0;i<l;i++) {
-    fn = dataInListAtPosition(funcnames, i);
-    if (fn != NULL && strlen(fn) == k) {
-      for (j=0;j<k;j++) {
-	if (fn[j] != name[j]) break;
-      }
-      if (j == k) {
-	free(name);
-	name = fn;
-	break;
-      }
-    }
-  }
-  ((FuncDef*)((Value*)arglist->next->next->data)->data)->name = name;
-  insertFunction(((Value*)arglist->next->next->data)->data);
-  ((Value*)arglist->next->data)->refcount++;
-  return (Value*)arglist->next->data;
-}
-
 Value* forDef(FuncDef* fd, List* arglist) {
   Value* v;
   BoolExpr* be;

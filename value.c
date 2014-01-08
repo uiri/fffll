@@ -28,15 +28,26 @@ extern Value* falsevalue;
 extern List* varlist;
 extern List* stringlist;
 
-extern int funcnum;
-extern FuncDef** funcdeftable;
-
 /* Internal free functions */
+
+int freeFuncDef(FuncDef* fd) {
+  if (fd->arguments) {
+    if (fd->arguments->data && ((List*)fd->arguments->data)->data) {
+      freeEachValueInTree(((List*)fd->arguments->data)->data, NULL);
+      freeTree(((List*)fd->arguments->data)->data);
+      freeValueList(((List*)fd->arguments->data)->next);
+      freeListNode(fd->arguments->data);
+    }
+    freeValueList(fd->arguments->next);
+  }
+  freeValueList(fd->statements);
+  return 0;
+}
 
 int freeFuncVal(FuncVal* fv) {
   fv->refcount--;
   if (fv->refcount < 1) {
-    free(fv->name);
+    freeValue(fv->val);
     freeValueList(fv->arglist);
     free(fv);
   }
@@ -169,6 +180,9 @@ int freeValue(Value* val) {
 	free(val->data);
       }
       break;
+    case 'a':
+      freeFuncDef(val->data);
+      return 1;
     case 'h':
       freeHttpVal((HttpVal*)val);
       return 1;
@@ -214,31 +228,6 @@ int freeVariable(Variable* var) {
   return 0;
 }
 
-int hashName(char* name) {
-  int i, s;
-  s = 0;
-  /* Hash from sdbm. See http://www.cse.yorku.ca/~oz/hash.html */
-  for (i=0;name[i] != '\0';i++)
-    s = name[i] + (s << 6) + (s << 16);
-  /* funcnum is always 2^n - 1 */
-  s = s&funcnum;
-  return s;
-}
-
-int insertFunction(FuncDef* fd) {
-  int i;
-  i = hashName(fd->name);
-  while (funcdeftable[i] != NULL) {
-    if (funcdeftable[i]->name == fd->name) {
-      free(funcdeftable[i]);
-      break;
-    }
-    i++;
-  }
-  funcdeftable[i] = fd;
-  return 0;
-}
-
 BoolExpr* newBoolExpr(Value* val) {
   BoolExpr* be;
   be = malloc(sizeof(BoolExpr));
@@ -251,17 +240,16 @@ BoolExpr* newBoolExpr(Value* val) {
   return be;
 }
 
-int newBuiltinFuncDef(char* name, Value* (*evaluate)(FuncDef*, List*), int alloc) {
+FuncDef* newBuiltinFuncDef(Value* (*evaluate)(FuncDef*, List*), int alloc) {
   FuncDef* fd;
-  fd = newFuncDef(name, NULL, NULL, alloc);
+  fd = newFuncDef(NULL, NULL, alloc);
   fd->evaluate = evaluate;
-  return insertFunction(fd);
+  return fd;
 }
 
-FuncDef* newFuncDef(char* name, List* al, List* sl, int alloc) {
+FuncDef* newFuncDef(List* al, List* sl, int alloc) {
   FuncDef* fd;
   fd = malloc(sizeof(FuncDef));
-  fd->name = name;
   fd->statements = sl;
   fd->arguments = al;
   fd->evaluate = &evaluateFuncDef;
@@ -269,11 +257,11 @@ FuncDef* newFuncDef(char* name, List* al, List* sl, int alloc) {
   return fd;
 }
 
-FuncVal* newFuncVal(char* name, List* arglist, int ln) {
+FuncVal* newFuncVal(Value* val, List* arglist, int ln) {
   FuncVal* fv;
   fv = malloc(sizeof(FuncVal));
   fv->refcount = 1;
-  fv->name = name;
+  fv->val = val;
   fv->type = 'c';
   fv->arglist = arglist;
   fv->lineno = ln;

@@ -1,26 +1,26 @@
-Def(pow, [x, n]{
-    If((n=2), {
-	  Set(x, Mul(x, x))
+set(pow, [x, n]{
+    if((n=2), {
+	  set(x, 'mul(x, x))
       }, {
-	  Set(x, Mul(x, Pow(x, Add(n, -1))))
+	  set(x, 'mul(x, 'pow(x, 'add(n, -1))))
       })
 })
 
-Def(quitLoop, [] {
-    Set(x, "")
-    For(!(x="QUIT"), {
-        Write(stdout, "Type QUIT to exit")
-        Set(x, Read(stdin))
+set(quitloop, [] {
+    set(x, "")
+    for(!(x="QUIT"), {
+        write(stdout, "Type QUIT to exit")
+        set(x, 'read(stdin))
     })
 })
 
-Def(print, [x] {
-    Write(stdout, x)
+set(print, [x] {
+    write(stdout, x)
 })
 
-Def(main, [] {
-    Quitloop()
-    Print([1, 2.2, 3, 4.36])
+set(main, [] {
+    quitloop()
+    print([1, 2.2, 3, 4.36])
 })
 
-Main()
+main()

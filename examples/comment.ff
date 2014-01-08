@@ -5,4 +5,4 @@
 ok then
 -- whatever
 *--
-Write(stdout, "Commenting works") -- what
+write(stdout, "Commenting works") -- what

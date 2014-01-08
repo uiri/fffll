@@ -39,7 +39,6 @@ struct boolval {
 
 typedef struct funcdef FuncDef;
 struct funcdef {
-  char* name;
   Value* (*evaluate)(FuncDef*, List*);
   List* statements;
   List* arguments;
@@ -49,7 +48,7 @@ struct funcdef {
 typedef struct funcval FuncVal;
 struct funcval {
   int refcount;
-  char* name;
+  Value* val;
   char type;
   List* arglist;
   int lineno;
@@ -95,9 +94,9 @@ int freeVariable(Variable* var);
 int hashName(char* name);
 int insertFunction(FuncDef* fd);
 BoolExpr* newBoolExpr(Value* val);
-int newBuiltinFuncDef(char* name, Value* (*evaluate)(FuncDef*, List*), int alloc);
-FuncDef* newFuncDef(char* name, List* al, List* sl, int alloc);
-FuncVal* newFuncVal(char* name, List* arglist, int ln);
+FuncDef* newBuiltinFuncDef(Value* (*evaluate)(FuncDef*, List*), int alloc);
+FuncDef* newFuncDef(List* al, List* sl, int alloc);
+FuncVal* newFuncVal(Value* val, List* arglist, int ln);
 HttpVal* newHttpVal(char* url);
 String* newString(char* s);
 Value* newValue(char type, void* data);

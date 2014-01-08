@@ -1,6 +1,6 @@
-Def(main, [] {
-	Set(x, Open("HtTp://checkip.dyndns.org/"))
-	Write(stdout, Read(x))
-	Write(stdout, Read(x))
+set(main, [] {
+	set(x, 'open("HtTp://checkip.dyndns.org/"))
+	write(stdout, 'read(x))
+	write(stdout, 'read(x))
 })
-Main()
+main()

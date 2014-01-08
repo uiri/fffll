@@ -1,9 +1,9 @@
-Def(main, [] {
-    If( ("2Av"~/[A-Z][a-z]/), {
-        Write(stdout, "Whatever")
+set(main, [] {
+    if( ("2Av"~/[A-Z][a-z]/), {
+        write(stdout, "Whatever")
     })
-    If( ("vA"~/[A-Z][a-z]/), {
-        Write(stdout, "Well fuck")
+    if( ("vA"~/[A-Z][a-z]/), {
+        write(stdout, "Well fuck")
     })
 })
-Main()
+main()

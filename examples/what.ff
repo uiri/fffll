@@ -1,7 +1,7 @@
-DEF(print, [x] {
-    Write(stdout, x)
+set(print, [x] {
+    write(stdout, x)
 })
-Def( main, [] {
-    Print(""@57@68"at"@3f)
+set( main, [] {
+    print(""@57@68"at"@3f)
 })
-Main()
+main()

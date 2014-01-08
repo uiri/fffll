@@ -1,9 +1,9 @@
-Def( print, [x] {
-     Write(stdout, "Printing...", x)
+set( print, [x] {
+     write(stdout, "Printing...", x)
 })
 
-Def( print, [x] {
-     Write(stdout, x)
+set( print, [x] {
+     write(stdout, x)
 })
 
-Print("Hello World")
+print("Hello World")

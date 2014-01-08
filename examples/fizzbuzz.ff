@@ -1,39 +1,39 @@
-Def(mod, [y, x] {
-    Set(z, Rcp(x))
-    Set(y, Mul(y, z))
-    For(!(y<1), {
-        Set(w, 1)
-	Set(u, Mul(y, z))
-        For( (w<u) {
-            Set(w, Mul(w, x))
+set(mod, [y, x] {
+    set(z, 'rcp(x))
+    set(y, 'mul(y, z))
+    for(!(y<1), {
+        set(w, 1)
+	set(u, 'mul(y, z))
+        for( (w<u) {
+            set(w, 'mul(w, x))
         })
-	Set(w, Mul(w, -1))
-        Set(y, Add(y, w))
+	set(w, 'mul(w, -1))
+        set(y, 'add(y, w))
     })
-    If( (y<0) {
-        Set(y, 0)
+    if( (y<0) {
+        set(y, 0)
     })
-    Set(y, Mul(y, x))
+    set(y, 'mul(y, x))
 })
 
-Def(main, 
+set(main, 
     []{
-	Set(x, 1)
-	For( (x<101) {
-	    If( (Mod(x, 3)=0) {
-		If( (Mod(x, 5)=0) {
-		    Write(stdout, "Fizzbuzz")
+	set(x, 1)
+	for( (x<101) {
+	    if( ('mod(x, 3)=0) {
+		if( ('mod(x, 5)=0) {
+		    write(stdout, "Fizzbuzz")
 		} {
-		    Write(stdout, "Fizz")
+		    write(stdout, "Fizz")
 		})
 	    }, {
-		If( (Mod(x, 5)=0) {
-		    Write(stdout, "Buzz")
+		if( ('mod(x, 5)=0) {
+		    write(stdout, "Buzz")
 		} {
-		    Write(stdout, x)
+		    write(stdout, x)
 		})
 	    })
-	    Set(x, Add(x, 1))
+	    set(x, 'add(x, 1))
 	})
 })
-Main()
+main()

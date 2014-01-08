@@ -142,7 +142,7 @@ extern void yyerror(const char* msg);
 			  yylval.symbol = funcname;
 			  return STR;
 			}
-[,.:()[\]\{\}<>=&|!~]	{
+[,.:()[\]\{\}<>=&|'!~]	{
 			  int insert = 0;
 			  char inschr = ',', inpchr;
 			  if (yytext[0] == '(')
@@ -185,22 +185,7 @@ extern void yyerror(const char* msg);
 			  yylval.index = atoi((char*)yytext+1);
 			  return IND;
 			}
-[A-Z][A-Za-z0-9]+	{
-			  int i, l;
-			  char* funcname;
-			  l = strlen(yytext);
-			  funcname = malloc(l+1);
-			  for (i=0;i<l;i++) {
-			    if (yytext[i] > 90) {
-			      yytext[i] -= 32;
-			    }
-			    funcname[i] = yytext[i];
-			  }
-			  funcname[l] = '\0';
-			  yylval.symbol = funcname;
-			  return FUNC;
-			}
-[_a-z][_A-Za-z0-9]*	{
+[_a-zA-Z][_A-Za-z0-9]*	{
 			  int i, l;
 			  char* funcname;
 			  l = strlen(yytext);

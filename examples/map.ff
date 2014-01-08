@@ -1,8 +1,8 @@
-Def(main, [] {
-    Set(x, [ f: 0, g: 1, b: 3, e: 2 ])
-    If( (4=x), {
-        Write(stdout, "cool")
+set(main, [] {
+    set(x, [ f: 0, g: 1, b: 3, e: 2 ])
+    if( (4=x), {
+        write(stdout, "cool")
     })
-    --Write(stdout, x.b)
+    --write(stdout, x.b)
 })
-Main()
+main()

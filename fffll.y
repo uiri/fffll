@@ -47,7 +47,7 @@ void yyerror(const char* msg) {
  VarTree* globalvars;
 
  int funcnum;
- FuncDef** funcdeftable;
+ Value* funcdeftable[15];
  List* funcnames;
 
  List* lastParseTree;
@@ -93,7 +93,6 @@ Variable* parseVariable(char* name) {
   struct VarTree* tree;
 }
 
-%token <symbol> FUNC
 %token <index> IND
 %token <num> NUM
 %token <symbol> RGX
@@ -123,31 +122,7 @@ statementlist	: statementlist funcall	{
 					  lastParseTree = $$;
 					}
 		;
-funcall		: FUNC arglist	{ 
-				  int i, j, k, l;
-				  char* n;
-				  l = lengthOfList(funcnames);
-				  k = strlen($1);
-				  j = 0;
-				  for (i=0;i<l;i++) {
-				    n = dataInListAtPosition(funcnames, i);
-				    if (n != NULL && k == strlen(n)) {
-				      for (j=0;j<k;j++) {
-					if ($1[j] != n[j]) break;
-				      }
-				      if (j == k) {
-					free($1);
-					$1 = n;
-					break;
-				      }
-				    }
-				  }
-				  if (j != k) {
-				    addToListBeginning(funcnames, $1);
-				  }
-				  if ($1 == constants+34) {
-				      funcnum++;
-				  }
+funcall		: value arglist	{ 
 				  $$ = newFuncVal($1, $2, lineno);
 				}
 		;
@@ -347,14 +322,14 @@ value	: STR			{
 	| VAR			{
 				  $$ = (Value*)parseVariable($1);
 				}
-	| funcall               {
-				  $$ = (Value*)$1;
+	| '\''funcall               {
+				  $$ = (Value*)$2;
 				}
 	| '[' list ']' '{' statementlist '}' {
-				  $$ = newValue('a', newFuncDef(NULL, $2, $5, 0));
+				  $$ = newValue('a', newFuncDef($2, $5, 0));
 				}
 	| '[' ']' '{' statementlist '}' {
-				  $$ = newValue('a', newFuncDef(NULL, NULL, $4, 0));
+				  $$ = newValue('a', newFuncDef(NULL, $4, 0));
 				}
 	| '[' list ']'          {
 				  $$ = newValue('l', $2);
@@ -375,11 +350,11 @@ int main(int argc, char** argv) {
   FILE* fp;
   FILE** stdinp, **stdoutp, **stderrp;
   /* The value between str's [] should be the value of strsize */
-  int strsize = 26;
-  const char* str[] = { "=", "<", ">", "&", "|", "~", "stdin", "stdout", "stderr",
-                        "DEF", "SET", "IF", "FOR", "WRITE", "READ", "OPEN",
-                        "ADD", "MUL", "RCP", "RETURN", "LEN", "TOK", "CAT",
-                        "HEAD", "TAIL", "PUSH"};
+  int strsize = 24;
+  const char* str[] = { "=", "<", ">", "&", "|", "~", "_stdin", "_stdout", "_stderr",
+                        "_set", "_if", "_for", "_write", "_read", "_open",
+                        "_add", "_mul", "_rcp", "_len", "_tok", "_cat", "_head",
+                        "_tail", "_push"};
   int lenconstants;
   int i, j, k, l;
   Value* stdfiles[3], *v;
@@ -424,65 +399,106 @@ int main(int argc, char** argv) {
   stdfiles[0] = newValue('f', stdinp);
   stdfiles[1] = newValue('f', stdoutp);
   stdfiles[2] = newValue('f', stderrp);
+  funcdeftable[0] = newValue('a', newBuiltinFuncDef(&setDef, 0));
+  funcdeftable[1] = newValue('a', newBuiltinFuncDef(&ifDef, 0));
+  funcdeftable[2] = newValue('a', newBuiltinFuncDef(&forDef, 0));
+  funcdeftable[3] = newValue('a', newBuiltinFuncDef(&writeDef, 0));
+  funcdeftable[4] = newValue('a', newBuiltinFuncDef(&readDef, 1));
+  funcdeftable[5] = newValue('a', newBuiltinFuncDef(&openDef, 1));
+  funcdeftable[6] = newValue('a', newBuiltinFuncDef(&addDef, 1));
+  funcdeftable[7] = newValue('a', newBuiltinFuncDef(&mulDef, 1));
+  funcdeftable[8] = newValue('a', newBuiltinFuncDef(&rcpDef, 1));
+  funcdeftable[9] = newValue('a', newBuiltinFuncDef(&lenDef, 1));
+  funcdeftable[10] = newValue('a', newBuiltinFuncDef(&tokDef, 1));
+  funcdeftable[11] = newValue('a', newBuiltinFuncDef(&catDef, 1));
+  funcdeftable[12] = newValue('a', newBuiltinFuncDef(&headDef, 1));
+  funcdeftable[13] = newValue('a', newBuiltinFuncDef(&tailDef, 1));
+  funcdeftable[14] = newValue('a', newBuiltinFuncDef(&pushDef, 0));
+  /* don't forget to fix funcdeftable's declaration */
   globalvars = newTree(constants+12, stdfiles[0]);
-  globalvars = insertInTree(globalvars, constants+18, stdfiles[1]);
-  globalvars = insertInTree(globalvars, constants+26, stdfiles[2]);
+  globalvars = insertInTree(globalvars, constants+13, stdfiles[0]);
+  globalvars = insertInTree(globalvars, constants+20, stdfiles[1]);
+  globalvars = insertInTree(globalvars, constants+21, stdfiles[1]);
+  globalvars = insertInTree(globalvars, constants+28, stdfiles[2]);
+  globalvars = insertInTree(globalvars, constants+29, stdfiles[2]);
+  globalvars = insertInTree(globalvars, constants+36, funcdeftable[0]); /* _set */
+  globalvars = insertInTree(globalvars, constants+37, funcdeftable[0]); /* set */
+  globalvars = insertInTree(globalvars, constants+42, funcdeftable[1]); /* _if */
+  globalvars = insertInTree(globalvars, constants+43, funcdeftable[1]); /* if */
+  globalvars = insertInTree(globalvars, constants+46, funcdeftable[2]); /* _for */
+  globalvars = insertInTree(globalvars, constants+47, funcdeftable[2]); /* for */
+  globalvars = insertInTree(globalvars, constants+52, funcdeftable[3]); /* _write */
+  globalvars = insertInTree(globalvars, constants+53, funcdeftable[3]); /* write */
+  globalvars = insertInTree(globalvars, constants+60, funcdeftable[4]); /* _read */
+  globalvars = insertInTree(globalvars, constants+61, funcdeftable[4]); /* read */
+  globalvars = insertInTree(globalvars, constants+66, funcdeftable[5]); /* _open */
+  globalvars = insertInTree(globalvars, constants+67, funcdeftable[5]); /* open */
+  globalvars = insertInTree(globalvars, constants+72, funcdeftable[6]); /* _add */
+  globalvars = insertInTree(globalvars, constants+73, funcdeftable[6]); /* add */
+  globalvars = insertInTree(globalvars, constants+78, funcdeftable[7]); /* _mul */
+  globalvars = insertInTree(globalvars, constants+79, funcdeftable[7]); /* mul */
+  globalvars = insertInTree(globalvars, constants+84, funcdeftable[8]); /* _rcp */
+  globalvars = insertInTree(globalvars, constants+85, funcdeftable[8]); /* rcp */
+  globalvars = insertInTree(globalvars, constants+90, funcdeftable[9]); /* _len */
+  globalvars = insertInTree(globalvars, constants+91, funcdeftable[9]); /* len */
+  globalvars = insertInTree(globalvars, constants+96, funcdeftable[10]); /* _tok */
+  globalvars = insertInTree(globalvars, constants+97, funcdeftable[10]); /* tok */
+  globalvars = insertInTree(globalvars, constants+102, funcdeftable[11]); /* _cat */
+  globalvars = insertInTree(globalvars, constants+103, funcdeftable[11]); /* cat */
+  globalvars = insertInTree(globalvars, constants+108, funcdeftable[12]); /* _head */
+  globalvars = insertInTree(globalvars, constants+109, funcdeftable[12]); /* head */
+  globalvars = insertInTree(globalvars, constants+114, funcdeftable[13]); /* _tail */
+  globalvars = insertInTree(globalvars, constants+115, funcdeftable[13]); /* tail */
+  globalvars = insertInTree(globalvars, constants+120, funcdeftable[14]); /* _push */ /* +126 next */
+  globalvars = insertInTree(globalvars, constants+121, funcdeftable[14]); /* push */ /* +127 next */
   addToListBeginning(varnames, constants+12);
-  addToListBeginning(varnames, constants+18);
-  addToListBeginning(varnames, constants+26);
+  addToListBeginning(varnames, constants+13);
+  addToListBeginning(varnames, constants+20);
+  addToListBeginning(varnames, constants+21);
+  addToListBeginning(varnames, constants+28);
+  addToListBeginning(varnames, constants+29);
+  addToListBeginning(varnames, constants+36);
+  addToListBeginning(varnames, constants+37);
+  addToListBeginning(varnames, constants+42);
+  addToListBeginning(varnames, constants+43);
+  addToListBeginning(varnames, constants+46);
+  addToListBeginning(varnames, constants+47);
+  addToListBeginning(varnames, constants+52);
+  addToListBeginning(varnames, constants+53);
+  addToListBeginning(varnames, constants+60);
+  addToListBeginning(varnames, constants+61);
+  addToListBeginning(varnames, constants+66);
+  addToListBeginning(varnames, constants+67);
+  addToListBeginning(varnames, constants+72);
+  addToListBeginning(varnames, constants+73);
+  addToListBeginning(varnames, constants+78);
+  addToListBeginning(varnames, constants+79);
+  addToListBeginning(varnames, constants+84);
+  addToListBeginning(varnames, constants+85);
+  addToListBeginning(varnames, constants+90);
+  addToListBeginning(varnames, constants+91);
+  addToListBeginning(varnames, constants+96);
+  addToListBeginning(varnames, constants+97);
+  addToListBeginning(varnames, constants+102);
+  addToListBeginning(varnames, constants+103);
+  addToListBeginning(varnames, constants+108);
+  addToListBeginning(varnames, constants+109);
+  addToListBeginning(varnames, constants+114);
+  addToListBeginning(varnames, constants+115);
+  addToListBeginning(varnames, constants+120);
+  addToListBeginning(varnames, constants+121);
   addToListBeginning(varlist, globalvars);
-  addToListBeginning(funcnames, constants+34);
-  addToListBeginning(funcnames, constants+38);
-  addToListBeginning(funcnames, constants+42);
-  addToListBeginning(funcnames, constants+46);
-  addToListBeginning(funcnames, constants+50);
-  addToListBeginning(funcnames, constants+56);
-  addToListBeginning(funcnames, constants+62);
-  addToListBeginning(funcnames, constants+68);
-  addToListBeginning(funcnames, constants+72);
-  addToListBeginning(funcnames, constants+76);
-  addToListBeginning(funcnames, constants+80);
-  addToListBeginning(funcnames, constants+88);
-  addToListBeginning(funcnames, constants+92);
-  addToListBeginning(funcnames, constants+96);
-  addToListBeginning(funcnames, constants+100);
-  addToListBeginning(funcnames, constants+106);
-  addToListBeginning(funcnames, constants+112);
   parencount = malloc(16*sizeof(int));
   parencount[parencountind] = 0;
   curl_global_init(CURL_GLOBAL_ALL);
   yyparse();
   free(parencount);
-  funcnum *= 4;
-  i = 64;
-  while (i<funcnum)
-    i *= 2;
-  funcnum = i - 1;
-  funcdeftable = calloc(funcnum, sizeof(FuncDef));
-  newBuiltinFuncDef(constants+34, &defDef, 0);
-  newBuiltinFuncDef(constants+38, &setDef, 0);
-  newBuiltinFuncDef(constants+42, &ifDef, 0);
-  newBuiltinFuncDef(constants+46, &forDef, 0);
-  newBuiltinFuncDef(constants+50, &writeDef, 0);
-  newBuiltinFuncDef(constants+56, &readDef, 1);
-  newBuiltinFuncDef(constants+62, &openDef, 1);
-  newBuiltinFuncDef(constants+68, &addDef, 1);
-  newBuiltinFuncDef(constants+72, &mulDef, 1);
-  newBuiltinFuncDef(constants+76, &rcpDef, 1);
-  newBuiltinFuncDef(constants+80, &retDef, 0);
-  newBuiltinFuncDef(constants+88, &lenDef, 1);
-  newBuiltinFuncDef(constants+92, &tokDef, 1);
-  newBuiltinFuncDef(constants+96, &catDef, 1);
-  newBuiltinFuncDef(constants+100, &headDef, 1);
-  newBuiltinFuncDef(constants+106, &tailDef, 1);
-  newBuiltinFuncDef(constants+112, &pushDef, 0);
   v = evaluateStatements(lastParseTree);
   for (i=0;i<funcnum;i++) {
     if (funcdeftable[i] != NULL) {
-      free(funcdeftable[i]);
+      freeValue(funcdeftable[i]);
     }
   }
-  free(funcdeftable);
   /*freeValueList(lastParseTree);*/
   /*for (i=0;i<3;i++) {
     freeValue(stdfiles[i]);
@@ -492,7 +508,7 @@ int main(int argc, char** argv) {
   }
   /*freeTree(globalvars);*/
   freeList(varlist);
-  l = lengthOfList(varnames) - 4;
+  l = lengthOfList(varnames) + 10 - 2*strsize;
   for (i=0;i<l;i++) {
     free(dataInListAtPosition(varnames, i));
   }

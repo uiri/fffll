@@ -48,7 +48,6 @@ void yyerror(const char* msg) {
 
  int funcnum;
  Value* funcdeftable[15];
- List* funcnames;
 
  List* lastParseTree;
  char* eq, *gt, *lt, *and, *or, *sq;
@@ -414,7 +413,6 @@ int main(int argc, char** argv) {
   yyin = fp;
   funcnum = strsize - 8;
   falsevalue = newValue('0', NULL);
-  funcnames = newList();
   varnames = newList();
   varlist = newList();
   stringlist = newList();
@@ -522,24 +520,22 @@ int main(int argc, char** argv) {
     }
   }
   /*freeValueList(lastParseTree);*/
-  /*for (i=0;i<3;i++) {
+  for (i=0;i<3;i++) {
     freeValue(stdfiles[i]);
-    }*/
+  }
+  for (i=0;i<14;i++) {
+    freeValue(funcdeftable[i]);
+  }
   if (v != NULL && v != falsevalue) {
     freeValue(v);
   }
-  /*freeTree(globalvars);*/
+  freeTree(globalvars);
   freeList(varlist);
   l = lengthOfList(varnames) + 10 - 2*strsize;
   for (i=0;i<l;i++) {
     free(dataInListAtPosition(varnames, i));
   }
   freeList(varnames);
-  l = lengthOfList(funcnames) + 7 - strsize;
-  for (i=0;i<l;i++) {
-    free(dataInListAtPosition(funcnames, i));
-  }
-  freeList(funcnames);
   freeValue(falsevalue);
   free(stdinp);
   free(stdoutp);

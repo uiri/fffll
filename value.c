@@ -155,6 +155,8 @@ int freeBoolExpr(BoolExpr* be) {
 }
 
 int freeValue(Value* val) {
+  if (val == NULL)
+    return 1;
   val->refcount--;
   if (val->refcount < 1) {
     switch (val->type) {

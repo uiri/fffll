@@ -1,39 +1,39 @@
 set(mod, [y, x] {
-    set(z, 'rcp(x))
-    set(y, 'mul(y, z))
+    set(z, rcp(x))
+    set(y, mul(y, z))
     for(!(y<1), {
         set(w, 1)
-	set(u, 'mul(y, z))
+	set(u, mul(y, z))
         for( (w<u) {
-            set(w, 'mul(w, x))
+            set(w, mul(w, x))
         })
-	set(w, 'mul(w, -1))
-        set(y, 'add(y, w))
+	set(w, mul(w, -1))
+        set(y, add(y, w))
     })
     if( (y<0) {
         set(y, 0)
     })
-    set(y, 'mul(y, x))
+    set(y, mul(y, x))
 })
 
 set(main, 
     []{
 	set(x, 1)
 	for( (x<101) {
-	    if( ('mod(x, 3)=0) {
-		if( ('mod(x, 5)=0) {
+	    if( (mod(x, 3)=0) {
+		if( (mod(x, 5)=0) {
 		    write(stdout, "Fizzbuzz")
 		} {
 		    write(stdout, "Fizz")
 		})
 	    }, {
-		if( ('mod(x, 5)=0) {
+		if( (mod(x, 5)=0) {
 		    write(stdout, "Buzz")
 		} {
 		    write(stdout, x)
 		})
 	    })
-	    set(x, 'add(x, 1))
+	    set(x, add(x, 1))
 	})
 })
 main()

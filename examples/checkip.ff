@@ -1,6 +1,6 @@
 set(main, [] {
-	set(x, 'open("HtTp://checkip.dyndns.org/"))
-	write(stdout, 'read(x))
-	write(stdout, 'read(x))
+	set(x, open("HtTp://checkip.dyndns.org/"))
+	write(stdout, read(x))
+	write(stdout, read(x))
 })
 main()

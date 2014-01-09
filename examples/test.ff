@@ -1,8 +1,8 @@
 set(pow, [x, n]{
     if((n=2), {
-	  set(x, 'mul(x, x))
+	  set(x, mul(x, x))
       }, {
-	  set(x, 'mul(x, 'pow(x, 'add(n, -1))))
+	  set(x, mul(x, pow(x, add(n, -1))))
       })
 })
 
@@ -10,7 +10,7 @@ set(quitloop, [] {
     set(x, "")
     for(!(x="QUIT"), {
         write(stdout, "Type QUIT to exit")
-        set(x, 'read(stdin))
+        set(x, read(stdin))
     })
 })
 

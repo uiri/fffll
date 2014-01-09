@@ -101,6 +101,7 @@ Variable* parseVariable(char* name) {
 
 %type <llist> statementlist
 %type <fv> funcall
+%type <val> funcdef;
 %type <llist> arglist
 %type <llist> list
 %type <val> value;
@@ -122,9 +123,26 @@ statementlist	: statementlist funcall	{
 					  lastParseTree = $$;
 					}
 		;
-funcall		: value arglist	{ 
-				  $$ = newFuncVal($1, $2, lineno);
-				}
+funcall		: VAR arglist		{
+					  Variable* v;
+					  v = parseVariable($1);
+					  $$ = newFuncVal((Value*)v, $2, lineno);
+					}
+		| funcdef arglist	{
+					  Value* v;
+					  v = newValue('a', $1);
+					  $$ = newFuncVal(v, $2, lineno);
+					}
+		| funcall arglist	{
+					  $$ = newFuncVal((Value*)$1, $2, lineno);
+					}
+		;
+funcdef		: '[' list ']' '{' statementlist '}'	{
+							  $$ = newValue('a', newFuncDef($2, $5, 0));
+							}
+		| '[' ']' '{' statementlist '}'		{
+							  $$ = newValue('a', newFuncDef(NULL, $4, 0));
+							}
 		;
 arglist		: '(' list ')'	{
 				  $$ = $2;
@@ -322,14 +340,11 @@ value	: STR			{
 	| VAR			{
 				  $$ = (Value*)parseVariable($1);
 				}
-	| '\''funcall               {
-				  $$ = (Value*)$2;
+	| funcall               {
+				  $$ = (Value*)$1;
 				}
-	| '[' list ']' '{' statementlist '}' {
-				  $$ = newValue('a', newFuncDef($2, $5, 0));
-				}
-	| '[' ']' '{' statementlist '}' {
-				  $$ = newValue('a', newFuncDef(NULL, $4, 0));
+	| funcdef		{
+				  $$ = $1;
 				}
 	| '[' list ']'          {
 				  $$ = newValue('l', $2);

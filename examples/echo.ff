@@ -1,1 +1,1 @@
-write(stdout, 'read(stdin))
+write(stdout, read(stdin))

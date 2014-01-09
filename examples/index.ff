@@ -1,14 +1,14 @@
 set(x, [[3, 2, 1], [4, 5, 6]])
 set(i, 0)
-set(l, 'len(x))
+set(l, len(x))
 for( (i<l) {
-    set(m, 'len(x.[i]))
+    set(m, len(x.[i]))
     set(j, 0)
     for ((j<m) {
         write(stdout, x.[i].[j])
-        set(j, 'add(j, 1))
+        set(j, add(j, 1))
     })
-    set(i, 'add(i, 1))
+    set(i, add(i, 1))
 })
 write(stdout, x.[x.0.2].[x.0.1])
 set(x.0.1, 7)

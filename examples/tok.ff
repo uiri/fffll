@@ -1,1 +1,1 @@
-write(stdout, 'tok("3,2,ff,4,1,3,ee,4,lk0", ","))
+write(stdout, tok("3,2,ff,4,1,3,ee,4,lk0", ","))

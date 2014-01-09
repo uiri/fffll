@@ -3,8 +3,8 @@ set(print, [x: "Hello World!"] {
 })
 set(sum, [a: 2, b] {
     set(y, ": ")
-    write(stdout, 'cat("a", y, a))
-    write(stdout, 'cat("b", y, b))
+    write(stdout, cat("a", y, a))
+    write(stdout, cat("b", y, b))
 })
 set(main, [] {
     print("OK.")

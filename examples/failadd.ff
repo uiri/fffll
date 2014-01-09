@@ -1,1 +1,3 @@
-write(stdout, (x=3))
+[]{
+    write(stdout, (x=3))
+}()

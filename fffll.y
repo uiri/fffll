@@ -52,6 +52,7 @@ void yyerror(const char* msg) {
 
  List* lastParseTree;
  char* eq, *gt, *lt, *and, *or, *sq;
+ char* anonfunc = "anonymous function";
 
 Variable* parseVariable(char* name) {
   int i, j, k, l;
@@ -126,15 +127,21 @@ statementlist	: statementlist funcall	{
 funcall		: VAR arglist		{
 					  Variable* v;
 					  v = parseVariable($1);
-					  $$ = newFuncVal((Value*)v, $2, lineno);
+					  $$ = newFuncVal((Value*)v, $2, v->name, lineno);
 					}
 		| funcdef arglist	{
-					  Value* v;
-					  v = newValue('a', $1);
-					  $$ = newFuncVal(v, $2, lineno);
+					  $$ = newFuncVal($1, $2, anonfunc, lineno);
 					}
 		| funcall arglist	{
-					  $$ = newFuncVal((Value*)$1, $2, lineno);
+					  char* name;
+					  int i;
+					  name = malloc(strlen($1->name) + 3);
+					  for (i=0;$1->name[i];i++)
+					    name[i] = $1->name[i];
+					  name[i++] = '(';
+					  name[i++] = ')';
+					  name[i] = '\0';
+					  $$ = newFuncVal((Value*)$1, $2, name, lineno);
 					}
 		;
 funcdef		: '[' list ']' '{' statementlist '}'	{

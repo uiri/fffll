@@ -51,6 +51,7 @@ struct funcval {
   Value* val;
   char type;
   List* arglist;
+  char* name;
   int lineno;
 };
 
@@ -96,7 +97,7 @@ int insertFunction(FuncDef* fd);
 BoolExpr* newBoolExpr(Value* val);
 FuncDef* newBuiltinFuncDef(Value* (*evaluate)(FuncDef*, List*), int alloc);
 FuncDef* newFuncDef(List* al, List* sl, int alloc);
-FuncVal* newFuncVal(Value* val, List* arglist, int ln);
+FuncVal* newFuncVal(Value* val, List* arglist, char* name, int ln);
 HttpVal* newHttpVal(char* url);
 String* newString(char* s);
 Value* newValue(char type, void* data);

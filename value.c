@@ -47,6 +47,8 @@ int freeFuncDef(FuncDef* fd) {
 int freeFuncVal(FuncVal* fv) {
   fv->refcount--;
   if (fv->refcount < 1) {
+    if (fv->val->type == 'c')
+      free(fv->name);
     freeValue(fv->val);
     freeValueList(fv->arglist);
     free(fv);
@@ -257,13 +259,14 @@ FuncDef* newFuncDef(List* al, List* sl, int alloc) {
   return fd;
 }
 
-FuncVal* newFuncVal(Value* val, List* arglist, int ln) {
+FuncVal* newFuncVal(Value* val, List* arglist, char* name, int ln) {
   FuncVal* fv;
   fv = malloc(sizeof(FuncVal));
   fv->refcount = 1;
   fv->val = val;
   fv->type = 'c';
   fv->arglist = arglist;
+  fv->name = name;
   fv->lineno = ln;
   return fv;
 }

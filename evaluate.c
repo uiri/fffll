@@ -322,22 +322,19 @@ Value* evaluateFuncVal(FuncVal* fv) {
   Value* v, *u;
   v = fv->val;
   u = NULL;
-  if (v->type == 'v' || v->type == 'c') {
+  fd = NULL;
+  if (v->type != 'a') {
     u = v;
     v = evaluateValue(u);
-    if (v == NULL) return NULL;
   }
-  if (v->type != 'a')
-    return evaluateValue(v);
-  fd = v->data;
-  if (fd == NULL) {
-    if (u && u->type == 'v')
-      errmsgfd("In %s at line %d", ((Variable*)u)->name, fv->lineno);
-    else
-      errmsgfd("In %s at line %d", "some function", fv->lineno);
+  if (v != NULL) {
+    fd = v->data;
+  }
+  if (fd == NULL || (v = (*fd->evaluate)(fd, fv->arglist)) == NULL) {
+    errmsgfd("In %s at line %d", fv->name, fv->lineno);
     return NULL;
   }
-  return (*fd->evaluate)(fd, fv->arglist);
+  return v;
 }
 
 List* evaluateList(List* l) {

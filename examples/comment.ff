@@ -5,4 +5,6 @@
 ok then
 -- whatever
 *--
+--[]
 write(stdout, "Commenting works") -- what
+--*

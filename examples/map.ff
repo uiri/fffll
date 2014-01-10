@@ -1,8 +1,5 @@
-set(main, [] {
     set(x, [ f: 0, g: 1, b: 3, e: 2 ])
     if( (4=x), {
         write(stdout, "cool")
     })
     --write(stdout, x.b)
-})
-main()

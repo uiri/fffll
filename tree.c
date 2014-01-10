@@ -29,6 +29,20 @@ VarTree* copyTree(VarTree* vt) {
   return nt;
 }
 
+VarTree* deleteDataInTree(VarTree* vt, void* data) {
+  VarTree* ret;
+  if (vt == NULL)
+    return NULL;
+  if (vt->data == data) {
+    ret = mergeTree(deleteDataInTree(vt->right, data), deleteDataInTree(vt->left, data));
+    free(vt);
+    return ret;
+  }
+  vt->right = deleteDataInTree(vt->right, data);
+  vt->left = deleteDataInTree(vt->left, data);
+  return rebalanceTree(vt);
+}
+
 VarTree* deleteInTree(VarTree* vt, char* key) {
   VarTree* ret, *t, *u;
   int i;

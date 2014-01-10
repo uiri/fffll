@@ -119,16 +119,19 @@ int cleanupFffll(Value* v) {
   int i, l;
   for (i=0;i<funcnum;i++) {
     if (funcdeftable[i] != NULL) {
+      globalvars = deleteDataInTree(globalvars, funcdeftable[i]);
       freeValue(funcdeftable[i]);
     }
   }
   /*freeValueList(lastParseTree);*/
   for (i=0;i<3;i++) {
+    globalvars = deleteDataInTree(globalvars, stdfiles[i]);
     freeValue(stdfiles[i]);
   }
   if (v != NULL && v != falsevalue) {
     freeValue(v);
   }
+  freeEachValueInTree(globalvars, NULL);
   freeTree(globalvars);
   freeList(varlist);
   l = lengthOfList(varnames) + 10 - 2*strsize;

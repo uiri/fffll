@@ -24,9 +24,19 @@
 #include "tree.h"
 
 extern Value* falsevalue;
+extern char* constants;
 
 extern List* varlist;
+extern List* varnames;
 extern List* stringlist;
+extern VarTree* globalvars;
+
+extern int strsize;
+extern int funcnum;
+extern Value* funcdeftable[15];
+
+extern Value* stdfiles[3];
+extern FILE** stdinp, **stdoutp, **stderrp;
 
 /* Internal free functions */
 
@@ -103,6 +113,36 @@ String* addToStringList(String* s) {
     addToListBeginning(stringlist, s);
   }
   return s;
+}
+
+int cleanupFffll(Value* v) {
+  int i, l;
+  for (i=0;i<funcnum;i++) {
+    if (funcdeftable[i] != NULL) {
+      freeValue(funcdeftable[i]);
+    }
+  }
+  /*freeValueList(lastParseTree);*/
+  for (i=0;i<3;i++) {
+    freeValue(stdfiles[i]);
+  }
+  if (v != NULL && v != falsevalue) {
+    freeValue(v);
+  }
+  freeTree(globalvars);
+  freeList(varlist);
+  l = lengthOfList(varnames) + 10 - 2*strsize;
+  for (i=0;i<l;i++) {
+    free(dataInListAtPosition(varnames, i));
+  }
+  freeList(varnames);
+  freeValue(falsevalue);
+  free(stdinp);
+  free(stdoutp);
+  free(stderrp);
+  free(constants);
+  curl_global_cleanup();
+  return 0;
 }
 
 int errmsg(char* err) {

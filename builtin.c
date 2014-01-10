@@ -101,6 +101,22 @@ Value* catDef(FuncDef* fd, List* arglist) {
   return newValue('s', str);
 }
 
+Value* dieDef(FuncDef* fd, List* arglist) {
+  char* s;
+  Value* v;
+  if (arglist) {
+    v = evaluateValue(arglist->next->data);
+    if (v) {
+      s = valueToString(v);
+      errmsgf("%s", s);
+      free(s);
+    }
+    freeValue(v);
+  }
+  cleanupFffll(NULL);
+  exit(1);
+}
+
 Value* forDef(FuncDef* fd, List* arglist) {
   Value* v;
   BoolExpr* be;

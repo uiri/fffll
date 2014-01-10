@@ -41,13 +41,17 @@ void yyerror(const char* msg) {
  Value* falsevalue;
  char* constants;
 
+ Value* stdfiles[3];
+ FILE** stdinp, **stdoutp, **stderrp;
+
  List* varlist;
  List* varnames;
  List* stringlist;
  VarTree* globalvars;
 
- int funcnum;
- Value* funcdeftable[15];
+ int strsize = 25;
+ int funcnum = 15;
+ Value* funcdeftable[16];
 
  List* lastParseTree;
  char* eq, *gt, *lt, *and, *or, *sq;
@@ -369,16 +373,15 @@ value	: STR			{
 
 int main(int argc, char** argv) {
   FILE* fp;
-  FILE** stdinp, **stdoutp, **stderrp;
-  /* The value between str's [] should be the value of strsize */
-  int strsize = 24;
+  /* The value between str's [] should be the value of strsize
+   * Don't forget to change it at the top of the file */
   const char* str[] = { "=", "<", ">", "&", "|", "~", "_stdin", "_stdout", "_stderr",
                         "_set", "_if", "_for", "_write", "_read", "_open",
                         "_add", "_mul", "_rcp", "_len", "_tok", "_cat", "_head",
-                        "_tail", "_push"};
+                        "_tail", "_push", "_die"};
   int lenconstants;
   int i, j, k, l;
-  Value* stdfiles[3], *v;
+  Value* v;
   if (argc != 2) {
     printf("This program takes exactly one argument. The file to interpret\n");
     return 1;
@@ -411,7 +414,6 @@ int main(int argc, char** argv) {
   *stderrp = stderr;
   fp = fopen(argv[1], "r");
   yyin = fp;
-  funcnum = strsize - 8;
   falsevalue = newValue('0', NULL);
   varnames = newList();
   varlist = newList();
@@ -434,6 +436,7 @@ int main(int argc, char** argv) {
   funcdeftable[12] = newValue('a', newBuiltinFuncDef(&headDef, 1));
   funcdeftable[13] = newValue('a', newBuiltinFuncDef(&tailDef, 1));
   funcdeftable[14] = newValue('a', newBuiltinFuncDef(&pushDef, 0));
+  funcdeftable[15] = newValue('a', newBuiltinFuncDef(&dieDef, 0));
   /* don't forget to fix funcdeftable's declaration */
   globalvars = newTree(constants+12, stdfiles[0]);
   globalvars = insertInTree(globalvars, constants+13, stdfiles[0]);
@@ -469,8 +472,10 @@ int main(int argc, char** argv) {
   globalvars = insertInTree(globalvars, constants+109, funcdeftable[12]); /* head */
   globalvars = insertInTree(globalvars, constants+114, funcdeftable[13]); /* _tail */
   globalvars = insertInTree(globalvars, constants+115, funcdeftable[13]); /* tail */
-  globalvars = insertInTree(globalvars, constants+120, funcdeftable[14]); /* _push */ /* +126 next */
-  globalvars = insertInTree(globalvars, constants+121, funcdeftable[14]); /* push */ /* +127 next */
+  globalvars = insertInTree(globalvars, constants+120, funcdeftable[14]); /* _push */
+  globalvars = insertInTree(globalvars, constants+121, funcdeftable[14]); /* push */
+  globalvars = insertInTree(globalvars, constants+126, funcdeftable[15]); /* _die */ /* +132 next */
+  globalvars = insertInTree(globalvars, constants+127, funcdeftable[15]); /* die */ /* +133 next */
   addToListBeginning(varnames, constants+12);
   addToListBeginning(varnames, constants+13);
   addToListBeginning(varnames, constants+20);
@@ -507,6 +512,8 @@ int main(int argc, char** argv) {
   addToListBeginning(varnames, constants+115);
   addToListBeginning(varnames, constants+120);
   addToListBeginning(varnames, constants+121);
+  addToListBeginning(varnames, constants+126);
+  addToListBeginning(varnames, constants+127);
   addToListBeginning(varlist, globalvars);
   parencount = malloc(16*sizeof(int));
   parencount[parencountind] = 0;
@@ -514,33 +521,6 @@ int main(int argc, char** argv) {
   yyparse();
   free(parencount);
   v = evaluateStatements(lastParseTree);
-  for (i=0;i<funcnum;i++) {
-    if (funcdeftable[i] != NULL) {
-      freeValue(funcdeftable[i]);
-    }
-  }
-  /*freeValueList(lastParseTree);*/
-  for (i=0;i<3;i++) {
-    freeValue(stdfiles[i]);
-  }
-  for (i=0;i<14;i++) {
-    freeValue(funcdeftable[i]);
-  }
-  if (v != NULL && v != falsevalue) {
-    freeValue(v);
-  }
-  freeTree(globalvars);
-  freeList(varlist);
-  l = lengthOfList(varnames) + 10 - 2*strsize;
-  for (i=0;i<l;i++) {
-    free(dataInListAtPosition(varnames, i));
-  }
-  freeList(varnames);
-  freeValue(falsevalue);
-  free(stdinp);
-  free(stdoutp);
-  free(stderrp);
-  free(constants);
-  curl_global_cleanup();
+  cleanupFffll(v);
   return 0;
 }

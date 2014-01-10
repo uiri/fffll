@@ -1,0 +1,6 @@
+set(main, [x]{
+    if( (x) {
+        die("Oh no")
+    })
+})
+main(-2)

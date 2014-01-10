@@ -84,6 +84,7 @@ struct variable {
 #endif
 
 String* addToStringList(String* s);
+int cleanupFffll(Value* v);
 int errmsg(char* err);
 int errmsgf(char* format, char* s);
 int errmsgfd(char* format, char* s, int i);

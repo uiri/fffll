@@ -19,7 +19,7 @@
 
 Value* addDef(FuncDef* fd, List* arglist);
 Value* catDef(FuncDef* fd, List* arglist);
-Value* defDef(FuncDef* fd, List* arglist);
+Value* dieDef(FuncDef* fd, List* arglist);
 Value* forDef(FuncDef* fd, List* arglist);
 Value* headDef(FuncDef* fd, List* arglist);
 Value* ifDef(FuncDef* fd, List* arglist);

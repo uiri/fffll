@@ -1,5 +1,5 @@
 set(main, [x]{
-    if( (x) {
+    if( (x<0) {
         die("Oh no")
     })
 })

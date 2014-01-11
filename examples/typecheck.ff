@@ -1,0 +1,21 @@
+set(x, 3)
+if( (x?0) {
+    write(stdout, "x is a number")
+})
+if( (x?[x: 0, y: 0]) {
+    write(stdout, "WTF")
+})
+set(x, [x: 0, y: 2])
+if( (x?0) {
+    write(stdout, "WTF")
+})
+if( (x?[x: 0, y: 0]) {
+    write(stdout, "x has both x and y properties")
+})
+if( (x?[x: 0, y: 0, z: 0]) {
+    write(stdout, "WTF")
+})
+set(x, [x: 0, y: 2, z: 4])
+if( (x?[x: 0, y: 0]) {
+    write(stdout, "x has both x and y properties.")
+})

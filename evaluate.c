@@ -142,7 +142,7 @@ BoolExpr* evaluateBoolExpr(BoolExpr* be) {
   double j, k, **n, *o;
   char* c, *s, *t;
   const char* err;
-  List* stack;
+  List* stack, *prop;
   Value* v, *u, *w;
   pcre *re;
   re = NULL;
@@ -229,7 +229,6 @@ BoolExpr* evaluateBoolExpr(BoolExpr* be) {
     }
     if (c[0] == '~') {
       if (w == NULL) {
-	*n[m] = 0;
 	continue;
       }
       s = valueToString(w);
@@ -241,6 +240,24 @@ BoolExpr* evaluateBoolExpr(BoolExpr* be) {
       free(t);
       if (re) pcre_free(re);
       continue;
+    }
+    if (c[0] == '?') {
+      if (w == NULL || v == NULL)
+	continue;
+      if (w->type == v->type) {
+	if (v->type != 'l' || ((List*)v->data)->data == NULL) {
+	  *n[m] = 1;
+	  continue;
+	}
+	prop = ((List*)((List*)v->data)->data)->next;
+	while (prop != NULL) {
+	  if (!findInTree(((List*)((List*)w->data)->data)->data, ((Variable*)prop->data)->name))
+	    break;
+	  prop = prop->next;
+	}
+	if (prop == NULL)
+	  *n[m] = 1;
+      }
     }
     if (t != NULL && s != NULL) {
       if (s == t && c[0] == '=') {

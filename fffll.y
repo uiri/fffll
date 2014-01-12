@@ -17,6 +17,7 @@
    */
 
 #include <curl/curl.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -56,6 +57,30 @@ void yyerror(const char* msg) {
  List* lastParseTree;
  char* eq, *gt, *lt, *and, *or, *sq, *ty;
  char* anonfunc = "anonymous function";
+
+void siginfo(int sig) {
+  switch (sig) {
+  case SIGABRT:
+    errmsg("\nSIGABRT: Aborting");
+    break;
+  case SIGFPE:
+    errmsg("\nSIGFPE: Arithmetic error");
+    break;
+  case SIGILL:
+    errmsg("\nSIGILL: Illegal instruction");
+    break;
+  case SIGINT:
+    errmsg("\nSIGINT: Interrupted");
+    break;
+  case SIGTERM:
+    errmsg("\nSIGTERM: Terminating");
+    break;
+  default:
+    errmsg("\nSignal caught. Exiting now");
+    break;
+  }
+  _Exit(1);
+}
 
 Variable* parseVariable(char* name) {
   int i, j, k, l;
@@ -524,6 +549,11 @@ int main(int argc, char** argv) {
   parencount = malloc(16*sizeof(int));
   parencount[parencountind] = 0;
   curl_global_init(CURL_GLOBAL_ALL);
+  signal(SIGABRT, siginfo);
+  signal(SIGFPE, siginfo);
+  signal(SIGILL, siginfo);
+  signal(SIGINT, siginfo);
+  signal(SIGTERM, siginfo);
   yyparse();
   free(parencount);
   v = evaluateStatements(lastParseTree);

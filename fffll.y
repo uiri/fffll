@@ -50,7 +50,7 @@ void yyerror(const char* msg) {
  List* stringlist;
  VarTree* globalvars;
 
- int strsize = 25;
+ int strsize = 26;
  int funcnum = 15;
  Value* funcdeftable[16];
 
@@ -554,9 +554,16 @@ int main(int argc, char** argv) {
   signal(SIGILL, siginfo);
   signal(SIGINT, siginfo);
   signal(SIGTERM, siginfo);
-  yyparse();
-  free(parencount);
-  v = evaluateStatements(lastParseTree);
+  if (yyin == NULL) {
+    errmsg("File does not exist.");
+    i = 1;
+    v = NULL;
+  } else {
+    i = 0;
+    yyparse();
+    free(parencount);
+    v = evaluateStatements(lastParseTree);
+  }
   cleanupFffll(v);
-  return 0;
+  return i;
 }

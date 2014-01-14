@@ -23,16 +23,16 @@
 
 typedef struct value Value;
 struct value {
+  char type;
   int refcount;
   void* data;
-  char type;
 };
 
 typedef struct boolval BoolExpr;
 struct boolval {
+  char type;
   int refcount;
   List* stack;
-  char type;
   int neg;
   int lasteval;
 };
@@ -47,9 +47,9 @@ struct funcdef {
 
 typedef struct funcval FuncVal;
 struct funcval {
+  char type;
   int refcount;
   Value* val;
-  char type;
   List* arglist;
   char* name;
   int lineno;
@@ -57,9 +57,9 @@ struct funcval {
 
 typedef struct httpval HttpVal;
 struct httpval {
+  char type;
   int refcount;
   CURL* curl;
-  char type;
   char* url;
   char* buf;
   int pos;
@@ -74,9 +74,9 @@ struct stringval {
 
 typedef struct variable Variable;
 struct variable {
+  char type;
   int refcount;
   char* name;
-  char type;
   char* indextype;
   void** index;
 };

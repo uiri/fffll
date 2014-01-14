@@ -149,15 +149,21 @@ BoolExpr* evaluateBoolExpr(BoolExpr* be) {
   stack = newList();
   l = lengthOfList(be->stack);
   m = -1;
-  n = malloc(((l+1)/2)*sizeof(double*));
+  n = malloc(((l/2)+2)*sizeof(double*));
   o = NULL;
   i = 0;
   while (i<l) {
-    n[++m] = calloc(1, sizeof(double));
     s = NULL;
     t = NULL;
     w = NULL;
     u = dataInListAtPosition(be->stack, i);
+    if (u->type == '|' || u->type == '&') {
+      addToListEnd(stack, n[m]);
+      addToListEnd(stack, u);
+      i++;
+      continue;
+    }
+    n[++m] = calloc(1, sizeof(double));
     if (u->type != 'b') {
       v = evaluateValue(u);
       w = v;
@@ -188,11 +194,15 @@ BoolExpr* evaluateBoolExpr(BoolExpr* be) {
     }
     if (j) *n[m] = 1;
     if (i == l) {
-      addToListEnd(stack, n[m]);
       break;
     }
-    n[++m] = calloc(1, sizeof(double));
     c = (char*)dataInListAtPosition(be->stack, i++);
+    if (c[0] == '|' || c[0] == '&') {
+      addToListEnd(stack, n[m]);
+      addToListEnd(stack, c);
+      continue;
+    }
+    n[++m] = calloc(1, sizeof(double));
     u = dataInListAtPosition(be->stack, i);
     if (u->type != 'b') {
       v = evaluateValue(u);
@@ -220,12 +230,6 @@ BoolExpr* evaluateBoolExpr(BoolExpr* be) {
       free(n);
       freeList(stack);
       return NULL;
-    }
-    if (c[0] == '|' || c[0] == '&') {
-      addToListEnd(stack, n[m-1]);
-      addToListEnd(stack, c);
-      addToListEnd(stack, n[m]);
-      continue;
     }
     if (c[0] == '~') {
       if (w == NULL) {
@@ -278,7 +282,7 @@ BoolExpr* evaluateBoolExpr(BoolExpr* be) {
 	if (fabs((j-k)/j)>=0.0000005)
 	  p = 1;
       }
-    } else if (j<k) {
+    } else {
       if (k<=0.0) {
 	if (fabs((k-j)/j)>=0.0000005)
 	  p = -1;
@@ -293,8 +297,12 @@ BoolExpr* evaluateBoolExpr(BoolExpr* be) {
   }
   if (m > -1)
     o = n[m];
-  m++;
   l = lengthOfList(stack);
+  if (l) {
+    addToListEnd(stack, n[m]);
+    l++;
+  }
+  m++;
   i = 0;
   while (i<l) {
     j = *(double*)dataInListAtPosition(stack, i++);

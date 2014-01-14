@@ -26,10 +26,10 @@ ListAllocator* ListManager = NULL;
 List* addListToList(List *list, List *oldlist) {
   List *headptr;
   headptr = list;
-  while (list->next != NULL) {
-    list = list->next;
+  while (oldlist != NULL) {
+    addToListEnd(list, oldlist->data);
+    oldlist = oldlist->next;
   }
-  list->next = oldlist;
   return headptr;
 }
 

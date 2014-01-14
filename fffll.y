@@ -265,14 +265,14 @@ bexpr		: compexpr '&' compexpr
 					  $$ = $1;
 					  addToListEnd($$->stack, and);
 					  addListToList($$->stack, $3->stack);
-					  freeBoolExpr($3);
+					  free($3);
 					}
 		| compexpr '|' compexpr
 					{
 					  $$ = $1;
 					  addToListEnd($$->stack, or);
 					  addListToList($$->stack, $3->stack);
-					  freeBoolExpr($3);
+					  free($3);
 					}
 		| compexpr		{
 					  $$ = $1;

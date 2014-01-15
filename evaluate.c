@@ -365,6 +365,7 @@ Value* evaluateFuncVal(FuncVal* fv) {
 List* evaluateList(List* l) {
   List* r;
   Value* v;
+  FuncDef* fd;
   r = newList();
   while (l != NULL) {
     if (((Value*)l->data)->type == 'd') {
@@ -376,7 +377,11 @@ List* evaluateList(List* l) {
 	freeValueList(r);
 	return NULL;
       }
-      if (((Value*)l->data)->type == 'v' || ((Value*)l->data)->type == 'c') {
+      fd = NULL;
+      if (((Value*)l->data)->type == 'c') {
+	fd = evaluateValue(((FuncVal*)l->data)->val)->data;
+      }
+      if (((Value*)l->data)->type == 'v' || (fd && !fd->alloc)) {
 	v->refcount++;
       }
       addToListEnd(r, v);

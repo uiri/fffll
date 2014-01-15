@@ -131,7 +131,7 @@ int cleanupFffll(Value* v) {
   if (v != NULL && v != falsevalue) {
     freeValue(v);
   }
-  freeEachValueInTree(globalvars, NULL);
+  freeEachValueInTree(globalvars, v);
   freeTree(globalvars);
   freeList(varlist);
   l = lengthOfList(varnames) + 10 - 2*strsize;

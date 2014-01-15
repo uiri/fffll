@@ -485,7 +485,7 @@ Value* setDef(FuncDef* fd, List* arglist) {
       freeValue(l->data);
     l->data = v;
   } else {
-    if (u != NULL) {
+    if (u != NULL && vl == varlist->next) {
       freeValue(u);
     }
     if (varlist->data)

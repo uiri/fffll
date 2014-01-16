@@ -205,10 +205,17 @@ extern void yyerror(const char* msg);
 			  if ((c = input()) != '\n') {
 			    if (c == '*') {
 			      while (1) {
-			        while ((c = input()) != '*' && c > -1);
-			        if ((c = input()) == '-')
-			          if ((c = input()) == '-')
+			        while ((c = input()) != '*' && c > -1)
+				  if (c == '\n') lineno++;
+			        if ((c = input()) == '-') {
+			          if ((c = input()) == '-') {
 				    break;
+				  } else if (c == '\n') {
+				    lineno++;
+                                  }
+                                } else if (c == '\n') {
+				  lineno++;
+				}
 				if (c == -1)
 				  break;
 			      }

@@ -1,0 +1,27 @@
+set(mod, [y, x] {
+    set(z, rcp(x))
+    set(y, mul(y, z))
+    for(!(y<1), {
+        set(w, 1)
+	set(u, mul(y, z))
+        for( (w<u) {
+            set(w, mul(w, x))
+        })
+	set(w, mul(w, -1))
+        set(y, add(y, w))
+    })
+    if( (y<0) {
+        set(y, 0)
+    })
+    set(y, mul(y, x))
+})
+
+set(x, 0)
+set(y, 1)
+for( (y<1000) {
+    if( (mod(y, 3)=0|mod(y, 5)=0) {
+        set(x, add(x, y))
+    })
+    set(y, add(y, 1))
+})
+write(stdout, x)

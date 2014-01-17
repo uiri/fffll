@@ -1,9 +1,11 @@
 set(mAIN, [] {
     write(stdout, (4|0))
     write(stdout, (4&0))
+    write(stdout, ((1&2)&3))
+    write(stdout, ((1&2)&0))
     write(stdout, (4>0))
-    write(stdout, (-4<0))
     write(stdout, (4<0))
+    write(stdout, (-4<0))
     write(stdout, (-4>0))
     write(stdout, (-4<4))
     write(stdout, (-4>4))

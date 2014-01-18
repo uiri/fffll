@@ -432,6 +432,7 @@ Value* evaluateValue(Value* v) {
   Value* u;
   int i, j, k;
   List* l, *m;
+  char* s;
   if (v->type == 'c') {
     v = evaluateFuncVal((FuncVal*)v);
     return v;
@@ -439,10 +440,11 @@ Value* evaluateValue(Value* v) {
   if (v->type == 'v') {
     if (v == NULL) return NULL;
     l = NULL;
-    for (k=0;((Variable*)v)->indextype[k] == 'n' || ((Variable*)v)->indextype[k] == 'v';k++) {
+    s = NULL;
+    for (k=0;((Variable*)v)->indextype[k] != '0';k++) {
       if (l == NULL)
 	u = valueFromName(((Variable*)v)->name);
-      else
+      else if (s == NULL)
 	u = l->data;
       if (u == NULL) return NULL;
       if (u->type != 'l') {
@@ -450,36 +452,48 @@ Value* evaluateValue(Value* v) {
         return NULL;
       }
       l = ((List*)u->data)->next;
+      s = NULL;
       if (((Variable*)v)->indextype[k] == 'v') {
         u = evaluateValue(((Variable*)v)->index[k]);
-        j = (int)valueToDouble(u);
-      } else {
+	if (u->type == 's')
+	  s = ((String*)u->data)->val;
+	else
+	  j = (int)valueToDouble(u);
+      } else if (((Variable*)v)->indextype[k] == 'n') {
         j = *(int*)((Variable*)v)->index[k];
+      } else {
+	s = (char*)((Variable*)v)->index[k];
       }
-      m = l;
-      if (j < 0) {
-	for (;j<0;j++) {
-	  m = m->next;
+      if (s) {
+        u = findInTree(((List*)((List*)u->data)->data)->data, s);
+      } else {
+	m = l;
+	if (j < 0) {
+	  for (;j<0;j++) {
+	    m = m->next;
+	  }
+	  while (m != NULL) {
+	    m = m->next;
+	    l = l->next;
+	  }
 	}
-	while (m != NULL) {
-	  m = m->next;
+	for (i=0;i<j;i++) {
+	  if (l == NULL)
+	    break;
 	  l = l->next;
 	}
-      }
-      for (i=0;i<j;i++) {
-        if (l == NULL)
-          break;
-        l = l->next;
-      }
-      if (l == NULL) {
-        errmsg("List index out of bounds");
-        return NULL;
+	if (l == NULL) {
+	  errmsg("List index out of bounds");
+	  return NULL;
+	}
       }
     }
     if (l != NULL) {
       v = l->data;
-    } else {
+    } else if (s == NULL) {
       v = valueFromName(((Variable*)v)->name);
+    } else {
+      v = u;
     }
     return v;
   }

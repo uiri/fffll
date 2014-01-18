@@ -2,4 +2,4 @@
     if( (4=x), {
         write(stdout, "cool")
     })
-    --write(stdout, x.b)
+    write(stdout, x.b)

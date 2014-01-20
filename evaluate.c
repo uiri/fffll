@@ -429,7 +429,7 @@ double evaluateValueAsBool(Value* v) {
 }
 
 Value* evaluateValue(Value* v) {
-  Value* u;
+  Value* u, *w;
   int i, j, k;
   List* l, *m;
   char* s;
@@ -456,11 +456,26 @@ Value* evaluateValue(Value* v) {
       l = ((List*)u->data)->next;
       s = NULL;
       if (((Variable*)v)->indextype[k] == 'v') {
-        u = evaluateValue(((Variable*)v)->index[k]);
-	if (u->type == 's')
-	  s = ((String*)u->data)->val;
-	else
-	  j = (int)valueToDouble(u);
+        w = evaluateValue(((Variable*)v)->index[k]);
+	if (w->type == 's') {
+	  s = ((String*)w->data)->val;
+	  m = varnames;
+	  j = strlen(s);
+	  while (m != NULL) {
+	    if (strlen(m->data) == j) {
+	      for (i=0;i<j;i++)
+		if (((char*)m->data)[i] != s[i])
+		  break;
+	    }
+	    if (i == j) {
+	      s = m->data;
+	      break;
+	    }
+	    m = m->next;
+	  }
+	} else {
+	  j = (int)valueToDouble(w);
+	}
       } else if (((Variable*)v)->indextype[k] == 'n') {
         j = *(int*)((Variable*)v)->index[k];
       } else {
@@ -468,6 +483,10 @@ Value* evaluateValue(Value* v) {
       }
       if (s) {
         u = findInTree(((List*)((List*)u->data)->data)->data, s);
+	if (u == NULL) {
+	  errmsgf("Key '%s' not found", s);
+	  return NULL;
+	}
       } else {
 	m = l;
 	if (j < 0) {

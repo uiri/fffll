@@ -1,5 +1,7 @@
-    set(x, [ f: 0, g: 1, b: 3, e: 2 ])
+    set(x, [ f: 0, g: 1, b: [a: 3, c: [p: 5, q: 7]], e: 2 ])
     if( (4=x), {
         write(stdout, "cool")
     })
-    write(stdout, x.b)
+    write(stdout, x.b.a)
+    write(stdout, x.b.c.p)
+    write(stdout, x.b.c.q)

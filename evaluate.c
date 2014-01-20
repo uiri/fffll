@@ -442,10 +442,12 @@ Value* evaluateValue(Value* v) {
     l = NULL;
     s = NULL;
     for (k=0;((Variable*)v)->indextype[k] != '0';k++) {
-      if (l == NULL)
-	u = valueFromName(((Variable*)v)->name);
-      else if (s == NULL)
-	u = l->data;
+      if (s == NULL) {
+	if (l == NULL)
+	  u = valueFromName(((Variable*)v)->name);
+	else
+	  u = l->data;
+      }
       if (u == NULL) return NULL;
       if (u->type != 'l') {
         errmsg("Only lists can be indexed.");
@@ -488,12 +490,12 @@ Value* evaluateValue(Value* v) {
 	}
       }
     }
-    if (l != NULL) {
-      v = l->data;
-    } else if (s == NULL) {
-      v = valueFromName(((Variable*)v)->name);
-    } else {
+    if (s != NULL) {
       v = u;
+    } else if (l != NULL) {
+      v = l->data;
+    } else {
+      v = valueFromName(((Variable*)v)->name);
     }
     return v;
   }

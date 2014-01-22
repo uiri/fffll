@@ -134,7 +134,7 @@ extern void yyerror(const char* msg);
 			    }
 			    funcname[i] = '\0';
 			  }
-			  if (inpchr != '{' && inpchr != '[' && inpchr != '(' && inpchr != '"')
+			  if (inpchr != '{' && inpchr != '[' && inpchr != '"')
 			    insert = 0;
 			  if (insert) {
 			    unput(',');
@@ -167,7 +167,7 @@ extern void yyerror(const char* msg);
 			    } while (inpchr == ' ' || inpchr == '\t' ||
 			             inpchr == '\n');
 			    unput(inpchr);
-			    if (inpchr != '{' && inpchr != '[' && inpchr != '(' && inpchr != '"')
+			    if (inpchr != '{' && inpchr != '[' && inpchr != '"')
 			      insert = 0;
 			    else if (yytext[0] == ']' && inpchr == '{')
 			      insert = 0;

@@ -31,21 +31,6 @@ extern FuncDef** funcdeftable;
 
 /* Internal helper functions */
 
-Value* valueFromName(char* name) {
-  Value* v;
-  List* vl;
-  vl = varlist;
-  do {
-    v = findInTree(vl->data, name);
-    vl = vl->next;
-  } while (v == NULL && vl != NULL);
-  if (v == NULL) {
-    errmsgf("Variable named '%s' is not SET", name);
-    return NULL;
-  }
-  return v;
-}
-
 int descope(Value* v) {
   VarTree* vt;
   vt = varlist->data;
@@ -352,6 +337,10 @@ Value* evaluateFuncVal(FuncVal* fv) {
     u = v;
     v = evaluateValue(u);
   }
+  if (v->type != 'a') {
+    errmsgf("Attempt to use non-function '%s' as a functor", fv->name);
+    v = NULL;
+  }
   if (v != NULL) {
     fd = v->data;
   }
@@ -429,7 +418,7 @@ double evaluateValueAsBool(Value* v) {
 }
 
 Value* evaluateValue(Value* v) {
-  Value* u, *w;
+  Value* u, *w, *x;
   int i, j, k;
   List* l, *m;
   char* s;
@@ -441,6 +430,7 @@ Value* evaluateValue(Value* v) {
     if (v == NULL) return NULL;
     l = NULL;
     s = NULL;
+    x = v;
     for (k=0;((Variable*)v)->indextype[k] != '0';k++) {
       if (s == NULL) {
 	if (l == NULL)
@@ -516,6 +506,10 @@ Value* evaluateValue(Value* v) {
     } else {
       v = valueFromName(((Variable*)v)->name);
     }
+    if (x == v) {
+      errmsgf("Self referential variable '%s'. Exiting before stack overflow.", ((Variable*)x)->name);
+      return NULL;
+    }
     return v;
   }
   if (v->type == 'b') {
@@ -534,6 +528,21 @@ int freeEachValueInTree(VarTree* vt, Value* v) {
   freeEachValueInTree(vt->left, v);
   freeEachValueInTree(vt->right, v);
   return 0;
+}
+
+Value* valueFromName(char* name) {
+  Value* v;
+  List* vl;
+  vl = varlist;
+  do {
+    v = findInTree(vl->data, name);
+    vl = vl->next;
+  } while (v == NULL && vl != NULL);
+  if (v == NULL) {
+    errmsgf("Variable named '%s' is not SET", name);
+    return NULL;
+  }
+  return v;
 }
 
 double valueToDouble(Value* v) {

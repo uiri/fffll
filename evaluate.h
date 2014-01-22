@@ -28,5 +28,6 @@ List* evaluateList(List* l);
 Value* evaluateValue(Value* v);
 double evaluateValueAsBool(Value* v);
 int freeEachValueInTree(VarTree* vt, Value* v);
+Value* valueFromName(char* name);
 double valueToDouble(Value* v);
 char* valueToString(Value* v);

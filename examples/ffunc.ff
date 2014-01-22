@@ -1,0 +1,7 @@
+set(f, [_x]{
+    set(g, [_x: _x, y]{
+        add(_x, y)
+    })
+})
+set(h, f(5))
+write(stdout, h(1), h(2, _x: 3), h(3))

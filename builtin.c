@@ -455,6 +455,7 @@ Value* setDef(FuncDef* fd, List* arglist) {
   Value* v, *u;
   int i, j, k;
   List* l, *m, *vl;
+  char* s;
   if (lengthOfList(arglist->next) < 2) {
     errmsg("Not enough arguments for SET");
     return NULL;
@@ -523,6 +524,22 @@ Value* setDef(FuncDef* fd, List* arglist) {
   } else {
     if (u != NULL && vl == varlist->next) {
       freeValue(u);
+    }
+    if (v->type == 'a' && ((FuncDef*)v->data)->arguments) {
+      l = ((FuncDef*)v->data)->arguments->data;
+      m = l;
+      if (l != NULL) {
+	while ( l->next != NULL) {
+	  l = l->next;
+	  s = ((Variable*)l->data)->name;
+	  if ((u = findInTree(m->data, s)) && u->type == 'v' && ((Variable*)u)->
+	      name == s) {
+	    freeValue(u);
+	    u = valueFromName(s);
+	    m->data = insertInTree(m->data, s, u);
+	  }
+	}
+      }
     }
     if (varlist->data)
       varlist->data = insertInTree(varlist->data,

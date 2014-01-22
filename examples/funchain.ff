@@ -1,14 +1,11 @@
 set(main, [x] {
-    set(h, [x]{
-        set(g, [x]{
-            set( f, [x]{
+    set(h, []{
+        set(g, []{
+            set( f, []{
                 write(stdout, (x=3))
             })
-            f(x)
         })
-        g(x)
     })
-    h(x)
 })
 set(x, 3)
-main(x)
+main(x)()()

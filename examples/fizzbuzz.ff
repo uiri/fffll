@@ -19,21 +19,20 @@ set(mod, [y, x] {
 set(main, 
     []{
 	set(x, 1)
-	for( (x<101) {
-	    if( (mod(x, 3)=0) {
-		if( (mod(x, 5)=0) {
+	for( i: [1..101], {
+	    if( (mod(i, 3)=0) {
+		if( (mod(i, 5)=0) {
 		    write(stdout, "Fizzbuzz")
 		} {
 		    write(stdout, "Fizz")
 		})
 	    }, {
-		if( (mod(x, 5)=0) {
+		if( (mod(i, 5)=0) {
 		    write(stdout, "Buzz")
 		} {
-		    write(stdout, x)
+		    write(stdout, i)
 		})
 	    })
-	    set(x, add(x, 1))
 	})
 })
 main()

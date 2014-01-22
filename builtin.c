@@ -118,8 +118,10 @@ Value* dieDef(FuncDef* fd, List* arglist) {
 }
 
 Value* forDef(FuncDef* fd, List* arglist) {
-  Value* v;
+  Value* v, *u;
   BoolExpr* be;
+  int bool;
+  List* sl, *l;
   if (!arglist) {
     errmsg("Not enough arguments for FOR");
     return NULL;
@@ -128,11 +130,45 @@ Value* forDef(FuncDef* fd, List* arglist) {
   v->refcount++;
   if (arglist->next->next == NULL)
     v->refcount++;
+  sl = (List*)((Value*)arglist->next->data)->data;
+  be = NULL;
+  if (arglist->next->next) {
+    bool = 1;
+    sl = (List*)((Value*)arglist->next->next->data)->data;
+  }
+  if (arglist->data != NULL) {
+    u = findInTree(((List*)arglist->data)->data, ((Variable*)((List*)arglist->data)->next->data)->name);
+    while((u->type == 'v' || u->type == 'c') && u != NULL) {
+      u = evaluateValue(u);
+    }
+    if (u != NULL && u->type == 'l') {
+      if (!varlist->data)
+	varlist->data = newTree(((Variable*)((List*)arglist->data)->next->data)->name, NULL);
+      l = ((List*)u->data)->next;
+      while (l) {
+	varlist->data = insertInTree(varlist->data, ((Variable*)((List*)arglist->data)->next->data)->name, l->data);
+	v = evaluateStatements(sl);
+	if (bool && ((be = evaluateBoolExpr(arglist->next->data)) == NULL || !be->lasteval)) {
+	  break;
+	}
+	l = l->next;
+      }
+      if (bool && be == NULL) return NULL;
+      return v;
+    }
+  }
+  if (!bool) {
+    while (1) {
+      v = evaluateStatements(sl);
+      if (v == NULL) return NULL;
+    }
+    return v;
+  }
   for (be = evaluateBoolExpr(arglist->next->data);
        be != NULL && be->lasteval;
        be = evaluateBoolExpr(arglist->next->data)) {
     if (arglist->next->next) {
-      v = evaluateStatements((List*)((Value*)arglist->next->next->data)->data);
+      v = evaluateStatements(sl);
       if (v == NULL) return NULL;
     }
   }

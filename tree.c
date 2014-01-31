@@ -51,10 +51,10 @@ VarTree* deleteInTree(VarTree* vt, char* key) {
   while (1) {
     u = NULL;
     t->count--;
-    if (key == t->left->key) {
+    if (t->left != NULL && key == t->left->key) {
       i = 1;
       u = t->left;
-    } else if (key == t->right->key) {
+    } else if (t->right != NULL && key == t->right->key) {
       i = 0;
       u = t->right;
     }

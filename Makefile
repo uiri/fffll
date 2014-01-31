@@ -21,8 +21,8 @@ fffll.y.c: fffll.y
 libffflllist.so: list.o array.o
 	$(CC) -shared $(CFLAGS) -o libffflllist.so list.o array.o
 
-libfffllstd.so: builtin.o evaluate.o
-	$(CC) -shared $(CFLAGS) -o libfffllstd.so builtin.o evaluate.o
+libfffllstd.so: builtin.o evaluate.o tree.o
+	$(CC) -shared $(CFLAGS) -o libfffllstd.so builtin.o evaluate.o tree.o
 
 array.o: array.c array.h
 	$(CC) -fPIC $(CFLAGS) -c array.c

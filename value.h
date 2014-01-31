@@ -72,6 +72,17 @@ struct stringval {
   char* val;
 };
 
+typedef struct rangelist Range;
+struct rangelist {
+  char type;
+  int refcount;
+  Value* computed;
+  Value* start;
+  Value* increment;
+  Value* end;
+  int index;
+};
+
 typedef struct variable Variable;
 struct variable {
   char type;
@@ -90,6 +101,7 @@ int errmsgf(char* format, char* s);
 int errmsgfd(char* format, char* s, int i);
 Value* evaluateStatements(List* sl);
 int freeBoolExpr(BoolExpr* be);
+int freeRange(Range* range);
 int freeValue(Value* val);
 int freeValueList(List* r);
 int freeVariable(Variable* var);
@@ -101,5 +113,6 @@ FuncDef* newFuncDef(List* al, List* sl, int alloc);
 FuncVal* newFuncVal(Value* val, List* arglist, char* name, int ln);
 HttpVal* newHttpVal(char* url);
 String* newString(char* s);
+Range* newRange(Value* start, Value* end, Value* increment);
 Value* newValue(char type, void* data);
 Variable* newVariable(char* name);

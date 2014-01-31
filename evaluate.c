@@ -29,6 +29,8 @@ extern List* varnames;
 extern int funcnum;
 extern FuncDef** funcdeftable;
 
+extern Value* falsevalue;
+
 /* Internal helper functions */
 
 int descope(Value* v) {
@@ -419,9 +421,10 @@ double evaluateValueAsBool(Value* v) {
 
 Value* evaluateValue(Value* v) {
   Value* u, *w, *x;
-  int i, j, k;
+  int i, j, k, r;
   List* l, *m;
   char* s;
+  double* d, a, b, c;
   if (v->type == 'c') {
     v = evaluateFuncVal((FuncVal*)v);
     return v;
@@ -431,6 +434,9 @@ Value* evaluateValue(Value* v) {
     l = NULL;
     s = NULL;
     x = v;
+    a = NAN;
+    b = NAN;
+    c = NAN;
     for (k=0;((Variable*)v)->indextype[k] != '0';k++) {
       if (s == NULL) {
 	if (l == NULL)
@@ -488,9 +494,26 @@ Value* evaluateValue(Value* v) {
 	    l = l->next;
 	  }
 	}
+	r = 0;
 	for (i=0;i<j;i++) {
 	  if (l == NULL)
 	    break;
+	  if (((Value*)l->data)->type == 'r') {
+	    r = i;
+	    a = valueToDouble(((Range*)l->data)->start);
+	    c = valueToDouble(((Range*)l->data)->end);
+	    if (((Range*)l->data)->increment == falsevalue) {
+	      b = 1.0;
+	      if (c<a)
+		b = -1.0;
+	    } else {
+	      b = valueToDouble(((Range*)l->data)->increment);
+	    }
+	    i += (int)((c-a)/b);
+	    if (i>=j) {
+	      break;
+	    }
+	  }
 	  l = l->next;
 	}
 	if (l == NULL) {
@@ -503,6 +526,25 @@ Value* evaluateValue(Value* v) {
       v = u;
     } else if (l != NULL) {
       v = l->data;
+      if (v->type == 'r') {
+	if (isnan(a)) {
+	    a = valueToDouble(((Range*)l->data)->start);
+	    c = valueToDouble(((Range*)l->data)->end);
+	    if (((Range*)l->data)->increment == falsevalue) {
+	      b = 1.0;
+	      if (c<a)
+		b = -1.0;
+	    } else {
+	      b = valueToDouble(((Range*)l->data)->increment);
+	    }
+	}
+	d = malloc(sizeof(double));
+	*d = a + (j-r)*b;
+	if (((Range*)v)->computed != NULL)
+	  freeValue(((Range*)v)->computed);
+	((Range*)v)->computed = newValue('n', d);
+	v = ((Range*)v)->computed;
+      }
     } else {
       v = valueFromName(((Variable*)v)->name);
     }
@@ -584,7 +626,6 @@ double valueToDouble(Value* v) {
     u = evaluateValue(v);
     if (u == NULL) return NAN;
     n = valueToDouble(u);
-    freeValue(u);
   }
   return n;
 }
@@ -592,6 +633,7 @@ double valueToDouble(Value* v) {
 char* valueToString(Value* v) {
   char* s, *t;
   int i, j, k, l, freet, m;
+  double a, b, c;
   BoolExpr* be;
   Value* u;
   freet = 0;
@@ -643,6 +685,48 @@ char* valueToString(Value* v) {
       s[4] = 'e';
       s[5] = '\0';
     }
+    return s;
+  }
+  if (v->type == 'r') {
+    a = valueToDouble(((Range*)v)->start);
+    c = valueToDouble(((Range*)v)->end);
+    if (((Range*)v)->increment == falsevalue) {
+      b = 1.0;
+      if (c<a)
+	b = -1.0;
+    } else {
+      b = valueToDouble(((Range*)v)->increment);
+    }
+    s = malloc(1);
+    if ((c-a)/b < 0) {
+      s[0] = '\0';
+      return s;
+    }
+    k = 1;
+    if (a<c) {
+      for (;a<c;a += b) {
+	k += snprintf(s, 0, "%d, ", (int)a);
+      }
+    } else if (c<a) {
+      for (;c<a;a += b) {
+	k += snprintf(s, 0, "%d, ", (int)a);
+      }
+    }
+    free(s);
+    s = malloc(k);
+    a = valueToDouble(((Range*)v)->start);
+    m = 0;
+    if (a<c) {
+      for (;a<c;a += b) {
+	  m += snprintf(s+m, k, "%d, ", (int)a);
+      }
+    } else if (c<a) {
+      for (;c<a;a += b) {
+	m += snprintf(s+m, k-m, "%d, ", (int)a);
+      }
+    }
+    m--;
+    s[--m] = '\0';
     return s;
   }
   if (v->type == 'l') {

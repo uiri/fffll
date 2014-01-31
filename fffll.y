@@ -116,6 +116,7 @@ Variable* parseVariable(char* name) {
   double num;
   char* symbol;
   struct List* llist;
+  struct rangelist* rrange;
   struct value* val;
   struct funcval* fv;
   struct boolval* be;
@@ -128,11 +129,12 @@ Variable* parseVariable(char* name) {
 %token <symbol> STR
 %token <symbol> VAR
 
-%type <llist> statementlist
-%type <fv> funcall
+%type <llist> statementlist;
+%type <fv> funcall;
 %type <val> funcdef;
-%type <llist> arglist
-%type <llist> list
+%type <llist> arglist;
+%type <llist> list;
+%type <rrange> range;
 %type <val> value;
 %type <be> boolexpr;
 %type <be> bexpr;
@@ -192,42 +194,19 @@ list		: list ',' value	{
 					  addToListEnd($1->next, $3);
 					  $$ = $1;
 					}
-		| NUM '.' IND '.' IND	{
-					  Value* v;
-					  double* n, d, e;
-					  $$ = newList();
-					  $$->next = newList();
-					  e = $1;
-					  d = ((double)$3) - e;
-					  if ((e < $5 && d > 0) ||
-					      (e > $5 && d < 0))
-					    for (;e != $5;e += d) {
-					      if ((e < $5 && e-d > $5) ||
-					          (e > $5 && e-d < $5))
-					        break;
-					      n = malloc(sizeof(double));
-					      *n = e;
-					      v = newValue('n', n);
-					      addToListEnd($$->next, v);
-					    }
-					}
-		| NUM '.' IND	{
-					  Value* v;
-					  double* n, d, e;
-					  $$ = newList();
-					  $$->next = newList();
-					  e = (double)$1;
-					  d = 1;
-					  if (e > $3)
-					    d = -1;
-					  for (;e != $3;e += d) {
-					    n = malloc(sizeof(double));
-					    *n = e;
-					    v = newValue('n', n);
-					    addToListEnd($$->next, v);
-					  }
-					}
 		| value			{
+					  $$ = newList();
+					  $$->next = newList();
+					  addToListEnd($$->next, $1);
+					}
+
+		| list ',' range	{
+					  if ($1->next == NULL)
+					    $1->next = newList();
+					  addToListEnd($1->next, $1);
+					  $$ = $1;
+					}
+		| range			{
 					  $$ = newList();
 					  $$->next = newList();
 					  addToListEnd($$->next, $1);
@@ -252,6 +231,49 @@ list		: list ',' value	{
 					  ((List*)$$->data)->data = newTree(var->name, $3);
 					  addToListEnd($$->data, var);
 					}
+		;
+range		: value '.' '.' value '.'  '.' value	{
+					  $$ = newRange($1, $7, $4);
+					}
+		| value '.' IND '.' '.' value	{
+					  double* d;
+					  Value* inc;
+					  d = malloc(sizeof(double));
+					  *d = $3;
+					  inc = newValue('n', d);
+					  $$ = newRange($1, $6, inc);
+					}
+		| value '.' '.' value '.' IND	{
+					  double* d;
+					  Value* end;
+					  d = malloc(sizeof(double));
+					  *d = (double)$6;
+					  end = newValue('n', d);
+					  $$ = newRange($1, end, $4);
+					}
+		| value '.' IND '.' IND	{
+					  double* d, *e;
+					  Value* end, *inc;
+					  d = malloc(sizeof(double));
+					  e = malloc(sizeof(double));
+					  *d = $3;
+					  *e = $5;
+					  inc = newValue('n', d);
+					  end = newValue('n', e);
+					  $$ = newRange($1, end, inc);
+					}
+		| value '.' '.' value	{
+					  $$ = newRange($1, $4, NULL);
+					}
+		| value '.' IND		{
+					  double* d;
+					  Value* end;
+					  d = malloc(sizeof(double));
+					  *d = $3;
+					  end = newValue('n', d);
+					  $$ = newRange($1, end, NULL);
+					}
+		;
 boolexpr	: '!' '(' bexpr ')'	{
 					  $$ = $3;
 					  $$->neg = 1;

@@ -8,4 +8,4 @@ set(main, [x] {
     })
 })
 set(x, 3)
-main(x)()()
+main(x)()()()

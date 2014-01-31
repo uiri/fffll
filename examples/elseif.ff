@@ -1,7 +1,7 @@
 set(x, 3)
 if( (x=2) {
     write(stdout, "Should not appear")
-} (x=3) {
+}, (x=3) {
     write(stdout, "Elseif works")
 } {
     write(stdout, "Huh?")

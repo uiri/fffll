@@ -20,6 +20,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "evaluate.h"
+#include "tree.h"
 
 extern Value* falsevalue;
 extern List* varlist;
@@ -122,6 +123,7 @@ Value* forDef(FuncDef* fd, List* arglist) {
   BoolExpr* be;
   int bool;
   List* sl, *l;
+  double* d, e, i;
   if (!arglist) {
     errmsg("Not enough arguments for FOR");
     return NULL;
@@ -145,17 +147,49 @@ Value* forDef(FuncDef* fd, List* arglist) {
       if (!varlist->data)
 	varlist->data = newTree(((Variable*)((List*)arglist->data)->next->data)->name, NULL);
       l = ((List*)u->data)->next;
-      while (l) {
-	varlist->data = insertInTree(varlist->data, ((Variable*)((List*)arglist->data)->next->data)->name, l->data);
-	v = evaluateStatements(sl);
-	if (bool && ((be = evaluateBoolExpr(arglist->next->data)) == NULL || !be->lasteval)) {
-	  break;
+      if (((Value*)l->data)->type == 'r') {
+	d = malloc(sizeof(double));
+	*d = valueToDouble(((Range*)l->data)->start);
+	e = valueToDouble(((Range*)l->data)->end);
+	if (((Range*)l->data)->increment == falsevalue) {
+	  i = 1.0;
+	  if (e<*d)
+	    i = -1.0;
+	} else {
+	  i = valueToDouble(((Range*)l->data)->increment);
 	}
-	l = l->next;
+	((Range*)l->data)->computed = newValue('n', d);
+	varlist->data = insertInTree(varlist->data, ((Variable*)((List*)arglist->data)->next->data)->name, ((Range*)l->data)->computed);
+	if (*d < e && 0 < i) {
+	  for (;*d<e;*d+=i) {
+	    v = evaluateStatements(sl);
+	    if (bool && ((be = evaluateBoolExpr(arglist->next->data)) == NULL || !be->lasteval)) {
+	      break;
+	    }
+	  }
+	} else if (e < *d && i < 0) {
+	  for (;e<*d;*d+=i) {
+	    v = evaluateStatements(sl);
+	    if (bool && ((be = evaluateBoolExpr(arglist->next->data)) == NULL || !be->lasteval)) {
+	      break;
+	    }
+	  }
+	}
+	freeValue(findInTree(varlist->data, ((Variable*)((List*)arglist->data)->next->data)->name));
+	deleteInTree(varlist->data, ((Variable*)((List*)arglist->data)->next->data)->name);
+      } else {
+	while (l) {
+	  varlist->data = insertInTree(varlist->data, ((Variable*)((List*)arglist->data)->next->data)->name, l->data);
+	  v = evaluateStatements(sl);
+	  if (bool && ((be = evaluateBoolExpr(arglist->next->data)) == NULL || !be->lasteval)) {
+	    break;
+	  }
+	  l = l->next;
+	}
       }
-      if (bool && be == NULL) return NULL;
-      return v;
     }
+    if (bool && be == NULL) return NULL;
+    return v;
   }
   if (!bool) {
     while (1) {

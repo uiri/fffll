@@ -9,7 +9,7 @@ set(sum, [a: 2, b] {
 set(main, [] {
     print("OK.")
     print()
-    print(x: "oh what")
+    print(x: "awesome it works")
     sum(7, 12)
     sum(3)
     sum(8, 1, c: 3)

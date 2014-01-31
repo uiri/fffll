@@ -11,5 +11,8 @@ set(main, [] {
     write(stdout, x)
     write(stdout, head(x))
     write(stdout, tail(x))
+    set(y, 3)
+    set(x, [y, x])
+    -- inf loop -- write(stdout, x.1)
 })
 main()

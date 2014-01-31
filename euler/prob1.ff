@@ -17,11 +17,9 @@ set(mod, [y, x] {
 })
 
 set(x, 0)
-set(y, 1)
-for( (y<1000) {
+for( y: [1..1000], {
     if( (mod(y, 3)=0|mod(y, 5)=0) {
         set(x, add(x, y))
     })
-    set(y, add(y, 1))
 })
 write(stdout, x)

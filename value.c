@@ -197,6 +197,18 @@ int freeBoolExpr(BoolExpr* be) {
   return 0;
 }
 
+int freeRange(Range* range) {
+  range->refcount--;
+  if (range->refcount < 1) {
+    freeValue(range->start);
+    freeValue(range->end);
+    freeValue(range->increment);
+    freeValue(range->computed);
+    free(range);
+  }
+  return 0;
+}
+
 int freeValue(Value* val) {
   if (val == NULL)
     return 1;
@@ -239,6 +251,9 @@ int freeValue(Value* val) {
     case 'c':
       freeFuncVal((FuncVal*)val);
       return 1;
+    case 'r':
+      freeRange((Range*)val);
+      return 1;
     case 'v':
       freeVariable((Variable*)val);
       return 1;
@@ -250,6 +265,9 @@ int freeValue(Value* val) {
 
 int freeValueList(List* r) {
   int i, l;
+  if (r == NULL) {
+    return 0;
+  }
   l = lengthOfList(r);
   for (i=0;i<l;i++) {
     freeValue(dataInListAtPosition(r, i));
@@ -334,6 +352,21 @@ HttpVal* newHttpVal(char* url) {
   hv->pos = 0;
   hv->bufsize = 0;
   return hv;
+}
+
+Range* newRange(Value* start, Value* end, Value* increment) {
+  Range* range;
+  if (increment == NULL) {
+    increment = falsevalue;
+  }
+  range = malloc(sizeof(Range));
+  range->type = 'r';
+  range->refcount = 1;
+  range->computed = NULL;
+  range->start = start;
+  range->end = end;
+  range->increment = increment;
+  return range;
 }
 
 String* newString(char* s) {

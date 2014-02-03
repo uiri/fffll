@@ -19,9 +19,8 @@ set(mod, [y, x] {
 set(x, 0)
 set(y, 1)
 set(z, 1)
-for( (z<400) {
-    write(stdout, mod(z,10))
-    if( (mod(z,6)=0) {
+for( (z<4000000) {
+    if( (mod(z,2)=0) {
         set(x, add(x,z))
     })
     set(z, add(z, y))

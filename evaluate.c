@@ -263,18 +263,18 @@ BoolExpr* evaluateBoolExpr(BoolExpr* be) {
     p = 0;
     if (j>k) {
       if (j<=0.0) {
-	if (fabs((j-k)/k)>=0.0000005)
+	if (fabs((j-k)/k)>=0.00000000005)
 	  p = 1;
       } else {
-	if (fabs((j-k)/j)>=0.0000005)
+	if (fabs((j-k)/j)>=0.00000000005)
 	  p = 1;
       }
     } else {
       if (k<=0.0) {
-	if (fabs((k-j)/j)>=0.0000005)
+	if (fabs((k-j)/j)>=0.00000000005)
 	  p = -1;
       } else {
-	if (fabs((k-j)/k)>=0.0000005)
+	if (fabs((k-j)/k)>=0.00000000005)
 	  p = -1;
       }
     }

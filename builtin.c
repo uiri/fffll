@@ -350,7 +350,7 @@ Value* pushDef(FuncDef* fd, List* arglist) {
 }
 
 Value* rcpDef(FuncDef* fd, List* arglist) {
-  double b, d, *n;
+  double b, c, d, *n;
   int i, e;
   if (lengthOfList(arglist->next) != 1) {
     errmsg("RCP only takes 1 argument, the number whose reciprocal"
@@ -366,11 +366,12 @@ Value* rcpDef(FuncDef* fd, List* arglist) {
   for (i=0;i<e;i++) {
     *n *= 0.5;
   }
-  for (i=0;i<4;i++) {
+  do {
+    c = *n;
     b = *n * (-1.0);
-    *n = fma(d, b, 2);
+    *n = fma(d,b,2.0);
     *n *= (-1.0)*b;
-  }
+  } while (c != *n);
   return newValue('n', n);
 }
 

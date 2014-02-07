@@ -17,19 +17,27 @@
    */
 
 #include <ctype.h>
+#include <libgen.h>
 #include "fffll.y.h"
 #include "list.h"
+#include "value.h"
+#include "tree.h"
 
 #undef YY_BUF_SIZE
 #define YY_BUF_SIZE 128
 
 int lineno = 1;
+List* buffernames = NULL;
 extern int *parencount;
 extern int parencountind;
 extern int parencountmax;
 extern YYSTYPE yylval;
 extern int yywrap(void) { return 1; }
 extern void yyerror(const char* msg);
+extern List* parseTreeList;
+extern List* varlist;
+extern Value* falsevalue;
+extern char* argfilename;
 
 %}
 %%
@@ -142,7 +150,56 @@ extern void yyerror(const char* msg);
 			  yylval.symbol = funcname;
 			  return STR;
 			}
-[,.:()[\]\{\}<>=&|'!?~]	{
+%			{
+			  int i, j, k;
+			  char* filename, *foldername, c;
+			  Variable* var;
+			  foldername = dirname(argfilename);
+			  k = strlen(foldername) + 2;
+                          i = 0;
+			  filename = malloc(k);
+			  while ((filename[i] = foldername[i]))
+			    i++;
+			  filename[i++] = '/';
+			  j = i;
+			  while ((c = input()) != ',' &&
+			         c != '\n') {
+			    filename[i++] = c;
+			    if (i == k) {
+			      k *= 2;
+			      filename = realloc(filename, k);
+			    }
+			  }
+			  if (c == ',')
+			    unput('%');
+			  /* code to search standard lib paths here */
+			  if (i+4 >= k) {
+			    k += 4;
+			    filename = realloc(filename, k);
+			  }
+			  filename[i] = '.';
+			  filename[i+1] = 'f';
+			  filename[i+2] = 'f';
+			  filename[i+3] = '\0';
+			  yyin = fopen(filename, "r");
+			  if (!yyin) {
+			    yyerror(filename);
+			    free(filename);
+			  } else {
+			    filename[i] = '\0';
+			    var = parseVariable(filename+j);
+			    addToListBeginning(parseTreeList, newList());
+			    if (buffernames == NULL) {
+			      buffernames = newList();
+			      buffernames->data = var->name;
+			    } else {
+			      addToListBeginning(buffernames, var->name);
+			    }
+			    free(var);
+			    yypush_buffer_state(yy_create_buffer( yyin, YY_BUF_SIZE));
+			  }
+			}
+[,.:()[\]\{\}<>=&|!?~] {
 			  int insert = 0;
 			  char inschr = ',', inpchr;
 			  if (yytext[0] == '(')
@@ -227,8 +284,25 @@ extern void yyerror(const char* msg);
 [ \t]			;
 \n			lineno++;
 <<EOF>>			{
-				fclose(yyin);
-				yyterminate();
+			  Value* v;
+			  List* results;
+			  fclose(yyin);
+			  yypop_buffer_state();
+			  if (!YY_CURRENT_BUFFER) {
+			    yyterminate();
+			  } else if (parseTreeList->next != NULL) {
+			    addToListBeginning(varlist, NULL);
+			    v = evaluateStatements(parseTreeList->data);
+			    if (v != NULL && v != falsevalue)
+			      free(v);
+			    results = newList();
+			    results->data = newList();
+			    ((List*)results->data)->data = varlist->data;
+			    varlist->next->data = insertInTree(varlist->next->data, buffernames->data, newValue('l', results));
+			    varlist = deleteFromListBeginning(varlist);
+			    parseTreeList = deleteFromListBeginning(parseTreeList);
+			    buffernames = deleteFromListBeginning(buffernames);
+			  }
 			}
 .			{
 			  printf("Illegal character %d ", yytext[0]);

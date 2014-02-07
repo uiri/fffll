@@ -54,9 +54,10 @@ void yyerror(const char* msg) {
  int funcnum = 15;
  Value* funcdeftable[16];
 
- List* lastParseTree;
+ List* parseTreeList;
  char* eq, *gt, *lt, *and, *or, *sq, *ty;
  char* anonfunc = "anonymous function";
+ char* argfilename;
 
 void siginfo(int sig) {
   switch (sig) {
@@ -80,33 +81,6 @@ void siginfo(int sig) {
     break;
   }
   _Exit(1);
-}
-
-Variable* parseVariable(char* name) {
-  int i, j, k, l;
-  char* n;
-  l = lengthOfList(varnames);
-  for (k=0;name[k] != '\0';k++);
-  j = 0;
-  for (i=0;i<l;i++) {
-    n = dataInListAtPosition(varnames, i);
-    if (n == NULL)
-      continue;
-    if (k == strlen(n)) {
-      for (j=0;j<k;j++) {
-        if (name[j] != n[j]) break;
-      }
-      if (j == k) {
-        free(name);
-        name = n;
-        break;
-      }
-    }
-  }
-  if (j != k) {
-    addToListBeginning(varnames, name);
-  }
-  return newVariable(name);
 }
 
 %}
@@ -144,20 +118,39 @@ Variable* parseVariable(char* name) {
 statementlist	: statementlist funcall	{
 					  $$ = $1;
 					  addToListEnd($$, $2);
-					  if (lastParseTree != $$) {
-					    lastParseTree = $$;
+					  if (parseTreeList->data != $$) {
+					    parseTreeList->data = $$;
 					  }
 					}
 		| funcall		{
 					  $$ = newList();
 					  addToListEnd($$, $1);
-					  lastParseTree = $$;
+					  parseTreeList->data = $$;
 					}
 		;
 funcall		: VAR arglist		{
 					  Variable* v;
 					  v = parseVariable($1);
 					  $$ = newFuncVal((Value*)v, $2, v->name, lineno);
+					}
+		| value '.' VAR arglist	{
+					  Variable* v, *var;
+					  int i;
+					  if ($1->type == 'v') {
+					    var = parseVariable($3);
+					    v = (Variable*)$1;
+					    for (i=0;v->indextype[i] != '0';i++);
+					    v->indextype[i] = 'u';
+					    v->index[i] = var->name;
+					    i++;
+					    v->indextype = realloc(((Variable*)$$)->indextype, ++i);
+					    v->index = realloc(((Variable*)$$)->index, i*sizeof(void*));
+					    i--;
+					    v->indextype[i] = '0';
+					    v->index[i] = NULL;
+					    freeVariable(var);
+					  }
+					  $$ = newFuncVal((Value*)v, $4, v->name, lineno);
 					}
 		| funcdef arglist	{
 					  $$ = newFuncVal($1, $2, anonfunc, lineno);
@@ -465,7 +458,11 @@ int main(int argc, char** argv) {
   *stdoutp = stdout;
   stderrp = malloc(sizeof(stderr));
   *stderrp = stderr;
-  fp = fopen(argv[1], "r");
+  argfilename = malloc(strlen(argv[1])+1);
+  i = 0;
+  while ((argfilename[i] = argv[1][i]))
+    i++;
+  fp = fopen(argfilename, "r");
   yyin = fp;
   falsevalue = newValue('0', NULL);
   varnames = newList();
@@ -582,9 +579,10 @@ int main(int argc, char** argv) {
     v = NULL;
   } else {
     i = 0;
+    parseTreeList = newList();
     yyparse();
     free(parencount);
-    v = evaluateStatements(lastParseTree);
+    v = evaluateStatements(parseTreeList->data);
   }
   cleanupFffll(v);
   return i;

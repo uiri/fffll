@@ -123,7 +123,7 @@ int cleanupFffll(Value* v) {
       freeValue(funcdeftable[i]);
     }
   }
-  /*freeValueList(lastParseTree);*/
+  /*freeValueList(parseTreeList->data);*/
   for (i=0;i<3;i++) {
     globalvars = deleteDataInTree(globalvars, stdfiles[i]);
     freeValue(stdfiles[i]);
@@ -397,4 +397,31 @@ Variable* newVariable(char* name) {
   var->indextype[0] = '0';
   var->index[0] = NULL;
   return var;
+}
+
+Variable* parseVariable(char* name) {
+  int i, j, k, l;
+  char* n;
+  l = lengthOfList(varnames);
+  for (k=0;name[k] != '\0';k++);
+  j = 0;
+  for (i=0;i<l;i++) {
+    n = dataInListAtPosition(varnames, i);
+    if (n == NULL)
+      continue;
+    if (k == strlen(n)) {
+      for (j=0;j<k;j++) {
+        if (name[j] != n[j]) break;
+      }
+      if (j == k) {
+        free(name);
+        name = n;
+        break;
+      }
+    }
+  }
+  if (j != k) {
+    addToListBeginning(varnames, name);
+  }
+  return newVariable(name);
 }

@@ -339,7 +339,7 @@ Value* evaluateFuncVal(FuncVal* fv) {
     u = v;
     v = evaluateValue(u);
   }
-  if (v->type != 'a') {
+  if (v == NULL || v->type != 'a') {
     errmsgf("Attempt to use non-function '%s' as a functor", fv->name);
     v = NULL;
   }

@@ -116,3 +116,4 @@ String* newString(char* s);
 Range* newRange(Value* start, Value* end, Value* increment);
 Value* newValue(char type, void* data);
 Variable* newVariable(char* name);
+Variable* parseVariable(char* name);

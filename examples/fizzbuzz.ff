@@ -4,14 +4,14 @@ set(main,
     []{
 	set(x, 1)
 	for( i: [1..101], {
-	    if( (mod(i, 3)=0) {
-		if( (mod(i, 5)=0) {
+	    if( (math.mod(i, 3)=0) {
+		if( (math.mod(i, 5)=0) {
 		    write(stdout, "Fizzbuzz")
 		} {
 		    write(stdout, "Fizz")
 		})
 	    }, {
-		if( (mod(i, 5)=0) {
+		if( (math.mod(i, 5)=0) {
 		    write(stdout, "Buzz")
 		} {
 		    write(stdout, i)

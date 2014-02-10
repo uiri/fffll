@@ -172,7 +172,6 @@ extern char* argfilename;
 			  }
 			  if (c == ',')
 			    unput('%');
-			  /* code to search standard lib paths here */
 			  if (i+4 >= k) {
 			    k += 4;
 			    filename = realloc(filename, k);
@@ -183,11 +182,18 @@ extern char* argfilename;
 			  filename[i+3] = '\0';
 			  yyin = fopen(filename, "r");
 			  if (!yyin) {
+			    /* code to search standard lib paths here */
 			    yyerror(filename);
 			    free(filename);
-			  } else {
+			  }
+			  if (yyin) {
 			    filename[i] = '\0';
-			    var = parseVariable(filename+j);
+			    foldername = malloc(strlen(filename+j)+1);
+			    i = 0;
+			    while ((foldername[i]  = filename[j+i]))
+			      i++;
+			    free(filename);
+			    var = parseVariable(foldername);
 			    addToListBeginning(parseTreeList, newList());
 			    if (buffernames == NULL) {
 			      buffernames = newList();
@@ -195,7 +201,7 @@ extern char* argfilename;
 			    } else {
 			      addToListBeginning(buffernames, var->name);
 			    }
-			    free(var);
+			    freeVariable(var);
 			    yypush_buffer_state(yy_create_buffer( yyin, YY_BUF_SIZE));
 			  }
 			}
@@ -284,7 +290,6 @@ extern char* argfilename;
 [ \t]			;
 \n			lineno++;
 <<EOF>>			{
-			  Value* v;
 			  List* results;
 			  fclose(yyin);
 			  yypop_buffer_state();
@@ -292,9 +297,7 @@ extern char* argfilename;
 			    yyterminate();
 			  } else if (parseTreeList->next != NULL) {
 			    addToListBeginning(varlist, NULL);
-			    v = evaluateStatements(parseTreeList->data);
-			    if (v != NULL && v != falsevalue)
-			      free(v);
+			    evaluateStatements(parseTreeList->data);
 			    results = newList();
 			    results->data = newList();
 			    ((List*)results->data)->data = varlist->data;

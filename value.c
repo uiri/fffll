@@ -24,6 +24,7 @@
 #include "tree.h"
 
 extern Value* falsevalue;
+extern int lenconstants;
 extern char* constants;
 
 extern List* varlist;
@@ -90,18 +91,18 @@ int freeString(String* s) {
 /* External functions */
 
 String* addToStringList(String* s) {
-  int i, j, k, l;
+  int i, j;
   String* n;
-  l = lengthOfList(stringlist);
-  k = strlen(s->val);
+  List* node;
+  i = strlen(s->val);
   j = -1;
-  for (i=0;i<l;i++) {
-    n = dataInListAtPosition(stringlist, i);
-    if (n != NULL && k == strlen(n->val)) {
-      for (j=0;j<k;j++) {
+  for (node=stringlist;node != NULL;node = node->next) {
+    n = node->data;
+    if (n != NULL && i == strlen(n->val)) {
+      for (j=0;j<i;j++) {
 	if (s->val[j] != n->val[j]) break;
       }
-      if (j == k) {
+      if (j == i) {
 	freeString(s);
 	s = n;
 	n->refcount++;
@@ -109,14 +110,15 @@ String* addToStringList(String* s) {
       }
     }
   }
-  if (j != k) {
+  if (j != i) {
     addToListBeginning(stringlist, s);
   }
   return s;
 }
 
 int cleanupFffll(Value* v) {
-  int i, l;
+  int i;
+  List* node;
   for (i=0;i<funcnum;i++) {
     if (funcdeftable[i] != NULL) {
       globalvars = deleteDataInTree(globalvars, funcdeftable[i]);
@@ -134,9 +136,9 @@ int cleanupFffll(Value* v) {
   freeEachValueInTree(globalvars, v);
   freeTree(globalvars);
   freeList(varlist);
-  l = lengthOfList(varnames) + 10 - 2*strsize;
-  for (i=0;i<l;i++) {
-    free(dataInListAtPosition(varnames, i));
+  for (node=varnames;node != NULL;node = node->next) {
+    if (((char*)node->data) < constants || ((char*)node->data) > constants+lenconstants)
+      free(node->data);
   }
   freeList(varnames);
   freeValue(falsevalue);
@@ -173,11 +175,10 @@ int errmsgfd(char* format, char* s, int i) {
 
 Value* evaluateStatements(List* sl) {
   Value* s, *t;
-  int i,l;
-  l = lengthOfList(sl);
+  List* node;
   s = falsevalue;
-  for (i=0;i<l;i++) {
-    t = dataInListAtPosition(sl, i);
+  for (node=sl;node != NULL;node = node->next) {
+    t = node->data;
     t = evaluateValue(t);
     if (t == NULL) {
       return NULL;
@@ -264,13 +265,12 @@ int freeValue(Value* val) {
 }
 
 int freeValueList(List* r) {
-  int i, l;
+  List* node;
   if (r == NULL) {
     return 0;
   }
-  l = lengthOfList(r);
-  for (i=0;i<l;i++) {
-    freeValue(dataInListAtPosition(r, i));
+  for (node = r;node != NULL;node = node->next) {
+    freeValue(node->data);
   }
   freeList(r);
   return 0;
@@ -400,27 +400,27 @@ Variable* newVariable(char* name) {
 }
 
 Variable* parseVariable(char* name) {
-  int i, j, k, l;
+  int i, j;
   char* n;
-  l = lengthOfList(varnames);
-  for (k=0;name[k] != '\0';k++);
+  List* node;
+  for (i=0;name[i] != '\0';i++);
   j = 0;
-  for (i=0;i<l;i++) {
-    n = dataInListAtPosition(varnames, i);
+  for (node=varnames;node != NULL;node = node->next) {
+    n = node->data;
     if (n == NULL)
       continue;
-    if (k == strlen(n)) {
-      for (j=0;j<k;j++) {
+    if (i == strlen(n)) {
+      for (j=0;j<i;j++) {
         if (name[j] != n[j]) break;
       }
-      if (j == k) {
+      if (j == i) {
         free(name);
         name = n;
         break;
       }
     }
   }
-  if (j != k) {
+  if (j != i) {
     addToListBeginning(varnames, name);
   }
   return newVariable(name);

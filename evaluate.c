@@ -589,9 +589,9 @@ Value* valueFromName(char* name) {
 
 double valueToDouble(Value* v) {
   double d, n;
-  int i, l;
   BoolExpr* be;
   Value* u;
+  List* node;
   n = 0.0;
   if (v->type == 'n')
     return *(double*)v->data;
@@ -612,9 +612,8 @@ double valueToDouble(Value* v) {
   if (v->type == 'd')
     return valueToDouble(evaluateStatements(v->data));
   if (v->type == 'l') {
-    l = lengthOfList(((List*)v->data)->next);
-    for (i=0;i<l;i++) {
-      u = evaluateValue(dataInListAtPosition(((List*)v->data)->next, i));
+    for (node = ((List*)v->data)->next;node != NULL;node = node->next) {
+      u = evaluateValue(node->data);
       d = valueToDouble(u);
       freeValue(u);
       if (d < 0) return d;
@@ -632,10 +631,11 @@ double valueToDouble(Value* v) {
 
 char* valueToString(Value* v) {
   char* s, *t;
-  int i, j, k, l, freet, m;
+  int i, j, l, freet;
   double a, b, c;
   BoolExpr* be;
   Value* u;
+  List* node;
   freet = 0;
   l = 0;
   t = NULL;
@@ -702,42 +702,41 @@ char* valueToString(Value* v) {
       s[0] = '\0';
       return s;
     }
-    k = 1;
+    l = 1;
     if (a<c) {
       for (;a<c;a += b) {
-	k += snprintf(s, 0, "%d, ", (int)a);
+	l += snprintf(s, 0, "%d, ", (int)a);
       }
     } else if (c<a) {
       for (;c<a;a += b) {
-	k += snprintf(s, 0, "%d, ", (int)a);
+	l += snprintf(s, 0, "%d, ", (int)a);
       }
     }
     free(s);
-    s = malloc(k);
+    s = malloc(l);
     a = valueToDouble(((Range*)v)->start);
-    m = 0;
+    i = 0;
     if (a<c) {
       for (;a<c;a += b) {
-	  m += snprintf(s+m, k, "%d, ", (int)a);
+	  i += snprintf(s+i, l, "%d, ", (int)a);
       }
     } else if (c<a) {
       for (;c<a;a += b) {
-	m += snprintf(s+m, k-m, "%d, ", (int)a);
+	i += snprintf(s+i, l-i, "%d, ", (int)a);
       }
     }
-    m--;
-    s[--m] = '\0';
+    i--;
+    s[--i] = '\0';
     return s;
   }
   if (v->type == 'l') {
-    l = lengthOfList(((List*)v->data)->next);
     s = malloc(4);
     s[0] = '[';
-    k = 0;
-    for (i=0;i<l;i++) {
-      if (k) s[k] = ' ';
-      k++;
-      u = evaluateValue(dataInListAtPosition(((List*)v->data)->next, i));
+    i = 0;
+    for (node = ((List*)v->data)->next;node != NULL;node = node->next) {
+      if (i) s[i] = ' ';
+      i++;
+      u = evaluateValue(node->data);
       if (u == NULL) {
 	free(s);
 	return NULL;
@@ -748,19 +747,19 @@ char* valueToString(Value* v) {
 	free(s);
 	return NULL;
       }
-      m = strlen(t);
-      s = realloc(s, k+m+2);
-      for (j=0;j<m;j++) {
-	s[k+j] = t[j];
+      l = strlen(t);
+      s = realloc(s, i+l+2);
+      for (j=0;j<l;j++) {
+	s[i+j] = t[j];
       }
-      s[k+++j] = ',';
-      s[k+j] = '\0';
-      k += m;
+      s[i+++j] = ',';
+      s[i+j] = '\0';
+      i += l;
       free(t);
     }
-    if (!k) k = 2;
-    s[--k] = ']';
-    s[++k] = '\0';
+    if (!i) i = 2;
+    s[--i] = ']';
+    s[++i] = '\0';
     return s;
   }
   if (v->type == 'c') {

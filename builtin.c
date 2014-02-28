@@ -47,16 +47,14 @@ size_t writeHttpBuffer(void* contents, size_t size, size_t nmemb, void* userp) {
 
 Value* addDef(FuncDef* fd, List* arglist) {
   double d, *n;
-  int i,l;
-  List* al;
+  List* al, *node;
   al = evaluateList(arglist->next);
   if (al == NULL)
     return NULL;
-  l = lengthOfList(al);
   n = malloc(sizeof(double));
   *n = 0.0;
-  for (i=0;i<l;i++) {
-    d = valueToDouble(dataInListAtPosition(al, i));
+  for (node=al;node != NULL;node = node->next) {
+    d = valueToDouble(node->data);
     *n += d;
   }
   freeValueList(al);
@@ -69,32 +67,31 @@ Value* addDef(FuncDef* fd, List* arglist) {
 
 Value* catDef(FuncDef* fd, List* arglist) {
   char* s, *t;
-  int h, i, j, k, l;
+  int i, j, l;
   String* str;
-  List* al;
+  List* al, *node;
   al = evaluateList(arglist->next);
   if (arglist == NULL) {
     errmsg("CAT requires at least one argument");
     return NULL;
   }
-  l = lengthOfList(al);
-  k = 8;
-  h = 0;
+  l = 8;
+  i = 0;
   s = malloc(8);
-  for (i=0;i<l;i++) {
-    t = valueToString(dataInListAtPosition(al, i));
+  for (node=al;node != NULL;node = node->next) {
+    t = valueToString(node->data);
     if (t == NULL) {
       free(s);
       return NULL;
     }
     for (j=0;t[j] != '\0';j++) {
-      if (h == k) {
-	k *= 2;
-	s = realloc(s, k);
+      if (i == l) {
+	l *= 2;
+	s = realloc(s, l);
       }
-      s[h++] = t[j];
+      s[i++] = t[j];
     }
-    s[h] = '\0';
+    s[i] = '\0';
     free(t);
   }
   str = newString(s);
@@ -252,9 +249,8 @@ Value* ifDef(FuncDef* fd, List* arglist) {
 
 Value* lenDef(FuncDef* fd, List* arglist) {
   double* a;
-  int i, l;
   Value* v;
-  List* al;
+  List* al, *node;
   if (arglist == NULL) {
     errmsg("Not enough arguments for LEN");
   }
@@ -263,9 +259,8 @@ Value* lenDef(FuncDef* fd, List* arglist) {
     return NULL;
   a = malloc(sizeof(double));
   *a = 0.0;
-  l = lengthOfList(al);
-  for (i=0;i<l;i++) {
-    v = dataInListAtPosition(al, i);
+  for (node=al;node != NULL;node = node->next) {
+    v = node->data;
     if (v->type == 's') {
       *a += (double)strlen(v->data);
     } else if (v->type == 'd') {
@@ -285,16 +280,14 @@ Value* lenDef(FuncDef* fd, List* arglist) {
 
 Value* mulDef(FuncDef* fd, List* arglist) {
   double d, *n;
-  int i,l;
-  List* al;
+  List* al, *node;
   al = evaluateList(arglist->next);
   if (al == NULL)
     return NULL;
-  l = lengthOfList(al);
   n = malloc(sizeof(double));
   *n = 1.0;
-  for (i=0;i<l;i++) {
-    d = valueToDouble(dataInListAtPosition(al, i));
+  for (node=al;node != NULL;node = node->next) {
+    d = valueToDouble(node->data);
     if (isnan(d)) {
       freeValueList(al);
       free(n);
@@ -330,8 +323,9 @@ Value* openDef(FuncDef* fd, List* arglist) {
 
 Value* pushDef(FuncDef* fd, List* arglist) {
   Value* v, *u;
-  int i, l;
-  l = lengthOfList(arglist->next);
+  int l;
+  List* node;
+  l = lengthOfList(arglist);
   if (l < 2) {
     errmsg("PUSH needs at least two arguments");
     return NULL;
@@ -342,8 +336,8 @@ Value* pushDef(FuncDef* fd, List* arglist) {
     freeValue(v);
     return NULL;
   }
-  for (i=1;i<l;i++) {
-    u = evaluateValue(dataInListAtPosition(arglist->next, i));
+  for (node=arglist->next->next;node != NULL;node = node->next) {
+    u = evaluateValue(node->data);
     addToListEnd(((List*)v->data)->next, u);
   }
   return v;
@@ -658,10 +652,11 @@ Value* tokDef(FuncDef* fd, List* arglist) {
 
 Value* writeDef(FuncDef* fd, List* arglist) {
   char* s, *t;
-  int h, i, j, k, l;
+  int i, j, l;
   FILE* fp;
   Value* v;
   HttpVal* hv;
+  List* node;
   if (arglist == NULL) {
     errmsg("Not enough arguments for WRITE");
     return NULL;
@@ -676,12 +671,12 @@ Value* writeDef(FuncDef* fd, List* arglist) {
   j = -1;
   if (v->type == 'f') {
     fp = *(FILE**)v->data;
-    k = 0;
+    l = 0;
     if (fp == stdout || fp == stderr) {
-      k = 1;
+      l = 1;
     }
-    for (i=1;i<l;i++) {
-      s = valueToString(dataInListAtPosition(arglist->next, i));
+  for (node=arglist->next->next;node != NULL;node = node->next) {
+      s = valueToString(node->data);
       if (s == NULL) {
 	return NULL;
       }
@@ -690,29 +685,29 @@ Value* writeDef(FuncDef* fd, List* arglist) {
       }
       free(s);
     }
-    if (k || j == -1)
+    if (l || j == -1)
       fputc('\n', fp);
     fseek(fp, 0, SEEK_CUR);
   } else {
-    k = 32;
-    t = malloc(k);
-    h = 0;
-    for (i=1;i<l;i++) {
-      s = valueToString(dataInListAtPosition(arglist->next, i));
+    l = 32;
+    t = malloc(l);
+    i = 0;
+  for (node=arglist->next->next;node != NULL;node = node->next) {
+      s = valueToString(node->data);
       for (j=0;s[j] != '\0';j++) {
-	if (h == k) {
-	  k *= 2;
-	  t = realloc(t, k);
+	if (i == l) {
+	  l *= 2;
+	  t = realloc(t, l);
 	}
-	t[h++] = s[j];
+	t[i++] = s[j];
       }
       free(s);
     }
-    if (h == k) {
-      k++;
-      t = realloc(t, k);
+    if (i == l) {
+      l++;
+      t = realloc(t, l);
     }
-    t[h] = '\0';
+    t[i] = '\0';
     hv = (HttpVal*)v;
     curl_easy_setopt(hv->curl, CURLOPT_POSTFIELDSIZE, strlen(t));
     curl_easy_setopt(hv->curl, CURLOPT_POSTFIELDS, t);

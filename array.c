@@ -20,6 +20,17 @@
 #include <stdio.h>
 #include <stddef.h>
 
+
+/* No need to expose this */
+
+int reallocArray(DynArray* da) {
+  da->length *= 2;
+  da->array = realloc(da->array, da->length*da->elementsize);
+  return 0;
+}
+
+/* Exposed functions */
+
 int appendToArray(DynArray* da, void* data) {
   if (da->last == da->length) {
     reallocArray(da);
@@ -56,12 +67,6 @@ void *popFromArray(DynArray* da) {
   data = da->array[--(da->last)];
   da->array[da->last] = NULL;
   return data;
-}
-
-int reallocArray(DynArray* da) {
-  da->length *= 2;
-  da->array = realloc(da->array, da->length*da->elementsize);
-  return 0;
 }
 
 int setElementInArray(DynArray *da, int index, void* data) {

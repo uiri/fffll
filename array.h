@@ -36,5 +36,4 @@ int freeArray(DynArray* da);
 void *getElementInArray(DynArray* da, int index);
 DynArray *newArray(int len, size_t size);
 void *popFromArray(DynArray* da);
-int reallocArray(DynArray* da);
 int setElementInArray(DynArray *da, int index, void* data);

@@ -50,6 +50,7 @@ void yyerror(const char* msg) {
  List* stringlist;
  VarTree* globalvars;
 
+ int lenconstants;
  int strsize = 26;
  int funcnum = 15;
  Value* funcdeftable[16];
@@ -115,7 +116,7 @@ void siginfo(int sig) {
 %type <be> compexpr;
 %%
 
-statementlist	: statementlist funcall	{
+statementlist	: statementlist funcall {
 					  $$ = $1;
 					  addToListEnd($$, $2);
 					  if (parseTreeList->data != $$) {
@@ -125,7 +126,7 @@ statementlist	: statementlist funcall	{
 		| funcall		{
 					  $$ = newList();
 					  addToListEnd($$, $1);
-					  parseTreeList->data = $$;
+					  addToListBeginning(parseTreeList, $$);
 					}
 		;
 funcall		: VAR arglist		{
@@ -169,9 +170,11 @@ funcall		: VAR arglist		{
 		;
 funcdef		: '[' list ']' '{' statementlist '}'	{
 							  $$ = newValue('a', newFuncDef($2, $5, 0));
+							  deleteFromListData(parseTreeList, $5);
 							}
 		| '[' ']' '{' statementlist '}'		{
 							  $$ = newValue('a', newFuncDef(NULL, $4, 0));
+							  deleteFromListData(parseTreeList, $4);
 							}
 		;
 arglist		: '(' list ')'	{
@@ -408,6 +411,7 @@ value	: STR			{
 				  $$ = newValue('l', NULL);
 				}
 	| '{' statementlist '}' {
+				  deleteFromListData(parseTreeList, $2);
 				  $$ = newValue('d', $2);
 				}
 	| boolexpr              {
@@ -424,7 +428,6 @@ int main(int argc, char** argv) {
                         "_set", "_if", "_for", "_write", "_read", "_open",
                         "_add", "_mul", "_rcp", "_len", "_tok", "_cat", "_head",
                         "_tail", "_push", "_die"};
-  int lenconstants;
   int i, j, k, l;
   Value* v;
   if (argc != 2) {

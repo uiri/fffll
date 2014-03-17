@@ -22,12 +22,14 @@
 #include "list.h"
 #include "value.h"
 #include "tree.h"
+#include "evaluate.h"
 
 #undef YY_BUF_SIZE
 #define YY_BUF_SIZE 128
 
 int lineno = 1;
 List* buffernames = NULL;
+int addTreeKeysToList(List* l, VarTree* vt);
 extern int *parencount;
 extern int parencountind;
 extern int parencountmax;
@@ -142,7 +144,7 @@ extern char* argfilename;
 			    }
 			    funcname[i] = '\0';
 			  }
-			  if (inpchr != '{' && inpchr != '[' && inpchr != '"')
+			  if (inpchr != '{' && inpchr != '[' && inpchr != '"') /* " */
 			    insert = 0;
 			  if (insert) {
 			    unput(',');
@@ -194,7 +196,7 @@ extern char* argfilename;
 			      i++;
 			    free(filename);
 			    var = parseVariable(foldername);
-			    addToListBeginning(parseTreeList, newList());
+			    /*addToListBeginning(parseTreeList, newList());*/
 			    if (buffernames == NULL) {
 			      buffernames = newList();
 			      buffernames->data = var->name;
@@ -288,22 +290,30 @@ extern char* argfilename;
 			  }
 			}
 [ \t]			;
-\n			lineno++;
+\n			{
+			  lineno++;
+			}
 <<EOF>>			{
 			  List* results;
+			  Value* v;
 			  fclose(yyin);
 			  yypop_buffer_state();
 			  if (!YY_CURRENT_BUFFER) {
 			    yyterminate();
 			  } else if (parseTreeList->next != NULL) {
 			    addToListBeginning(varlist, NULL);
-			    evaluateStatements(parseTreeList->data);
+			    v = evaluateStatements(parseTreeList->data);
+			    evaluateValue(v);
+			    if (v != NULL && v != falsevalue) {
+			      freeValue(v);
+			    }
 			    results = newList();
 			    results->data = newList();
 			    ((List*)results->data)->data = varlist->data;
+			    addTreeKeysToList(results->data, varlist->data);
 			    varlist->next->data = insertInTree(varlist->next->data, buffernames->data, newValue('l', results));
 			    varlist = deleteFromListBeginning(varlist);
-			    parseTreeList = deleteFromListBeginning(parseTreeList);
+			    /*parseTreeList = deleteFromListBeginning(parseTreeList);*/
 			    buffernames = deleteFromListBeginning(buffernames);
 			  }
 			}
@@ -311,3 +321,13 @@ extern char* argfilename;
 			  printf("Illegal character %d ", yytext[0]);
 			  yyerror(":(");
 			}
+%%
+
+int addTreeKeysToList(List* l, VarTree* vt) {
+  if (vt == NULL)
+    return 0;
+  addToListEnd(l, vt->key);
+  addTreeKeysToList(l, vt->left);
+  addTreeKeysToList(l, vt->right);
+  return 0;
+}

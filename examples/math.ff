@@ -15,3 +15,4 @@ set(mod, [y, x] {
     })
     set(y, mul(y, x))
 })
+set(_pi, 3.14159)

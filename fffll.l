@@ -256,9 +256,6 @@ extern char* argfilename;
 			  l = strlen(yytext);
 			  funcname = malloc(l+1);
 			  for (i=0;i<l;i++) {
-			    if (64 < yytext[i] && yytext[i] < 90) {
-			      yytext[i] += 32;
-			    }
 			    funcname[i] = yytext[i];
 			  }
 			  funcname[l] = '\0';

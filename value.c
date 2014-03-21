@@ -118,7 +118,7 @@ String* addToStringList(String* s) {
 
 int cleanupFffll(Value* v) {
   int i;
-  List* node;
+  /*List* node;*/
   for (i=0;i<funcnum;i++) {
     if (funcdeftable[i] != NULL) {
       globalvars = deleteDataInTree(globalvars, funcdeftable[i]);
@@ -136,11 +136,11 @@ int cleanupFffll(Value* v) {
   freeEachValueInTree(globalvars, v);
   freeTree(globalvars);
   freeList(varlist);
-  for (node=varnames;node != NULL;node = node->next) {
+  /*for (node=varnames;node != NULL;node = node->next) {
     if (((char*)node->data) < constants || ((char*)node->data) > constants+lenconstants)
       free(node->data);
-  }
-  freeList(varnames);
+      }
+      freeList(varnames);*/
   freeValue(falsevalue);
   free(stdinp);
   free(stdoutp);
@@ -223,7 +223,7 @@ int freeValue(Value* val) {
       if (val->data && ((List*)val->data)->data) {
 	freeEachValueInTree(((List*)((List*)val->data)->data)->data, NULL);
 	freeTree(((List*)((List*)val->data)->data)->data);
-	freeValueList(((List*)((List*)val->data)->data)->next);
+	/*freeValueList(((List*)((List*)val->data)->data)->next);*/
 	freeListNode(((List*)val->data)->data);
       }
       val->data = ((List*)val->data)->next;

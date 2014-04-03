@@ -241,6 +241,7 @@ List deleteFromListData(List *list, void *data) {
 List deleteFromListEnd(List *list) {
   List *headptr, *lastptr;
   headptr = list;
+  lastptr = NULL;
   while (list->next != NULL) {
     lastptr = list;
     list = list->next;

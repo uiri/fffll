@@ -137,6 +137,7 @@ funcall		: VAR arglist		{
 		| value '.' VAR arglist	{
 					  Variable* v, *var;
 					  int i;
+					  v = (Variable*)$1;
 					  if ($1->type == 'v') {
 					    var = parseVariable($3);
 					    v = (Variable*)$1;

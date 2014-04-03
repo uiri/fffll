@@ -25,3 +25,5 @@ ltmain.sh
 missing
 ylwrap
 Makefile.in
+src/fffll.c
+src/fffll.h

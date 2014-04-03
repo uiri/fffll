@@ -18,7 +18,7 @@
 
 #include <ctype.h>
 #include <libgen.h>
-#include "fffll.y.h"
+#include "fffll.h"
 #include "list.h"
 #include "value.h"
 #include "tree.h"

@@ -1,0 +1,52 @@
+CC=gcc
+CFLAGS=-Wall -g -pedantic
+LIBS=-L. -lm -lcurl -lpcre -lffflllist -lfffllstd
+# you may possible also want the following for profiling:
+# -fprofile-arcs -ftest-coverage -pg
+
+all:
+	make libffflllist.so
+	make libfffllstd.so
+	make fffll
+
+fffll:	src/fffll.l.c src/fffll.c src/value.c tree.o
+	$(CC) $(LIBS) $(CFLAGS) -o fffll tree.o src/value.c src/fffll.l.c src/fffll.c
+
+src/fffll.l.c: src/fffll.l
+	flex -o src/fffll.l.c src/fffll.l
+
+src/fffll.c: src/fffll.y
+	bison -d -o src/fffll.c src/fffll.y
+
+libffflllist.so: list.o array.o
+	$(CC) -shared $(CFLAGS) -o libffflllist.so list.o array.o
+
+libfffllstd.so: builtin.o evaluate.o tree.o
+	$(CC) -shared $(CFLAGS) -o libfffllstd.so builtin.o evaluate.o tree.o
+
+array.o: src/array.c src/array.h
+	$(CC) -fPIC $(CFLAGS) -c src/array.c
+
+builtin.o: src/builtin.c src/builtin.h
+	$(CC) -fPIC $(CFLAGS) -c src/builtin.c
+
+evaluate.o: src/evaluate.c src/evaluate.h
+	$(CC) -fPIC $(CFLAGS) -c src/evaluate.c
+
+list.o: src/list.c src/list.h
+	$(CC) -fPIC $(CFLAGS) -c src/list.c
+
+tree.o: src/tree.c src/tree.h
+	$(CC) -fPIC $(CFLAGS) -c src/tree.c
+
+clean:
+	rm list.o
+	rm tree.o
+	rm array.o
+	rm src/fffll.c
+	rm src/fffll.h
+	rm src/fffll.l.c
+	rm fffll
+test:
+	for TESTFILE in examples/*; do valgrind ./fffll $$TESTFILE; done;
+	rm test

@@ -143,6 +143,7 @@ BoolExpr* evaluateBoolExpr(BoolExpr* be) {
     s = NULL;
     t = NULL;
     w = NULL;
+    v = NULL;
     u = dataInListAtPosition(be->stack, i);
     if (u->type == '|' || u->type == '&') {
       addToListEnd(stack, n[m]);
@@ -433,6 +434,7 @@ Value* evaluateValue(Value* v) {
     if (v == NULL) return NULL;
     l = NULL;
     s = NULL;
+    u = NULL;
     x = v;
     a = NAN;
     b = NAN;
@@ -457,6 +459,7 @@ Value* evaluateValue(Value* v) {
 	  s = ((String*)w->data)->val;
 	  m = varnames;
 	  j = strlen(s);
+	  i = -1;
 	  while (m != NULL) {
 	    if (strlen(m->data) == j) {
 	      for (i=0;i<j;i++)
@@ -476,7 +479,9 @@ Value* evaluateValue(Value* v) {
         j = *(int*)((Variable*)v)->index[k];
       } else {
 	s = (char*)((Variable*)v)->index[k];
+	j = 0;
       }
+      r = 0;
       if (s) {
         u = findInTree(((List*)((List*)u->data)->data)->data, s);
 	if (u == NULL) {
@@ -494,7 +499,6 @@ Value* evaluateValue(Value* v) {
 	    l = l->next;
 	  }
 	}
-	r = 0;
 	for (i=0;i<j;i++) {
 	  if (l == NULL)
 	    break;

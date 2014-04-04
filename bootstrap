@@ -1,0 +1,8 @@
+#!/bin/sh
+
+flex -o src/fffll.l.c src/fffll.l
+bison -d -o src/fffll.c src/fffll.y
+aclocal
+autoconf
+libtoolize
+automake --add-missing

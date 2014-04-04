@@ -1,0 +1,4 @@
+#!/bin/sh
+
+rm aclocal.m4 compile config.guess config.sub configure depcomp install-sh ltmain.sh missing Makefile.in
+rm src/Makefile.in

@@ -131,6 +131,7 @@ Value* forDef(FuncDef* fd, List* arglist) {
     v->refcount++;
   sl = (List*)((Value*)arglist->next->data)->data;
   be = NULL;
+  bool = 0;
   if (arglist->next->next) {
     bool = 1;
     sl = (List*)((Value*)arglist->next->next->data)->data;
@@ -253,6 +254,7 @@ Value* lenDef(FuncDef* fd, List* arglist) {
   List* al, *node;
   if (arglist == NULL) {
     errmsg("Not enough arguments for LEN");
+    return NULL;
   }
   al = evaluateList(arglist->next);
   if (al == NULL)
@@ -515,7 +517,7 @@ Value* setDef(FuncDef* fd, List* arglist) {
       if (l != NULL) {
 	u = l->data;
       }
-      if (u->type != 'l') {
+      if (!u || u->type != 'l') {
 	errmsg("Only lists can be indexed.");
 	return NULL;
       }
@@ -667,7 +669,6 @@ Value* writeDef(FuncDef* fd, List* arglist) {
     errmsg("WRITE only takes a file or a http request as its first argument");
     return NULL;
   }
-  l = lengthOfList(arglist->next);
   j = -1;
   if (v->type == 'f') {
     fp = *(FILE**)v->data;
@@ -675,7 +676,7 @@ Value* writeDef(FuncDef* fd, List* arglist) {
     if (fp == stdout || fp == stderr) {
       l = 1;
     }
-  for (node=arglist->next->next;node != NULL;node = node->next) {
+    for (node=arglist->next->next;node != NULL;node = node->next) {
       s = valueToString(node->data);
       if (s == NULL) {
 	return NULL;
@@ -692,7 +693,7 @@ Value* writeDef(FuncDef* fd, List* arglist) {
     l = 32;
     t = malloc(l);
     i = 0;
-  for (node=arglist->next->next;node != NULL;node = node->next) {
+    for (node=arglist->next->next;node != NULL;node = node->next) {
       s = valueToString(node->data);
       for (j=0;s[j] != '\0';j++) {
 	if (i == l) {
@@ -711,6 +712,7 @@ Value* writeDef(FuncDef* fd, List* arglist) {
     hv = (HttpVal*)v;
     curl_easy_setopt(hv->curl, CURLOPT_POSTFIELDSIZE, strlen(t));
     curl_easy_setopt(hv->curl, CURLOPT_POSTFIELDS, t);
+    free(t);
   }
   return falsevalue;
 }

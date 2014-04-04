@@ -286,7 +286,7 @@ BoolExpr* evaluateBoolExpr(BoolExpr* be) {
   if (m > -1)
     o = n[m];
   l = lengthOfList(stack);
-  if (l) {
+  if (l && m > -1) {
     addToListEnd(stack, n[m]);
     l++;
   }
@@ -438,7 +438,6 @@ Value* evaluateValue(Value* v) {
     x = v;
     a = NAN;
     b = NAN;
-    c = NAN;
     for (k=0;((Variable*)v)->indextype[k] != '0';k++) {
       if (s == NULL) {
 	if (l == NULL)

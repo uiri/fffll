@@ -226,7 +226,8 @@ int freeValue(Value* val) {
 	/*freeValueList(((List*)((List*)val->data)->data)->next);*/
 	freeListNode(((List*)val->data)->data);
       }
-      val->data = ((List*)val->data)->next;
+      if (val->data)
+	val->data = ((List*)val->data)->next;
     case 'd':
       freeValueList(val->data);
       break;

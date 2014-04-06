@@ -43,10 +43,14 @@ clean:
 	rm list.o
 	rm tree.o
 	rm array.o
+	rm builtin.o
+	rm evaluate.o
 	rm src/fffll.c
 	rm src/fffll.h
 	rm src/fffll.l.c
 	rm fffll
+	rm ./libfffll*
+
 test:
 	for TESTFILE in examples/*; do valgrind ./fffll $$TESTFILE; done;
 	rm test

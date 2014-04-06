@@ -230,7 +230,7 @@ extern char* argfilename;
 			      i++;
 			    free(filename);
 			    var = parseVariable(foldername);
-			    /*addToListBeginning(parseTreeList, newList());*/
+			    addToListBeginning(parseTreeList, newList());
 			    if (buffernames == NULL) {
 			      buffernames = newList();
 			      buffernames->data = var->name;
@@ -327,27 +327,14 @@ extern char* argfilename;
 			  lineno++;
 			}
 <<EOF>>			{
-			  List* results;
-			  Value* v;
 			  fclose(yyin);
 			  yypop_buffer_state();
 			  if (!YY_CURRENT_BUFFER) {
 			    yyterminate();
 			  } else if (parseTreeList->next != NULL) {
-			    addToListBeginning(varlist, NULL);
-			    v = evaluateStatements(parseTreeList->data);
-			    evaluateValue(v);
-			    if (v != NULL && v != falsevalue) {
-			      freeValue(v);
-			    }
-			    results = newList();
-			    results->data = newList();
-			    ((List*)results->data)->data = varlist->data;
-			    addTreeKeysToList(results->data, varlist->data);
-			    varlist->next->data = insertInTree(varlist->next->data, buffernames->data, newValue('l', results));
-			    varlist = deleteFromListBeginning(varlist);
-			    /*parseTreeList = deleteFromListBeginning(parseTreeList);*/
+			    yylval.symbol = buffernames->data;
 			    buffernames = deleteFromListBeginning(buffernames);
+			    return EOFSYM;
 			  }
 			}
 .			{
@@ -355,13 +342,3 @@ extern char* argfilename;
 			  snprintf(errmsg, 22, "Illegal character '%c'", yytext[0]);
 			  yyerror(errmsg);
 			}
-%%
-
-int addTreeKeysToList(List* l, VarTree* vt) {
-  if (vt == NULL)
-    return 0;
-  addToListEnd(l, vt->key);
-  addTreeKeysToList(l, vt->left);
-  addTreeKeysToList(l, vt->right);
-  return 0;
-}

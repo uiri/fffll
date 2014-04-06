@@ -84,6 +84,15 @@ void siginfo(int sig) {
   _Exit(1);
 }
 
+int addTreeKeysToList(List* l, VarTree* vt) {
+  if (vt == NULL)
+    return 0;
+  addToListEnd(l, vt->key);
+  addTreeKeysToList(l, vt->left);
+  addTreeKeysToList(l, vt->right);
+  return 0;
+}
+
 %}
 
 %union {
@@ -103,6 +112,7 @@ void siginfo(int sig) {
 %token <symbol> RGX
 %token <symbol> STR
 %token <symbol> VAR
+%token <symbol> EOFSYM
 
 %type <llist> statementlist;
 %type <fv> funcall;
@@ -116,12 +126,25 @@ void siginfo(int sig) {
 %type <be> compexpr;
 %%
 
-statementlist	: statementlist funcall {
-					  $$ = $1;
-					  addToListEnd($$, $2);
-					  if (parseTreeList->data != $$) {
-					    parseTreeList->data = $$;
+statementlist	: statementlist EOFSYM	{
+					  List* results;
+					  Value* v;
+					  addToListBeginning(varlist, NULL);
+					  v = evaluateStatements(parseTreeList->data);
+					  if (v != NULL && v != falsevalue) {
+					    freeValue(v);
 					  }
+					  results = newList();
+					  results->data = newList();
+					  ((List*)results->data)->data = varlist->data;
+					  addTreeKeysToList(results->data, varlist->data);
+					  varlist->next->data = insertInTree(varlist->next->data, $2, newValue('l', results));
+					  varlist = deleteFromListBeginning(varlist);
+					  parseTreeList = deleteFromListBeginning(parseTreeList);
+					}
+		| statementlist funcall	{
+					  $$ = parseTreeList->data;
+					  addToListEnd($$, $2);
 					}
 		| funcall		{
 					  $$ = newList();

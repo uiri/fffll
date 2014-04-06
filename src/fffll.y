@@ -52,7 +52,7 @@ void yyerror(const char* msg) {
 
  int lenconstants;
  int strsize = 26;
- int funcnum = 15;
+ /*int funcnum = 15;*/
  Value* funcdeftable[16];
 
  List* parseTreeList;
@@ -425,17 +425,19 @@ int main(int argc, char** argv) {
   FILE* fp;
   /* The value between str's [] should be the value of strsize
    * Don't forget to change it at the top of the file */
-  const char* str[] = { "=", "<", ">", "&", "|", "~", "?", "_stdin", "_stdout", "_stderr",
-                        "_set", "_if", "_for", "_write", "_read", "_open",
-                        "_add", "_mul", "_rcp", "_len", "_tok", "_cat", "_head",
-                        "_tail", "_push", "_die"};
+  const char* str[] = { "=", "<", ">", "&", "|", "~", "?", "_stdin", "_stdout",
+                        "_stderr", "_set", "_if", "_for", "_write", "_read",
+                        "_open", "_add", "_mul", "_rcp", "_len", "_tok", "_cat",
+                        "_head", "_tail", "_push", "_die"};
   int i, j, k, l;
   Value* v;
   if (argc != 2) {
     printf("This program takes exactly one argument. The file to interpret\n");
     return 1;
   }
-  lenconstants = sizeof(str);
+  /* Number of bytes needed to store all the chars in str,
+   * with alignment padding */
+  lenconstants = 135;
   constants = calloc(lenconstants, 1);
   l = 0;
   for (i=0;i<strsize;i++) {

@@ -1,0 +1,17 @@
+%math
+
+set(l, [2])
+set(x, 3)
+for( i: [0..11], {
+    set(m, len(l))
+    for( (m=len(l)) {
+        push(l, x)
+        --*for( j: l, !(m=len(l)) {
+            if( (mod(x,j)=0) {
+
+            })
+        })*--
+        set(x, add(x, 1))
+    })
+})
+write(stdout, l)

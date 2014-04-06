@@ -36,7 +36,7 @@ int parencountmax = 16;
 #define YYERROR_VERBOSE
 
 void yyerror(const char* msg) {
-  printf("ERROR(PARSER): %s\n", msg);
+  printf("%s, try line %d\n", msg, lineno);
 }
 
  Value* falsevalue;

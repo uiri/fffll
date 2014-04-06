@@ -314,8 +314,9 @@ extern char* argfilename;
 			  }
 			}
 .			{
-			  printf("Illegal character %d ", yytext[0]);
-			  yyerror(":(");
+                          char errmsg[22];
+			  snprintf(errmsg, 22, "Illegal character '%c'", yytext[0]);
+			  yyerror(errmsg);
 			}
 %%
 

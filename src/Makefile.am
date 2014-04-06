@@ -7,9 +7,8 @@ fffll_CFLAGS = $(AM_CFLAGS)
 fffll_LDFLAGS=-L. -lm -lcurl -lpcre
 
 pkglib_LTLIBRARIES = libfffllstd.la libffflllist.la
-pkginclude_HEADERS = list.h builtin.h
-noinst_HEADERS = value.h evaluate.h tree.h array.h fffll.h
+noinst_HEADERS = value.h evaluate.h tree.h array.h fffll.h list.h builtin.h
 libfffllstd_la_SOURCES = builtin.c evaluate.c tree.c
-libfffllstd_la_LDFLAGS = -module
+libfffllstd_la_LDFLAGS = -module -version-info 0:0:0
 libffflllist_la_SOURCES = list.c array.c
-libffflllist_la_LDFLAGS = -module
+libffflllist_la_LDFLAGS = -module -version-info 0:0:0

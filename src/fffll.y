@@ -52,7 +52,7 @@ void yyerror(const char* msg) {
 
  int lenconstants;
  int strsize = 26;
- /*int funcnum = 15;*/
+ int funcnum = 15;
  Value* funcdeftable[16];
 
  List* parseTreeList;

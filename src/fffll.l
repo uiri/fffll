@@ -155,6 +155,7 @@ extern char* argfilename;
 			  int i, j, k;
 			  char* filename, *foldername, c;
 			  Variable* var;
+			  FILE* oldyyin;
 			  foldername = dirname(argfilename);
 			  k = strlen(foldername) + 2;
                           i = 0;
@@ -181,11 +182,45 @@ extern char* argfilename;
 			  filename[i+1] = 'f';
 			  filename[i+2] = 'f';
 			  filename[i+3] = '\0';
+			  oldyyin = yyin;
 			  yyin = fopen(filename, "r");
 			  if (!yyin) {
-			    /* code to search standard lib paths here */
-			    yyerror(filename);
-			    free(filename);
+			    j++;
+			    foldername = getenv("FFFLL_DIR");
+			    if (!foldername) {
+			      yyerror("FFFLL_DIR environment variable is not set! Can't find import");
+			      free(filename);
+			    } else {
+			      i = strlen(foldername);
+			      if (i>j) {
+				j = i - j;
+				filename = realloc(filename, k+j+1);
+				for (;k>i-j-1;k--) {
+				     filename[k+j] = filename[k];
+				}
+				j = i - j;
+			      } else if (j>i) {
+			        j -= i;
+				k = i;
+				while (1) {
+				  filename[k] = filename[k+j];
+				  if (!filename[k])
+				    break;
+				  k++;
+				}
+				j += i;
+			      }
+			      for (k=0;k<i;k++) {
+				filename[k] = foldername[k];
+			      }
+			      i = strlen(filename) - 3;
+			      j--;
+			      yyin = fopen(filename, "r");
+			      if (!yyin) {
+			        yyerror(filename);
+				free(filename);
+			      }
+			    }
 			  }
 			  if (yyin) {
 			    filename[i] = '\0';
@@ -204,6 +239,8 @@ extern char* argfilename;
 			    }
 			    freeVariable(var);
 			    yypush_buffer_state(yy_create_buffer( yyin, YY_BUF_SIZE));
+			  } else {
+			    yyin = oldyyin;
 			  }
 			}
 [,.:()[\]\{\}<>=&|!?~] {

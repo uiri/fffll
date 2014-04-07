@@ -24,7 +24,7 @@ Characters situated between / and /; These are interpreted as regular expression
 Characters situated between " and "; If the next character after the closing " is a ", it is interpreted as intending to insert a " into the string and the string does not close. If the next character after the closing " is a @, the next two characters must be hexadecimal digits. The byte which these two characters represent is inserted at the end of the string. The string will continue if a " is the next character after the two hexadecimal digits. Hexadecimal digits are 0 to 9, a to f and A to F.  
 Characters situated between --* and *--. These are interpreted as multiline comments. *-- is not allowed inside of a multiline comment.  
 Characters situated between -- and a newline character, 0x0A. These are interpreted as single line comments. 0x0A is not allowed inside of a single line comment.  
-Charcters situated between a % and a newline character. These are interpreted as imports and will designate the filename excluding the ff file extension to be imported. This filename will be used to namespace functions and variables defined in the imported fffll file.  
+Charcters situated between a % and a newline character. These are interpreted as a comma separated list of imports. Each import designates the filename excluding the ff file extension to be imported. This filename will be used to namespace functions and variables defined in the imported fffll file. Imports are relative to the directory in which the importer resides or to the global FFFLL_DIR environment variable.
 
 Outside of these situations, whitespace characters, that is 0x20, 0x09 and 0x0A, are ignored and only operators and delimiters, names and numbers are allowed:
 
@@ -41,7 +41,7 @@ When inside of an argument list, commas may be automatically inserted where none
 
 ### Types
 
-The Basic types have already been described: Real Numbers, Strings, Bytes and Regular Expressions. Bytes are raw bytes which are inserted into a String using the @-notation. Value types are composed using operators and delimiters with the basic types. A value is anything which has a type.
+The Basic types have already been described: Real Numbers, Strings and Bytes. Bytes are raw bytes which are inserted into a String using the @-notation. Value types are composed using operators and delimiters with the basic types. A value is anything which has a type.
 
 #### I/O Stream
 
@@ -59,7 +59,7 @@ Key-value lists may be have their values accessed by using a . followed by the n
 
 A boolean expression optionally starts with a ! and is delimited by ( and ) and conists of one or more comparison expressions. If there is more than one comparison expression in a boolean expression they will be joined using the | (or) or the & (and) logical operators. If a boolean expression starts with a !, the expression inside of the ( and ) will be evaluated and then negated.
 
-A comparison expression may or may not be delimited by ( and ). Comparison expressions consist of two values joined using one of the comparison operators: = < > ? ~. =, < and > are the equality, less than and greater than operators respectively. ? is the typeof operator and will evaluate to true if both values have the same type -- if both values are key-value lists, all named keys in the second value must be present in the first value or the comparison expression will evaluate to false. The second value of a ~ must be a regular expression; the comparison expression will evaluate whether or not the first value matches the regular expression. 
+A comparison expression may or may not be delimited by ( and ). Comparison expressions consist of two values joined using one of the comparison operators: = < > ? ~. =, < and > are the equality, less than and greater than operators respectively. ? is the typeof operator and will evaluate to true if both values have the same type -- if both values are key-value lists, all named keys in the second value must be present in the first value or the comparison expression will evaluate to false. The ~ operator takes a value before it and a regular expression after it. This is one of the only contexts in which regular expressions are permitted.
 
 Two comparison expressions joined by a | will be evaluated to true if one of them is true. Two comparison expressions joined by a & will be evaluated to true if both of them are true. When evaluating a boolean expression, all comparison expressions are evaluated and then the results are reduced using their joining operator going from left to right. For example, where c is a comparison expression, (c|c&c|c) will be evaluated as (((c|c)&c)|c).
 
@@ -103,7 +103,6 @@ The following functions are builtins:
 * `push`
 * `rcp`
 * `read`
-* `ret`
 * `set`
 * `tail`
 * `tok`

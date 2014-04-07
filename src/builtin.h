@@ -29,6 +29,7 @@ Value* openDef(FuncDef* fd, List* arglist);
 Value* pushDef(FuncDef* fd, List* arglist);
 Value* rcpDef(FuncDef* fd, List* arglist);
 Value* readDef(FuncDef* fd, List* arglist);
+Value* saveDef(FuncDef* fd, List* arglist);
 Value* setDef(FuncDef* fd, List* arglist);
 Value* tailDef(FuncDef* fd, List* arglist);
 Value* tokDef(FuncDef* fd, List* arglist);

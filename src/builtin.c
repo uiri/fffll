@@ -16,6 +16,7 @@
 */
 
 #include <math.h>
+#include <setjmp.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -26,6 +27,9 @@ extern Value* falsevalue;
 extern List* varlist;
 extern List* stringlist;
 extern List* funcnames;
+extern List* jmplist;
+
+char* diemsg;
 
 /* Internal helper functions */
 
@@ -41,6 +45,11 @@ size_t writeHttpBuffer(void* contents, size_t size, size_t nmemb, void* userp) {
   hv->buf[hv->bufsize] = '\0';
 
   return (size*nmemb);
+}
+
+Value* irrecoverable() {
+    errmsgf("%s", diemsg);
+    return NULL;
 }
 
 /* External Function Definitions */
@@ -100,19 +109,19 @@ Value* catDef(FuncDef* fd, List* arglist) {
 }
 
 Value* dieDef(FuncDef* fd, List* arglist) {
-  char* s;
   Value* v;
   if (arglist) {
     v = evaluateValue(arglist->next->data);
     if (v) {
-      s = valueToString(v);
-      errmsgf("%s", s);
-      free(s);
+      diemsg = valueToString(v);
     }
     freeValue(v);
   }
-  cleanupFffll(NULL);
-  exit(1);
+  if (jmplist && jmplist->data)
+    longjmp(*((jmp_buf*)jmplist->data), 1);
+  else
+    irrecoverable();
+  return NULL;
 }
 
 Value* forDef(FuncDef* fd, List* arglist) {
@@ -467,18 +476,51 @@ Value* readDef(FuncDef* fd, List* arglist) {
   return newValue('s', str);
 }
 
-Value* retDef(FuncDef* fd, List* arglist) {
-  Value* v;
-  if (arglist == NULL) {
-    falsevalue->refcount++;
-    return falsevalue;
+Value* saveDef(FuncDef* fd, List* arglist) {
+  Value* v, *u;
+  jmp_buf* savebuf;
+  String* str;
+  int saved;
+  savebuf = malloc(sizeof(jmp_buf));
+  addToListBeginning(jmplist, savebuf);
+  v = NULL;
+  if (!setjmp(*savebuf)) {
+    v = evaluateStatements((List*)((Value*)arglist->next->data)->data);
+    free(savebuf);
+    jmplist = deleteFromListBeginning(jmplist);
+  } else {
+    saved = 0;
+    u = findInTree(((List*)arglist->data)->data, ((Variable*)((List*)arglist->data)->next->data)->name);
+    while((u->type == 'v' || u->type == 'c') && u != NULL) {
+      u = evaluateValue(u);
+    }
+    if (u != NULL && u->type == 'd') {
+      if (!varlist->data)
+	varlist->data = newTree(((Variable*)((List*)arglist->data)->next->data)->name, NULL);
+      str = newString(diemsg);
+      str = addToStringList(str);
+      diemsg = str->val;
+      v = newValue('s', str);
+      varlist->data = insertInTree(varlist->data, ((Variable*)((List*)arglist->data)->next->data)->name, v);
+      evaluateStatements(u->data);
+      u = findInTree(varlist->data, ((Variable*)((List*)arglist->data)->next->data)->name);
+      if (u->data != str) {
+	saved = 1;
+      } else {
+	freeValue(v);
+      }
+      v = u;
+      deleteInTree(varlist->data, ((Variable*)((List*)arglist->data)->next->data)->name);
+    }
+    free(savebuf);
+    jmplist = deleteFromListBeginning(jmplist);
+    if (!saved) {
+      if (jmplist && jmplist->data)
+	longjmp(*((jmp_buf*)jmplist->data), 1);
+      else
+	return irrecoverable();
+    }
   }
-  if (((Value*)arglist->next->data)->type != 'd') {
-    errmsg("RETURN only takes a statement block as its argument");
-    return NULL;
-  }
-  v = evaluateStatements(((Value*)arglist->next->data)->data);
-  v->refcount++;
   return v;
 }
 

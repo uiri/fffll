@@ -48,12 +48,13 @@ void yyerror(const char* msg) {
  List* varlist;
  List* varnames;
  List* stringlist;
+ List* jmplist;
  VarTree* globalvars;
 
  int lenconstants;
- int strsize = 26;
- int funcnum = 15;
- Value* funcdeftable[16];
+ int strsize = 27;
+ int funcnum = 16;
+ Value* funcdeftable[17];
 
  List* parseTreeList;
  char* eq, *gt, *lt, *and, *or, *sq, *ty;
@@ -451,7 +452,7 @@ int main(int argc, char** argv) {
   const char* str[] = { "=", "<", ">", "&", "|", "~", "?", "_stdin", "_stdout",
                         "_stderr", "_set", "_if", "_for", "_write", "_read",
                         "_open", "_add", "_mul", "_rcp", "_len", "_tok", "_cat",
-                        "_head", "_tail", "_push", "_die"};
+                        "_head", "_tail", "_push", "_die", "_save"};
   int i, j, k, l;
   Value* v;
   if (argc != 2) {
@@ -460,7 +461,7 @@ int main(int argc, char** argv) {
   }
   /* Number of bytes needed to store all the chars in str,
    * with alignment padding */
-  lenconstants = 135;
+  lenconstants = 140;
   constants = calloc(lenconstants, 1);
   l = 0;
   for (i=0;i<strsize;i++) {
@@ -497,6 +498,7 @@ int main(int argc, char** argv) {
   varnames = newList();
   varlist = newList();
   stringlist = newList();
+  jmplist = newList();
   stdfiles[0] = newValue('f', stdinp);
   stdfiles[1] = newValue('f', stdoutp);
   stdfiles[2] = newValue('f', stderrp);
@@ -516,6 +518,7 @@ int main(int argc, char** argv) {
   funcdeftable[13] = newValue('a', newBuiltinFuncDef(&tailDef, 1));
   funcdeftable[14] = newValue('a', newBuiltinFuncDef(&pushDef, 0));
   funcdeftable[15] = newValue('a', newBuiltinFuncDef(&dieDef, 0));
+  funcdeftable[16] = newValue('a', newBuiltinFuncDef(&saveDef, 0));
   /* don't forget to fix funcdeftable's declaration */
   globalvars = newTree(constants+14, stdfiles[0]);
   globalvars = insertInTree(globalvars, constants+15, stdfiles[0]);
@@ -553,8 +556,10 @@ int main(int argc, char** argv) {
   globalvars = insertInTree(globalvars, constants+117, funcdeftable[13]); /* tail */
   globalvars = insertInTree(globalvars, constants+122, funcdeftable[14]); /* _push */
   globalvars = insertInTree(globalvars, constants+123, funcdeftable[14]); /* push */
-  globalvars = insertInTree(globalvars, constants+128, funcdeftable[15]); /* _die */ /* +134 next */
-  globalvars = insertInTree(globalvars, constants+129, funcdeftable[15]); /* die */ /* +135 next */
+  globalvars = insertInTree(globalvars, constants+128, funcdeftable[15]); /* _die */
+  globalvars = insertInTree(globalvars, constants+129, funcdeftable[15]); /* die */
+  globalvars = insertInTree(globalvars, constants+134, funcdeftable[16]); /* _save */ /* +140 next */
+  globalvars = insertInTree(globalvars, constants+135, funcdeftable[16]); /* save */ /* +141 next */
   addToListBeginning(varnames, constants+14);
   addToListBeginning(varnames, constants+15);
   addToListBeginning(varnames, constants+22);
@@ -593,6 +598,8 @@ int main(int argc, char** argv) {
   addToListBeginning(varnames, constants+123);
   addToListBeginning(varnames, constants+128);
   addToListBeginning(varnames, constants+129);
+  addToListBeginning(varnames, constants+134);
+  addToListBeginning(varnames, constants+135);
   addToListBeginning(varlist, globalvars);
   parencount = malloc(16*sizeof(int));
   parencount[parencountind] = 0;

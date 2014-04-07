@@ -79,7 +79,7 @@ A fffll program consists of a series of function calls, comments and imports. Im
 
 #### Errors
 
-It is possible for a program to call the `die` builtin in order to stop execution immediately with an error message. There are currently no facilities for saving from errors.
+It is possible for a program to call the `die` builtin in order to stop execution immediately with an error message. One may place a block of code that may die as the first number-keyed argument to save and the first name-keyed argument to save will be used to save the program from dying; the name of the name-keyed argument will be used as the name of the error message. If the saving block changes the value of the name referring to the error, the error is considered "saved". Otherwise, the error was not "saved" and will be propagated to the next save block up, if any exist.
 
 #### Constants
 
@@ -103,6 +103,7 @@ The following functions are builtins:
 * `push`
 * `rcp`
 * `read`
+* `save`
 * `set`
 * `tail`
 * `tok`

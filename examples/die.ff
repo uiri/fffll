@@ -3,4 +3,10 @@ set(main, [x]{
         die("Oh no")
     })
 })
-main(-2)
+save({
+    main(-2)
+}, e: {
+   write(stdout, e)
+   set(e, "Saved your life")
+   write(stdout, e)
+})

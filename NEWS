@@ -1,0 +1,17 @@
+v 0.1.1:
+
+ * Fix bug affecting all 32-bit systems.
+ * Fix bug affecting Ubuntu 12.04.
+ * Add `save` builtin for error handling.
+ * Make distribution more complete.
+ * The spec is in the distribution. It is fairly close to the implementation.
+ * Allow imports from FFFLL_DIR environment variable.
+ * Imports are now contained entirely in their own namespace.
+
+v 0.1:
+
+ * Finally got around to autotools! Yay!
+ * The language is fairly complete. Look at the spec!
+ * Stuff is dynamically allocated and reference countd.
+ * Most stuff is free()'d before exit.
+ * In any case, no memory leaks!

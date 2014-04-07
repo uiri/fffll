@@ -1,5 +1,5 @@
 /* VarTree - Self-balancing binary search tree implementation
-   Copyright (C) 2013 W Pearson
+   Copyright (C) 2013-2014 W Pearson
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by

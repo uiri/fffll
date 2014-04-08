@@ -31,6 +31,41 @@ extern List* jmplist;
 
 char* diemsg;
 
+char* errmsglist[] = {
+  "Unknown error :(",
+
+  "Wrong number of arguments for cat",
+  "Wrong number of arguments for for",
+  "Wrong number of arguments for head",
+  "Wrong number of arguments for if",
+  "Wrong number of arguments for len",
+  "Wrong number of arguments for open",
+  "Wrong number of arguments for push",
+  "Wrong number of arguments for rcp",
+  "Wrong number of arguments for read",
+  "Wrong number of arguments for save",
+  "Wrong number of arguments for set",
+  "Wrong number of arguments for tail",
+  "Wrong number of arguments for tok",
+  "Wrong number of arguments for write",
+
+  /* 15 */
+  "Expected List as argument for head",
+  "Expected List, String, Statementlist or Name as argument for len",
+  "Expected List as argument for push",
+  "Expected I/O stream as argument for read",
+  "Expected Name as argument for set",
+  "Expected List as argument for tail",
+  "Expected String as argument for tok",
+  "Expected I/O stream as argument for write",
+
+  /* 23 */
+  "Failed to read from I/O Stream",
+  "Attempt to read past the end of I/O Stream",
+  "Only List can be indexed",
+  "List index out of bounds"
+};
+
 /* Internal helper functions */
 
 size_t writeHttpBuffer(void* contents, size_t size, size_t nmemb, void* userp) {
@@ -47,9 +82,25 @@ size_t writeHttpBuffer(void* contents, size_t size, size_t nmemb, void* userp) {
   return (size*nmemb);
 }
 
-Value* irrecoverable() {
+Value* recoverErr() {
+  if (jmplist && jmplist->data) {
+    longjmp(*((jmp_buf*)jmplist->data), 1);
+  } else {
     errmsgf("%s", diemsg);
     return NULL;
+  }
+}
+
+void makeErrMsg(int i) {
+  int l;
+  l = strlen(errmsglist[i]);
+  diemsg = malloc(l+1);
+  strcpy(diemsg, errmsglist[i]);
+}
+
+Value* raiseErr(int i) {
+  makeErrMsg(i);
+  return recoverErr();
 }
 
 /* External Function Definitions */
@@ -81,8 +132,7 @@ Value* catDef(FuncDef* fd, List* arglist) {
   List* al, *node;
   al = evaluateList(arglist->next);
   if (arglist == NULL) {
-    errmsg("CAT requires at least one argument");
-    return NULL;
+    return raiseErr(1);
   }
   l = 8;
   i = 0;
@@ -116,12 +166,10 @@ Value* dieDef(FuncDef* fd, List* arglist) {
       diemsg = valueToString(v);
     }
     freeValue(v);
+  } else {
+    makeErrMsg(0);
   }
-  if (jmplist && jmplist->data)
-    longjmp(*((jmp_buf*)jmplist->data), 1);
-  else
-    irrecoverable();
-  return NULL;
+  return recoverErr();
 }
 
 Value* forDef(FuncDef* fd, List* arglist) {
@@ -131,8 +179,7 @@ Value* forDef(FuncDef* fd, List* arglist) {
   List* sl, *l;
   double* d, e, i;
   if (!arglist) {
-    errmsg("Not enough arguments for FOR");
-    return NULL;
+    return raiseErr(2);
   }
   v = falsevalue;
   v->refcount++;
@@ -220,13 +267,11 @@ Value* forDef(FuncDef* fd, List* arglist) {
 Value* headDef(FuncDef* fd, List* arglist) {
   Value* v;
   if (lengthOfList(arglist->next) != 1) {
-    errmsg("HEAD only takes one argument");
-    return NULL;
+    return raiseErr(3);
   }
   v = evaluateValue(arglist->next->data);
   if (v->type != 'l') {
-    errmsg("HEAD's argument must be a list");
-    return NULL;
+    return raiseErr(15);
   }
   return evaluateValue(((List*)v->data)->next->data);
 }
@@ -237,8 +282,7 @@ Value* ifDef(FuncDef* fd, List* arglist) {
   List* cond;
   l = lengthOfList(arglist->next);
   if (l < 2) {
-    errmsg("Not enough arguments for IF");
-    return NULL;
+    return raiseErr(4);
   }
   cond = arglist->next;
   while (1) {
@@ -262,8 +306,7 @@ Value* lenDef(FuncDef* fd, List* arglist) {
   Value* v;
   List* al, *node;
   if (arglist == NULL) {
-    errmsg("Not enough arguments for LEN");
-    return NULL;
+    return raiseErr(5);
   }
   al = evaluateList(arglist->next);
   if (al == NULL)
@@ -279,11 +322,9 @@ Value* lenDef(FuncDef* fd, List* arglist) {
     } else if (v->type == 'l') {
       *a += (double)lengthOfList(((List*)v->data)->next);
     } else if (v->type != '0') {
-      errmsg("LEN only takes variables, function calls, strings, lists or "
-	     "blocks as arguments");
       freeValueList(al);
       free(a);
-      return NULL;
+      return raiseErr(16);
     }
   }
   return newValue('n', a);
@@ -315,8 +356,7 @@ Value* openDef(FuncDef* fd, List* arglist) {
   Value* v;
   char* s;
   if (arglist == NULL) {
-    errmsg("Not enough arguments for OPEN");
-    return NULL;
+    return raiseErr(6);
   }
   v = evaluateValue(arglist->next->data);
   if (v == NULL) return NULL;
@@ -338,14 +378,12 @@ Value* pushDef(FuncDef* fd, List* arglist) {
   List* node;
   l = lengthOfList(arglist);
   if (l < 2) {
-    errmsg("PUSH needs at least two arguments");
-    return NULL;
+    return raiseErr(7);
   }
   v = evaluateValue(arglist->next->data);
   if (v->type != 'l') {
-    errmsg("PUSH's first argument must be a list");
     freeValue(v);
-    return NULL;
+    return raiseErr(17);
   }
   for (node=arglist->next->next;node != NULL;node = node->next) {
     u = evaluateValue(node->data);
@@ -358,9 +396,7 @@ Value* rcpDef(FuncDef* fd, List* arglist) {
   double b, c, d, *n;
   int i, e;
   if (lengthOfList(arglist->next) != 1) {
-    errmsg("RCP only takes 1 argument, the number whose reciprocal"
-	   " is to be computed");
-    return NULL;
+    return raiseErr(8);
   }
   d = valueToDouble(arglist->next->data);
   if (isnan(d))
@@ -390,17 +426,15 @@ Value* readDef(FuncDef* fd, List* arglist) {
   Value* v;
   String* str;
   if (arglist == NULL) {
-    errmsg("Not enough arguments for READ");
-    return NULL;
+    return raiseErr(9);
   }
   v = evaluateValue(arglist->next->data);
   if (v == NULL) return NULL;
   if (v->type != 'f' && v->type != 'h') {
-    errmsg("READ only takes a file or http request as its argument");
     if (((Value*)arglist->next->data)->type != 'v' &&
 	((Value*)arglist->next->data)->type != 'c')
       freeValue(v);
-    return NULL;
+    return raiseErr(18);
   }
   if (v->type == 'h') {
     hv = (HttpVal*)v;
@@ -409,12 +443,11 @@ Value* readDef(FuncDef* fd, List* arglist) {
       curl_easy_setopt(hv->curl, CURLOPT_WRITEDATA, (void*)hv);
       i = curl_easy_perform(hv->curl);
       if (i) {
-	errmsgf("READ failed to read %s", hv->url);
+	return raiseErr(23);
       }
     }
     if (hv->pos == hv->bufsize) {
-      errmsg("Attempt to READ past the end of a HTTP response");
-      return NULL;
+      return raiseErr(24);
     }
     for (i=0;hv->buf[hv->pos+i] != '\n' && hv->buf[hv->pos+1] != '\0';i++);
     s = malloc(i+1);
@@ -426,8 +459,7 @@ Value* readDef(FuncDef* fd, List* arglist) {
   } else {
     fp = *(FILE**)v->data;
     if (feof(fp)) {
-      errmsg("Attempt to READ past the end of a file");
-      return NULL;
+      return raiseErr(24);
     }
     n = 0;
     if (fp != stdin && fp != stdout && fp != stderr &&
@@ -484,6 +516,9 @@ Value* saveDef(FuncDef* fd, List* arglist) {
   savebuf = malloc(sizeof(jmp_buf));
   addToListBeginning(jmplist, savebuf);
   v = NULL;
+  if (!arglist) {
+    return raiseErr(10);
+  }
   if (!setjmp(*savebuf)) {
     v = evaluateStatements((List*)((Value*)arglist->next->data)->data);
     free(savebuf);
@@ -515,10 +550,7 @@ Value* saveDef(FuncDef* fd, List* arglist) {
     free(savebuf);
     jmplist = deleteFromListBeginning(jmplist);
     if (!saved) {
-      if (jmplist && jmplist->data)
-	longjmp(*((jmp_buf*)jmplist->data), 1);
-      else
-	return irrecoverable();
+      return recoverErr();
     }
   }
   return v;
@@ -530,12 +562,10 @@ Value* setDef(FuncDef* fd, List* arglist) {
   List* l, *m, *vl;
   char* s;
   if (lengthOfList(arglist->next) < 2) {
-    errmsg("Not enough arguments for SET");
-    return NULL;
+    return raiseErr(11);
   }
   if (((Value*)arglist->next->data)->type != 'v') {
-    errmsg("SET requires a variable to be its first argument");
-    return NULL;
+    return raiseErr(19);
   }
   v = evaluateValue(arglist->next->next->data);
   if (v == NULL) {
@@ -560,8 +590,7 @@ Value* setDef(FuncDef* fd, List* arglist) {
 	u = l->data;
       }
       if (!u || u->type != 'l') {
-	errmsg("Only lists can be indexed.");
-	return NULL;
+	return raiseErr(25);
       }
       l = ((List*)u->data)->next;
       if (((Variable*)arglist->next->data)->indextype[k] == 'v') {
@@ -587,8 +616,7 @@ Value* setDef(FuncDef* fd, List* arglist) {
 	l = l->next;
       }
       if (l == NULL) {
-	errmsg("List index out of bounds");
-	return NULL;
+	return raiseErr(26);
       }
     }
     if (l->data != NULL)
@@ -628,14 +656,12 @@ Value* tailDef(FuncDef* fd, List* arglist) {
   Value* v;
   List* ll, *tl;
   if (lengthOfList(arglist->next) != 1) {
-    errmsg("TAIL only takes one argument");
-    return NULL;
+    return raiseErr(12);
   }
   ll = newList();
   v = evaluateValue(arglist->next->data);
   if (v->type != 'l') {
-    errmsg("TAIL's argument must be a list");
-    return NULL;
+    return raiseErr(20);
   }
   ll->next = cloneList(((List*)v->data)->next->next);
   tl = ((List*)v->data)->next->next;
@@ -653,9 +679,7 @@ Value* tokDef(FuncDef* fd, List* arglist) {
   int h, i, j, k;
   String* str;
   if (lengthOfList(arglist->next) != 2) {
-    errmsg("TOK takes exactly two arguments, a string to tokenize and a "
-	   "delimiter");
-    return NULL;
+    return raiseErr(13);
   }
   al = evaluateList(arglist->next);
   if (al == NULL)
@@ -664,8 +688,7 @@ Value* tokDef(FuncDef* fd, List* arglist) {
   l->next = newList();
   if (((Value*)al->data)->type != 's' ||
       ((Value*)al->next->data)->type != 's') {
-    errmsg("The arguments to TOK must be strings");
-    return NULL;
+    return raiseErr(21);
   }
   r = ((String*)((Value*)al->data)->data)->val;
   t = ((String*)((Value*)al->next->data)->data)->val;
@@ -702,14 +725,12 @@ Value* writeDef(FuncDef* fd, List* arglist) {
   HttpVal* hv;
   List* node;
   if (arglist == NULL) {
-    errmsg("Not enough arguments for WRITE");
-    return NULL;
+    return raiseErr(14);
   }
   v = evaluateValue(arglist->next->data);
   if (v == NULL) return NULL;
   if (v->type != 'f' && v->type != 'h') {
-    errmsg("WRITE only takes a file or a http request as its first argument");
-    return NULL;
+    return raiseErr(22);
   }
   j = -1;
   if (v->type == 'f') {

@@ -51,7 +51,7 @@ char* errmsglist[] = {
 
   /* 15 */
   "Expected List as argument for head",
-  "Expected List, String, Statementlist or Name as argument for len",
+  "Expected List, String or Statementlist as argument for len",
   "Expected List as argument for push",
   "Expected I/O stream as argument for read",
   "Expected Name as argument for set",
@@ -200,8 +200,10 @@ Value* forDef(FuncDef* fd, List* arglist) {
     if (u != NULL && u->type == 'l') {
       if (!varlist->data)
 	varlist->data = newTree(((Variable*)((List*)arglist->data)->next->data)->name, NULL);
-      l = ((List*)u->data)->next;
-      if (((Value*)l->data)->type == 'r') {
+      l = NULL;
+      if ((List*)u->data)
+	l = ((List*)u->data)->next;
+      if (l && ((Value*)l->data)->type == 'r') {
 	d = malloc(sizeof(double));
 	*d = valueToDouble(((Range*)l->data)->start);
 	e = valueToDouble(((Range*)l->data)->end);
@@ -273,6 +275,9 @@ Value* headDef(FuncDef* fd, List* arglist) {
   if (v->type != 'l') {
     return raiseErr(15);
   }
+  if (!v->data || !((List*)v->data)->next) {
+    return raiseErr(26);
+  }
   return evaluateValue(((List*)v->data)->next->data);
 }
 
@@ -320,7 +325,9 @@ Value* lenDef(FuncDef* fd, List* arglist) {
     } else if (v->type == 'd') {
       *a += (double)lengthOfList(v->data);
     } else if (v->type == 'l') {
-      *a += (double)lengthOfList(((List*)v->data)->next);
+      if (v->data) {
+	*a += (double)lengthOfList(((List*)v->data)->next);
+      }
     } else if (v->type != '0') {
       freeValueList(al);
       free(a);
@@ -387,6 +394,10 @@ Value* pushDef(FuncDef* fd, List* arglist) {
   }
   for (node=arglist->next->next;node != NULL;node = node->next) {
     u = evaluateValue(node->data);
+    if (!v->data) {
+      v->data = newList();
+      ((List*)v->data)->next = newList();
+    }
     addToListEnd(((List*)v->data)->next, u);
   }
   return v;
@@ -663,8 +674,12 @@ Value* tailDef(FuncDef* fd, List* arglist) {
   if (v->type != 'l') {
     return raiseErr(20);
   }
-  ll->next = cloneList(((List*)v->data)->next->next);
-  tl = ((List*)v->data)->next->next;
+  ll->next = NULL;
+  tl = NULL;
+  if (v->data) {
+    ll->next = cloneList(((List*)v->data)->next->next);
+    tl = ((List*)v->data)->next->next;
+  }
   while (tl != NULL) {
     ((Value*)tl->data)->refcount++;
     tl = tl->next;

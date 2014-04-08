@@ -1,0 +1,14 @@
+set(x, [])
+set(y, tail(x))
+set(y, len(x))
+for( i: x, {
+     write(stdout, i)
+})
+write(stdout, x)
+write(stdout, add(x, 0))
+write(stdout, (x))
+push(x, 2)
+set(x, tail(x))
+save({ head(x) }, e: {
+    if( (e~/out of bound/), {set(e, "saved")} )
+})

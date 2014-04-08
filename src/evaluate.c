@@ -408,8 +408,11 @@ double evaluateValueAsBool(Value* v) {
     return ((BoolExpr*)v)->lasteval;
   }
   if (v->type == 'l') {
-    return lengthOfList(((List*)v->data)->next) + 
-      (double)((VarTree*)((List*)((List*)v->data)->data)->data)->count;
+    if (v->data)
+      return lengthOfList(((List*)v->data)->next) +
+	(double)((VarTree*)((List*)((List*)v->data)->data)->data)->count;
+    else
+      return 0.0;
   }
   if (v->type == 'd') {
     return evaluateValueAsBool(evaluateStatements((List*)v->data));
@@ -450,8 +453,10 @@ Value* evaluateValue(Value* v) {
         errmsg("Only lists can be indexed.");
         return NULL;
       }
-      l = ((List*)u->data)->next;
+      l = NULL;
       s = NULL;
+      if (u->data)
+	l = ((List*)u->data)->next;
       if (((Variable*)v)->indextype[k] == 'v') {
         w = evaluateValue(((Variable*)v)->index[k]);
 	if (w->type == 's') {
@@ -615,6 +620,8 @@ double valueToDouble(Value* v) {
   if (v->type == 'd')
     return valueToDouble(evaluateStatements(v->data));
   if (v->type == 'l') {
+    if (!v->data)
+      return 0.0;
     for (node = ((List*)v->data)->next;node != NULL;node = node->next) {
       u = evaluateValue(node->data);
       d = valueToDouble(u);
@@ -736,7 +743,10 @@ char* valueToString(Value* v) {
     s = malloc(4);
     s[0] = '[';
     i = 0;
-    for (node = ((List*)v->data)->next;node != NULL;node = node->next) {
+    node = NULL;
+    if (v->data)
+      node = ((List*)v->data)->next;
+    for (;node != NULL;node = node->next) {
       if (i) s[i] = ' ';
       i++;
       u = evaluateValue(node->data);

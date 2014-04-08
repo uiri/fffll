@@ -1,5 +1,5 @@
 /* MyList - Linked List Implementation
-   Copyright (C) 2012,2013 Uiri Noyb
+   Copyright (C) 2012-2014 Uiri Noyb
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -186,6 +186,8 @@ List changeInListDataAtPosition(List *list, int position, void *data) {
 
 List *cloneList(List *list) {
   List *clone, *headptr;
+  if (list == NULL)
+    return NULL;
   clone = allocList();
   clone->data = list->data;
   clone->next = NULL;

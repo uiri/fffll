@@ -465,7 +465,7 @@ Value* evaluateValue(Value* v) {
 	  j = strlen(s);
 	  i = -1;
 	  while (m != NULL) {
-	    if (strlen(m->data) == j) {
+	    if (m->data && strlen(m->data) == j) {
 	      for (i=0;i<j;i++)
 		if (((char*)m->data)[i] != s[i])
 		  break;
@@ -487,7 +487,10 @@ Value* evaluateValue(Value* v) {
       }
       r = 0;
       if (s) {
-        u = findInTree(((List*)((List*)u->data)->data)->data, s);
+	if (((List*)u->data)->data)
+	  u = findInTree(((List*)((List*)u->data)->data)->data, s);
+	else
+	  u = NULL;
 	if (u == NULL) {
 	  errmsgf("Key '%s' not found", s);
 	  return NULL;

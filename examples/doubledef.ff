@@ -1,9 +1,9 @@
 set( print, [x] {
-     write(stdout, "Printing...", x)
+    write(stdout, "Printing...", x)
 })
 
 set( print, [x] {
-     write(stdout, x)
+    write(stdout, x)
 })
 
 print("Hello World")

@@ -1,11 +1,11 @@
-    set(x, [ f: 0, g: 1, b: [a: 3, c: [p: 5, q: 7]], e: 2 ])
-    set(y, ["f", "a"])
-    if( (4=x), {
-        write(stdout, "cool")
-    })
-    write(stdout, x.[y.0])
-    write(stdout, x.b.[y.1])
-    write(stdout, x.b.c.p)
-    write(stdout, x.b.c.q)
-    --*set(x.b.a, 4)
-    write(stdout, x.b.a)*--
+set(x, [ f: 0, g: 1, b: [a: 3, c: [p: 5, q: 7]], e: 2 ])
+set(y, ["f", "a"])
+if( (4=x), {
+    write(stdout, "cool")
+})
+write(stdout, x.[y.0])
+write(stdout, x.b.[y.1])
+write(stdout, x.b.c.p)
+write(stdout, x.b.c.q)
+--*set(x.b.a, 4)
+write(stdout, x.b.a)*--

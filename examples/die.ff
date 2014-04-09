@@ -6,7 +6,7 @@ set(main, [x]{
 save({
     main(-2)
 }, e: {
-   write(stdout, e)
-   set(e, "Saved your life")
-   write(stdout, e)
+    write(stdout, e)
+    set(e, "Saved your life")
+    write(stdout, e)
 })

@@ -1,9 +1,9 @@
 set(pow, [x, n]{
     if((n=2), {
-	  set(x, mul(x, x))
-      }, {
-	  set(x, mul(x, pow(x, add(n, -1))))
-      })
+        set(x, mul(x, x))
+    }, {
+        set(x, mul(x, pow(x, add(n, -1))))
+    })
 })
 
 set(quitloop, [] {

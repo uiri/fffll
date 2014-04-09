@@ -2,7 +2,7 @@ set(x, [])
 set(y, tail(x))
 set(y, len(x))
 for( i: x, {
-     write(stdout, i)
+    write(stdout, i)
 })
 write(stdout, x)
 write(stdout, add(x, 0))

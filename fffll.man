@@ -1,0 +1,14 @@
+.TH fffll 1 "April 2014"
+
+.SH NAME
+fffll \- the canonical fffll language interpreter
+.SH SYNOPSIS
+.B fffll
+.I script-name
+.SH DESCRIPTION
+fffll is an interpreter for the fun functioning functional little language. It takes as its sole command line argument the filename of the fffll file to be run. By convention, fffll files use the .ff file extension. Fffll (or f3ll) is usually pronounced 'fell'.
+.SH AUTHOR
+Written by W Pearson.
+.SH SEE ALSO
+.P
+The README distributed with the source. The examples/ directory containing example scripts distributed with the source.

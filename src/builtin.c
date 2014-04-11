@@ -556,7 +556,7 @@ Value* saveDef(FuncDef* fd, List* arglist) {
 	freeValue(v);
       }
       v = u;
-      deleteInTree(varlist->data, ((Variable*)((List*)arglist->data)->next->data)->name);
+      varlist->data = deleteInTree(varlist->data, ((Variable*)((List*)arglist->data)->next->data)->name);
     }
     free(savebuf);
     jmplist = deleteFromListBeginning(jmplist);

@@ -117,7 +117,7 @@ Value* addDef(FuncDef* fd, List* arglist) {
     d = valueToDouble(node->data);
     *n += d;
   }
-  freeValueList(al);
+  /*freeValueList(al);*/
   if (isnan(*n)) {
     free(n);
     return NULL;
@@ -232,7 +232,7 @@ Value* forDef(FuncDef* fd, List* arglist) {
 	  }
 	}
 	freeValue(findInTree(varlist->data, ((Variable*)((List*)arglist->data)->next->data)->name));
-	deleteInTree(varlist->data, ((Variable*)((List*)arglist->data)->next->data)->name);
+	varlist->data = deleteInTree(varlist->data, ((Variable*)((List*)arglist->data)->next->data)->name);
       } else {
 	while (l) {
 	  varlist->data = insertInTree(varlist->data, ((Variable*)((List*)arglist->data)->next->data)->name, l->data);
@@ -354,7 +354,7 @@ Value* mulDef(FuncDef* fd, List* arglist) {
     }
     *n *= d;
   }
-  freeValueList(al);
+  /*freeValueList(al);*/
   return newValue('n', n);
 }
 

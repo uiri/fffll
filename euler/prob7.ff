@@ -2,16 +2,23 @@
 
 set(l, [2])
 set(x, 3)
-for( i: [0..11], {
+for( i: [1..10001], {
     set(m, len(l))
-    for( (m=len(l)) {
-        push(l, x)
-        --*for( j: l, !(m=len(l)) {
-            if( (mod(x,j)=0) {
-
+    for( (m=len(l)), {
+        set(y, x)
+        set(z, x)
+        for( j: l, (x=y&x=z), {
+            set(d, math.mod(z, j))
+            if( (d=0) {
+                set(y, 1)
+            }, (z<mul(j,j)) {
+                set(z, 1)
             })
-        })*--
-        set(x, add(x, 1))
+        })
+        if( (x=y) {
+            push(l, x)
+        })
+        set(x, add(x, 2))
     })
 })
-write(stdout, l)
+write(stdout, l.[-1])

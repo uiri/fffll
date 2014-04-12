@@ -117,7 +117,7 @@ Value* addDef(FuncDef* fd, List* arglist) {
     d = valueToDouble(node->data);
     *n += d;
   }
-  /*freeValueList(al);*/
+  freeValueList(al);
   if (isnan(*n)) {
     free(n);
     return NULL;
@@ -354,7 +354,7 @@ Value* mulDef(FuncDef* fd, List* arglist) {
     }
     *n *= d;
   }
-  /*freeValueList(al);*/
+  freeValueList(al);
   return newValue('n', n);
 }
 
@@ -394,6 +394,8 @@ Value* pushDef(FuncDef* fd, List* arglist) {
   }
   for (node=arglist->next->next;node != NULL;node = node->next) {
     u = evaluateValue(node->data);
+    if (((Value*)node->data)->type == 'v')
+      u->refcount++;
     if (!v->data) {
       v->data = newList();
       ((List*)v->data)->next = newList();
@@ -582,6 +584,8 @@ Value* setDef(FuncDef* fd, List* arglist) {
   if (v == NULL) {
     return NULL;
   }
+  if (((Value*)arglist->next->next->data)->type == 'v')
+    v->refcount++;
   u = NULL;
   vl = varlist;
   do {

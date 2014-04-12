@@ -86,12 +86,16 @@ VarTree* deleteInTree(VarTree* vt, char* key) {
 
 void* findInTree(VarTree* vt, char* key) {
   while (vt != NULL) {
+    if (vt->key < key) {
+      vt = vt->right;
+      continue;
+    }
+    if (vt->key > key) {
+      vt = vt->left;
+      continue;
+    }
     if (key == vt->key)
       return vt->data;
-    else if (vt->key > key)
-      vt = vt->left;
-    else
-      vt = vt->right;
   }
   return NULL;
 }

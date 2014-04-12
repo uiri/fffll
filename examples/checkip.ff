@@ -7,6 +7,9 @@ set(main, [] {
     }, e: {
         if( (e~/past the end/) {
             set(e, "saved")
+        }, (e~/Failed/) {
+            write(stderr, "Network I/O failed")
+            set(e, "saved")
         })
     })
 })

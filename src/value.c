@@ -32,6 +32,7 @@ extern List* varnames;
 extern List* stringlist;
 extern VarTree* globalvars;
 
+extern short curl_init;
 extern int strsize;
 extern int funcnum;
 extern Value* funcdeftable[15];
@@ -146,7 +147,8 @@ int cleanupFffll(Value* v) {
   free(stdoutp);
   free(stderrp);
   free(constants);
-  curl_global_cleanup();
+  if (curl_init)
+    curl_global_cleanup();
   return 0;
 }
 

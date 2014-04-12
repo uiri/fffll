@@ -546,6 +546,7 @@ Value* saveDef(FuncDef* fd, List* arglist) {
       if (!varlist->data)
 	varlist->data = newTree(((Variable*)((List*)arglist->data)->next->data)->name, NULL);
       str = newString(diemsg);
+      str->refcount++;
       str = addToStringList(str);
       diemsg = str->val;
       v = newValue('s', str);

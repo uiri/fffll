@@ -51,6 +51,8 @@ void yyerror(const char* msg) {
  List* jmplist;
  VarTree* globalvars;
 
+ short curl_init = 0;
+
  int lenconstants;
  int strsize = 27;
  int funcnum = 16;
@@ -156,6 +158,11 @@ statementlist	: statementlist EOFSYM	{
 funcall		: VAR arglist		{
 					  Variable* v;
 					  v = parseVariable($1);
+					  /* test if curl not initialized and open being used */
+					  if (!curl_init && (v->name == constants+69 || v->name == constants+68)) {
+					    curl_init = 1;
+					    curl_global_init(CURL_GLOBAL_ALL);
+					  }
 					  $$ = newFuncVal((Value*)v, $2, v->name, lineno);
 					}
 		| value '.' VAR arglist	{
@@ -603,7 +610,6 @@ int main(int argc, char** argv) {
   addToListBeginning(varlist, globalvars);
   parencount = malloc(16*sizeof(int));
   parencount[parencountind] = 0;
-  curl_global_init(CURL_GLOBAL_ALL);
   signal(SIGABRT, siginfo);
   signal(SIGFPE, siginfo);
   signal(SIGILL, siginfo);

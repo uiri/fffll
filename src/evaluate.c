@@ -434,7 +434,6 @@ Value* evaluateValue(Value* v) {
     return v;
   }
   if (v->type == 'v') {
-    if (v == NULL) return NULL;
     l = NULL;
     s = NULL;
     u = NULL;

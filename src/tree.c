@@ -174,6 +174,7 @@ VarTree* newTree(char* key, void* data) {
 
 VarTree* rebalanceTree(VarTree* vt) {
   VarTree* root, *left, *right;
+  int i;
   if (vt == NULL)
     return NULL;
   root = vt;
@@ -194,14 +195,21 @@ VarTree* rebalanceTree(VarTree* vt) {
     /* Just in case */
     return root;
   }
-  if ((2 > left->count - right->count && left->count - right->count > -1) ||
-      (2 > right->count - left->count && right->count - left->count > -1))
+  i = left->count - right->count;
+  if (i < 0)
+    i = 0 - i;
+  if (i < 2)
     return root;
   if (left->count > right->count) {
     root->count = 1;
     root->left = NULL;
     root->right = NULL;
     right->left = mergeTree(root, right->left);
+    right->count = 1;
+    if (right->left)
+      right->count += right->left->count;
+    if (right->right)
+      right->count += right->right->count;
     left->right = mergeTree(left->right, right);
     root = left;
   } else {
@@ -209,6 +217,11 @@ VarTree* rebalanceTree(VarTree* vt) {
     root->left = NULL;
     root->right = NULL;
     left->right = mergeTree(left->right, root);
+    left->count = 1;
+    if (left->left)
+      left->count += left->left->count;
+    if (left->right)
+      left->count += left->right->count;
     right->left = mergeTree(left, right->left);
     root = right;
   }

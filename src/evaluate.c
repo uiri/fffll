@@ -125,30 +125,32 @@ int scope(FuncDef* fd, List* arglist) {
 /* External evaluation functions */
 
 BoolExpr* evaluateBoolExpr(BoolExpr* be) {
-  int i, l, m, p, erroff, ovec[PCREOVECCOUNT];
+  int m, p, erroff, ovec[PCREOVECCOUNT];
   double j, k, **n, *o;
   char* c, *s, *t;
   const char* err;
-  List* stack, *prop;
+  List* stack, *prop, *stackiter;
   Value* v, *u, *w;
   pcre *re;
   re = NULL;
-  stack = newList();
-  l = lengthOfList(be->stack);
+  stack = be->stack;
+  for (m=0;stack->next && stack->next->next;m++)
+    stack = stack->next->next;
+  n = malloc((m+2)*sizeof(double*));
   m = -1;
-  n = malloc(((l/2)+2)*sizeof(double*));
+  stack = newList();
   o = NULL;
-  i = 0;
-  while (i<l) {
+  stackiter = be->stack;
+  while (stackiter) {
     s = NULL;
     t = NULL;
     w = NULL;
     v = NULL;
-    u = dataInListAtPosition(be->stack, i);
+    u = stackiter->data;
     if (u->type == '|' || u->type == '&') {
       addToListEnd(stack, n[m]);
       addToListEnd(stack, u);
-      i++;
+      stackiter = stackiter->next;
       continue;
     }
     n[++m] = calloc(1, sizeof(double));
@@ -158,8 +160,8 @@ BoolExpr* evaluateBoolExpr(BoolExpr* be) {
       if (v == NULL) {
 	freeList(stack);
 	m++;
-	for (i=0;i<m;i++) {
-	  free(n[i]);
+	for (p=0;p<m;p++) {
+	  free(n[p]);
 	}
 	free(n);
 	return NULL;
@@ -170,35 +172,37 @@ BoolExpr* evaluateBoolExpr(BoolExpr* be) {
       if (u->type != 'v')
 	freeValue(v);
     }
-    j = evaluateValueAsBool((Value*)dataInListAtPosition(be->stack, i++));
+    j = evaluateValueAsBool(stackiter->data);
     if (isnan(j)) {
       m++;
-      for (i=0;i<m;i++) {
-	free(n[i]);
+      for (p=0;p<m;p++) {
+	free(n[p]);
       }
       free(n);
       freeList(stack);
       return NULL;
     }
+    stackiter = stackiter->next;
     if (j) *n[m] = 1;
-    if (i == l) {
+    if (!stackiter) {
       break;
     }
-    c = (char*)dataInListAtPosition(be->stack, i++);
+    c = (char*)stackiter->data;
+    stackiter = stackiter->next;
     if (c[0] == '|' || c[0] == '&') {
       addToListEnd(stack, n[m]);
       addToListEnd(stack, c);
       continue;
     }
     n[++m] = calloc(1, sizeof(double));
-    u = dataInListAtPosition(be->stack, i);
+    u = stackiter->data;
     if (u->type != 'b') {
       v = evaluateValue(u);
       if (v == NULL) {
 	freeList(stack);
 	m++;
-	for (i=0;i<m;i++) {
-	  free(n[i]);
+	for (p=0;p<m;p++) {
+	  free(n[p]);
 	}
 	free(n);
 	return NULL;
@@ -209,16 +213,17 @@ BoolExpr* evaluateBoolExpr(BoolExpr* be) {
       if (u->type != 'v')
 	freeValue(v);
     }
-    k = evaluateValueAsBool((Value*)dataInListAtPosition(be->stack, i++));
+    k = evaluateValueAsBool(stackiter->data);
     if (isnan(k)) {
       m++;
-      for (i=0;i<m;i++) {
-	free(n[i]);
+      for (p=0;p<m;p++) {
+	free(n[p]);
       }
       free(n);
       freeList(stack);
       return NULL;
     }
+    stackiter = stackiter->next;
     if (c[0] == '~') {
       if (w == NULL) {
 	continue;
@@ -285,22 +290,24 @@ BoolExpr* evaluateBoolExpr(BoolExpr* be) {
   }
   if (m > -1)
     o = n[m];
-  l = lengthOfList(stack);
-  if (l && m > -1) {
+  if (stack->data && m > -1) {
     addToListEnd(stack, n[m]);
-    l++;
   }
   m++;
-  i = 0;
-  while (i<l) {
-    j = *(double*)dataInListAtPosition(stack, i++);
-    if (i == l) {
-      o = (double*)dataInListAtPosition(stack, --i);
+  stackiter = NULL;
+  if (stack->data)
+    stackiter = stack;
+  while (stackiter) {
+    j = *(double*)stackiter->data;
+    if (!(stackiter->next)) {
+      o = (double*)stackiter->data;
       if (j) *o = 1; else *o = 0;
       break;
     }
-    c = dataInListAtPosition(stack, i++);
-    o = (double*)dataInListAtPosition(stack, i);
+    stackiter = stackiter->next;
+    c = stackiter->data;
+    stackiter = stackiter->next;
+    o = (double*)stackiter->data;
     k = *o;
     if (((j && k) && c[0] == '&') || ((j || k) && c[0] == '|'))
       *o = 1;
@@ -311,8 +318,8 @@ BoolExpr* evaluateBoolExpr(BoolExpr* be) {
     be->lasteval = 1;
   else
     be->lasteval = *o;
-  for (i=0;i<m;i++) {
-    free(n[i]);
+  for (p=0;p<m;p++) {
+    free(n[p]);
   }
   free(n);
   freeList(stack);

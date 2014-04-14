@@ -84,19 +84,18 @@ VarTree* deleteInTree(VarTree* vt, char* key) {
   return rebalanceTree(vt);
 }
 
+VarTree* findNodeInTree(VarTree* vt, char* key) {
+  if (!vt || vt->key == key)
+    return vt;
+  else if (vt->key < key)
+    return findNodeInTree(vt->right, key);
+  else
+    return findNodeInTree(vt->left, key);
+}
+
 void* findInTree(VarTree* vt, char* key) {
-  while (vt != NULL) {
-    if (vt->key < key) {
-      vt = vt->right;
-      continue;
-    }
-    if (vt->key > key) {
-      vt = vt->left;
-      continue;
-    }
-    if (key == vt->key)
-      return vt->data;
-  }
+  if ((vt = findNodeInTree(vt, key)))
+    return vt->data;
   return NULL;
 }
 
@@ -111,12 +110,13 @@ int freeTree(VarTree* vt) {
 
 VarTree* insertInTree(VarTree* vt, char* key, void* data) {
   VarTree* t;
+  t = findNodeInTree(vt, key);
+  if (t) {
+    t->data = data;
+    return vt;
+  }
   t = vt;
   while (1) {
-    if (key == t->key) {
-      t->data = data;
-      break;
-    }
     t->count++;
     if (key < t->key) {
       if (t->left == NULL) {

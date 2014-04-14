@@ -28,6 +28,7 @@ extern List* varlist;
 extern List* stringlist;
 extern List* funcnames;
 extern List* jmplist;
+extern List* varnames;
 
 char* diemsg;
 
@@ -63,7 +64,8 @@ char* errmsglist[] = {
   "Failed to read from I/O Stream",
   "Attempt to read past the end of I/O Stream",
   "Only List can be indexed",
-  "List index out of bounds"
+  "List index out of bounds",
+  "Key not found"
 };
 
 /* Internal helper functions */
@@ -573,7 +575,7 @@ Value* saveDef(FuncDef* fd, List* arglist) {
 }
 
 Value* setDef(FuncDef* fd, List* arglist) {
-  Value* v, *u;
+  Value* v, *u, *w;
   int i, j, k;
   List* l, *m, *vl;
   char* s;
@@ -599,42 +601,79 @@ Value* setDef(FuncDef* fd, List* arglist) {
   if (((Variable*)arglist->next->data)->name[0] == '_' && u) {
     return v;
   }
-  if (((Variable*)arglist->next->data)->indextype[0] == 'n' ||
-      ((Variable*)arglist->next->data)->indextype[0] == 'v') {
+  if (((Variable*)arglist->next->data)->indextype[0] != '0') {
+    s = NULL;
     l = NULL;
-    for (k=0;((Variable*)arglist->next->data)->indextype[k] == 'n' ||
-             ((Variable*)arglist->next->data)->indextype[k] == 'v';k++) {
-      if (l != NULL) {
+    for (k=0;((Variable*)arglist->next->data)->indextype[k] != '0';k++) {
+      if (l && !s) {
 	u = l->data;
       }
       if (!u || u->type != 'l') {
 	return raiseErr(25);
       }
+      s = NULL;
       l = ((List*)u->data)->next;
       if (((Variable*)arglist->next->data)->indextype[k] == 'v') {
-	u = evaluateValue(((Variable*)arglist->next->data)->index[k]);
-	if (u == NULL) return NULL;
-	j = (int)valueToDouble(u);
-      } else {
-	j = *(int*)((Variable*)arglist->next->data)->index[k];
-      }
-      m = l;
-      if (j < 0) {
-	for (;j<0;j++) {
-	  m = m->next;
+	w = evaluateValue(((Variable*)arglist->next->data)->index[k]);
+	if (w == NULL) return NULL;
+	if (w->type == 's') {
+	  s = ((String*)w->data)->val;
+	  m = varnames;
+	  j = strlen(s);
+	  i = -1;
+	  while (m != NULL) {
+	    if (m->data && strlen(m->data) == j) {
+	      for (i=0;i<j;i++)
+		if (((char*)m->data)[i] != s[i])
+		  break;
+	    }
+	    if (i == j) {
+	      s = m->data;
+	      break;
+	    }
+	    m = m->next;
+	  }
+	} else {
+	  j = (int)valueToDouble(w);
 	}
-	while (m != NULL) {
-	  m = m->next;
+      } else if (((Variable*)arglist->next->data)->indextype[k] == 'n') {
+	j = *(int*)((Variable*)arglist->next->data)->index[k];
+      } else {
+	s = (char*)((Variable*)arglist->next->data)->index[k];
+	j = 0;
+      }
+      if (s) {
+	m = ((List*)u->data)->data;
+	if (((Variable*)arglist->next->data)->indextype[k+1] == '0') {
+	  u = findInTree(m->data, s);
+	  if (u != NULL)
+	    freeValue(u);
+	  insertInTree(m->data, s, v);
+	  return v;
+	} else if (!m) {
+	  u = findInTree(m->data, s);
+	} else {
+	  raiseErr(27);
+	}
+      } else {
+	m = l;
+	if (j < 0) {
+	  for (;j<0;j++) {
+	    m = m->next;
+	  }
+	  while (m != NULL) {
+	    m = m->next;
+	    l = l->next;
+	  }
+	}
+	for (i=0;i<j;i++) {
+	  if (l == NULL)
+	    break;
 	  l = l->next;
 	}
-      }
-      for (i=0;i<j;i++) {
-	if (l == NULL)
-	  break;
-	l = l->next;
-      }
-      if (l == NULL) {
-	return raiseErr(26);
+	if (l == NULL) {
+	  return raiseErr(26);
+	}
       }
     }
     if (l->data != NULL)

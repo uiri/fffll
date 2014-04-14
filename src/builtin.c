@@ -65,7 +65,8 @@ char* errmsglist[] = {
   "Attempt to read past the end of I/O Stream",
   "Only List can be indexed",
   "List index out of bounds",
-  "Key not found"
+  "Key not found",
+  "Illegal attempt to modify a range"
 };
 
 /* Internal helper functions */
@@ -579,6 +580,7 @@ Value* setDef(FuncDef* fd, List* arglist) {
   int i, j, k;
   List* l, *m, *vl;
   char* s;
+  double d, a, c;
   if (lengthOfList(arglist->next) < 2) {
     return raiseErr(11);
   }
@@ -669,6 +671,21 @@ Value* setDef(FuncDef* fd, List* arglist) {
 	for (i=0;i<j;i++) {
 	  if (l == NULL)
 	    break;
+	  if (((Value*)l->data)->type == 'r') {
+	    a = valueToDouble(((Range*)l->data)->start);
+	    c = valueToDouble(((Range*)l->data)->end);
+	    if (((Range*)l->data)->increment == falsevalue) {
+	      d = 1.0;
+	      if (c<a)
+		d = -1.0;
+	    } else {
+	      d = valueToDouble(((Range*)l->data)->increment);
+	    }
+	    i += (int)((c-a)/d);
+	    if (i>=j) {
+	      raiseErr(28);
+	    }
+	  }
 	  l = l->next;
 	}
 	if (l == NULL) {

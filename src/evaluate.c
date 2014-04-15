@@ -597,11 +597,10 @@ Value* valueFromName(char* name) {
     v = findInTree(vl->data, name);
     vl = vl->next;
   } while (v == NULL && vl != NULL);
-  if (v == NULL) {
-    errmsgf("Variable named '%s' is not SET", name);
-    return NULL;
-  }
-  return v;
+  if (v != NULL)
+    return v;
+  errmsgf("Variable named '%s' is not SET", name);
+  return NULL;
 }
 
 double valueToDouble(Value* v) {

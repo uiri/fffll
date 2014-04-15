@@ -84,17 +84,22 @@ VarTree* deleteInTree(VarTree* vt, char* key) {
   return rebalanceTree(vt);
 }
 
-VarTree* findNodeInTree(VarTree* vt, char* key) {
-  if (!vt || vt->key == key)
-    return vt;
-  else if (vt->key < key)
-    return findNodeInTree(vt->right, key);
-  else
-    return findNodeInTree(vt->left, key);
+static inline VarTree* findNodeInTree(VarTree* vt, char* key) {
+  while (vt) {
+    if (vt->key < key) {
+      vt = vt->right;
+    } else if (vt->key > key) {
+      vt = vt->left;
+    } else {
+      break;
+    }
+  }
+  return vt;
 }
 
 void* findInTree(VarTree* vt, char* key) {
-  if ((vt = findNodeInTree(vt, key)))
+  vt = findNodeInTree(vt, key);
+  if (vt)
     return vt->data;
   return NULL;
 }
@@ -204,24 +209,20 @@ VarTree* rebalanceTree(VarTree* vt) {
     root->count = 1;
     root->left = NULL;
     root->right = NULL;
-    right->left = mergeTree(root, right->left);
-    right->count = 1;
     if (right->left)
-      right->count += right->left->count;
-    if (right->right)
-      right->count += right->right->count;
+      right->count -= right->left->count;
+    right->left = mergeTree(root, right->left);
+    right->count += right->left->count;
     left->right = mergeTree(left->right, right);
     root = left;
   } else {
     root->count = 1;
     root->left = NULL;
     root->right = NULL;
-    left->right = mergeTree(left->right, root);
-    left->count = 1;
-    if (left->left)
-      left->count += left->left->count;
     if (left->right)
-      left->count += left->right->count;
+      left->count -= left->right->count;
+    left->right = mergeTree(left->right, root);
+    left->count += left->right->count;
     right->left = mergeTree(left, right->left);
     root = right;
   }

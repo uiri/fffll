@@ -155,8 +155,9 @@ List* allocList() {
   if (ListManager == NULL) {
     ListManager = malloc(sizeof(ListAllocator));
     ListManager->pools = 0;
+    ListManager->maxpools = 4;
     /* alloc ListManager->new and ListManager->new[0] */
-    ListManager->new = malloc((ListManager->pools+1)*sizeof(List*));
+    ListManager->new = malloc((ListManager->maxpools)*sizeof(List*));
     ListManager->new[ListManager->pools] = calloc(16, sizeof(List));
     ListManager->free = newArray(8, sizeof(List*));
     ListManager->next = 0;
@@ -167,7 +168,10 @@ List* allocList() {
   }
   if (ListManager->next == 16) {
     ListManager->pools++;
-    ListManager->new = realloc(ListManager->new, (ListManager->pools+1)*sizeof(List*));
+    if (ListManager->pools == ListManager->maxpools) {
+      ListManager->maxpools += 4;
+      ListManager->new = realloc(ListManager->new, (ListManager->maxpools)*sizeof(List*));
+    }
     ListManager->new[ListManager->pools] = calloc(16, sizeof(List));
     ListManager->next = 0;
   }
@@ -309,18 +313,16 @@ List deleteFromListLastData(List *list, void *data) {
 }
 
 int freeList(List *list) {
-  List *headptr;
-  headptr = list;
+  /* List *headptr; */
+  List *nextptr;
+  /* headptr = list; */
   if (list == NULL) return 0;
-  if (list->next == NULL) {
+  while (list != NULL) {
+    nextptr = list->next;
+    list->next = NULL;
     freeListNode(list);
-    return 0;
+    list = nextptr;
   }
-  while (list->next->next != NULL)
-    list = list->next;
-  freeListNode(list->next);
-  list->next = NULL;
-  freeListNode(headptr);
   return 0;
 }
 
@@ -336,7 +338,17 @@ int freeListAlloc() {
 }
 
 int freeListNode(List *list) {
-  appendToArray(ListManager->free, list);
+  list->data = NULL;
+  if (ListManager->next && list == ListManager->new[ListManager->pools]+(ListManager->next-1)) {
+    ListManager->next--;
+    if (!ListManager->next) {
+      ListManager->next = 16;
+      free(ListManager->new[ListManager->pools]);
+      ListManager->pools--;
+    }
+  } else {
+    appendToArray(ListManager->free, list);
+  }
   return 0;
 }
 

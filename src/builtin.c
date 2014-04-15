@@ -337,6 +337,7 @@ Value* lenDef(FuncDef* fd, List* arglist) {
       return raiseErr(16);
     }
   }
+  freeValueList(al);
   return newValue('n', a);
 }
 
@@ -350,14 +351,13 @@ Value* mulDef(FuncDef* fd, List* arglist) {
   *n = 1.0;
   for (node=al;node != NULL;node = node->next) {
     d = valueToDouble(node->data);
-    if (isnan(d)) {
-      freeValueList(al);
-      free(n);
-      return NULL;
-    }
     *n *= d;
   }
   freeValueList(al);
+  if (isnan(d)) {
+    free(n);
+    return NULL;
+  }
   return newValue('n', n);
 }
 

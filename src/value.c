@@ -136,7 +136,7 @@ int cleanupFffll(Value* v) {
   }
   freeEachValueInTree(globalvars, v);
   freeTree(globalvars);
-  freeList(varlist);
+  /*freeList(varlist);*/
   /*for (node=varnames;node != NULL;node = node->next) {
     if (((char*)node->data) < constants || ((char*)node->data) > constants+lenconstants)
       free(node->data);

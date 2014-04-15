@@ -34,6 +34,7 @@ struct ListAllocator {
   DynArray* free;
   int next;
   int pools;
+  int maxpools;
 };
 
 #endif

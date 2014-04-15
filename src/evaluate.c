@@ -169,10 +169,12 @@ BoolExpr* evaluateBoolExpr(BoolExpr* be) {
       if (v->type == 's') {
 	s = v->data;
       }
+      j = evaluateValueAsBool(v);
       if (u->type != 'v')
 	freeValue(v);
+    } else {
+      j = evaluateValueAsBool(u);
     }
-    j = evaluateValueAsBool(stackiter->data);
     if (isnan(j)) {
       m++;
       for (p=0;p<m;p++) {

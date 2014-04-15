@@ -50,6 +50,9 @@ VarTree* deleteInTree(VarTree* vt, char* key) {
   t = vt;
   if (t == NULL)
     return vt;
+  if (t->key == key) {
+    return mergeTree(t->right, t->left);
+  }
   while (1) {
     u = NULL;
     if (t == NULL)

@@ -172,7 +172,7 @@ funcall		: VAR arglist		{
 					    curl_global_init(CURL_GLOBAL_ALL);
 					  }
 					  $$ = newFuncVal((Value*)v, $2, v->name, lineno);
-					  if (repl) {
+					  if (repl && !parencount[parencountind]) {
 					    val = evaluateFuncVal($$);
 					    freeValue((Value*)$$);
 					    s = valueToString(val);
@@ -205,7 +205,7 @@ funcall		: VAR arglist		{
 					    freeVariable(var);
 					  }
 					  $$ = newFuncVal((Value*)v, $4, v->name, lineno);
-					  if (repl) {
+					  if (repl && !parencount[parencountind]) {
 					    val = evaluateFuncVal($$);
 					    freeValue((Value*)$$);
 					    s = valueToString(val);
@@ -221,7 +221,7 @@ funcall		: VAR arglist		{
 					  Value* val;
 					  char* s;
 					  $$ = newFuncVal($1, $2, anonfunc, lineno);
-					  if (repl) {
+					  if (repl && !parencount[parencountind]) {
 					    val = evaluateFuncVal($$);
 					    freeValue((Value*)$$);
 					    s = valueToString(val);
@@ -245,7 +245,7 @@ funcall		: VAR arglist		{
 					  name[i++] = ')';
 					  name[i] = '\0';
 					  $$ = newFuncVal((Value*)$1, $2, name, lineno);
-					  if (repl) {
+					  if (repl && !parencount[parencountind]) {
 					    val = evaluateFuncVal($$);
 					    freeValue((Value*)$$);
 					    s = valueToString(val);

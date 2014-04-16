@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "builtin.h"
+#include "repl.h"
 #include "tree.h"
 #include "value.h"
 
@@ -52,6 +53,7 @@ void yyerror(const char* msg) {
  VarTree* globalvars;
 
  short curl_init = 0;
+ short repl = 0;
 
  int lenconstants;
  int strsize = 27;
@@ -147,7 +149,11 @@ statementlist	: statementlist EOFSYM	{
 					}
 		| statementlist funcall	{
 					  $$ = parseTreeList->data;
-					  addToListEnd($$, $2);
+					  if (repl) {
+					    $$->data = $2;
+					  } else {
+					    addToListEnd($$, $2);
+					  }
 					}
 		| funcall		{
 					  $$ = newList();
@@ -157,6 +163,8 @@ statementlist	: statementlist EOFSYM	{
 		;
 funcall		: VAR arglist		{
 					  Variable* v;
+					  Value* val;
+					  char* s;
 					  v = parseVariable($1);
 					  /* test if curl not initialized and open being used */
 					  if (!curl_init && (v->name == constants+69 || v->name == constants+68)) {
@@ -164,10 +172,23 @@ funcall		: VAR arglist		{
 					    curl_global_init(CURL_GLOBAL_ALL);
 					  }
 					  $$ = newFuncVal((Value*)v, $2, v->name, lineno);
+					  if (repl) {
+					    val = evaluateFuncVal($$);
+					    freeValue((Value*)$$);
+					    s = valueToString(val);
+					    printf("=> %s\n", s);
+					    free(s);
+					    if (val == NULL)
+					      YYABORT;
+					    $$ = (FuncVal*)val;
+					    printf(">>> ");
+					  }
 					}
 		| value '.' VAR arglist	{
 					  Variable* v, *var;
 					  int i;
+					  Value* val;
+					  char* s;
 					  v = (Variable*)$1;
 					  if ($1->type == 'v') {
 					    var = parseVariable($3);
@@ -184,13 +205,39 @@ funcall		: VAR arglist		{
 					    freeVariable(var);
 					  }
 					  $$ = newFuncVal((Value*)v, $4, v->name, lineno);
+					  if (repl) {
+					    val = evaluateFuncVal($$);
+					    freeValue((Value*)$$);
+					    s = valueToString(val);
+					    printf("=> %s\n", s);
+					    free(s);
+					    if (val == NULL)
+					      YYABORT;
+					    $$ = (FuncVal*)val;
+					    printf(">>> ");
+					  }
 					}
 		| funcdef arglist	{
+					  Value* val;
+					  char* s;
 					  $$ = newFuncVal($1, $2, anonfunc, lineno);
+					  if (repl) {
+					    val = evaluateFuncVal($$);
+					    freeValue((Value*)$$);
+					    s = valueToString(val);
+					    printf("=> %s\n", s);
+					    free(s);
+					    if (val == NULL)
+					      YYABORT;
+					    $$ = (FuncVal*)val;
+					    printf(">>> ");
+					  }
 					}
 		| funcall arglist	{
 					  char* name;
 					  int i;
+					  Value* val;
+					  char* s;
 					  name = malloc(strlen($1->name) + 3);
 					  for (i=0;$1->name[i];i++)
 					    name[i] = $1->name[i];
@@ -198,6 +245,17 @@ funcall		: VAR arglist		{
 					  name[i++] = ')';
 					  name[i] = '\0';
 					  $$ = newFuncVal((Value*)$1, $2, name, lineno);
+					  if (repl) {
+					    val = evaluateFuncVal($$);
+					    freeValue((Value*)$$);
+					    s = valueToString(val);
+					    printf("=> %s\n", s);
+					    free(s);
+					    if (val == NULL)
+					      YYABORT;
+					    $$ = (FuncVal*)val;
+					    printf(">>> ");
+					  }
 					}
 		;
 funcdef		: '[' list ']' '{' statementlist '}'	{
@@ -462,10 +520,10 @@ int main(int argc, char** argv) {
                         "_head", "_tail", "_push", "_die", "_save"};
   int i, j, k, l;
   Value* v;
-  if (argc != 2) {
-    printf("This program takes exactly one argument. The file to interpret\n");
-    return 1;
-  }
+  /* if (argc != 2) { */
+  /*   printf("This program takes exactly one argument. The file to interpret\n"); */
+  /*   return 1; */
+  /* } */
   /* Number of bytes needed to store all the chars in str,
    * with alignment padding */
   lenconstants = 140;
@@ -495,12 +553,22 @@ int main(int argc, char** argv) {
   *stdoutp = stdout;
   stderrp = malloc(sizeof(stderr));
   *stderrp = stderr;
-  argfilename = malloc(strlen(argv[1])+1);
-  i = 0;
-  while ((argfilename[i] = argv[1][i]))
-    i++;
-  fp = fopen(argfilename, "r");
-  yyin = fp;
+  if (argc-1) {
+    argfilename = malloc(strlen(argv[1])+1);
+    i = 0;
+    while ((argfilename[i] = argv[1][i]))
+      i++;
+    fp = fopen(argfilename, "r");
+    yyin = fp;
+    if (!yyin) {
+      errmsg("File does not exist.");
+      i = 1;
+      cleanupFffll(NULL);
+      return 1;
+    }
+  } else {
+    yyin = stdin;
+  }
   falsevalue = newValue('0', NULL);
   varnames = newList();
   varlist = newList();
@@ -615,17 +683,20 @@ int main(int argc, char** argv) {
   signal(SIGILL, siginfo);
   signal(SIGINT, siginfo);
   signal(SIGTERM, siginfo);
-  if (yyin == NULL) {
-    errmsg("File does not exist.");
-    i = 1;
-    v = NULL;
+  parseTreeList = newList();
+  if (yyin == stdin) {
+    repl = 1;
+    printf(">>> ");
+  }
+  yyparse();
+  free(parencount);
+  v = NULL;
+  if (repl) {
+    if (lineno-1)
+      v = ((List*)parseTreeList->data)->data;
   } else {
-    i = 0;
-    parseTreeList = newList();
-    yyparse();
-    free(parencount);
     v = evaluateStatements(parseTreeList->data);
   }
   cleanupFffll(v);
-  return i;
+  return 0;
 }

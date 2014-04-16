@@ -1,11 +1,12 @@
 CC=gcc
 CFLAGS=-Wall -g -pedantic -O2
-LIBS=-L. -lm -lcurl -lpcre -lffflllist -lfffllstd
+LIBS=-L. -lm -lcurl -lpcre -lffflllist -lfffllstd -lfffllglue
 # you may possible also want the following for profiling:
 # -fprofile-arcs -ftest-coverage -pg
 
 all:
 	make libffflllist.so
+	make libfffllglue.so
 	make libfffllstd.so
 	make fffll
 
@@ -21,8 +22,11 @@ src/fffll.c: src/fffll.y
 libffflllist.so: list.o array.o
 	$(CC) -shared $(CFLAGS) -o libffflllist.so list.o array.o
 
-libfffllstd.so: builtin.o evaluate.o tree.o
-	$(CC) -shared $(CFLAGS) -o libfffllstd.so builtin.o evaluate.o tree.o
+libfffllstd.so: builtin.o evaluate.o
+	$(CC) -L. -lfffllglue -shared $(CFLAGS) -o libfffllstd.so builtin.o evaluate.o
+
+libfffllglue.so: tree.o repl.o
+	$(CC) -shared $(CFLAGS) -o libfffllglue.so tree.o repl.o
 
 array.o: src/array.c src/array.h
 	$(CC) -fPIC $(CFLAGS) -c src/array.c
@@ -32,6 +36,9 @@ builtin.o: src/builtin.c src/builtin.h
 
 evaluate.o: src/evaluate.c src/evaluate.h
 	$(CC) -fPIC $(CFLAGS) -c src/evaluate.c
+
+repl.o: src/repl.c src/repl.h
+	$(CC) -fPIC $(CFLAGS) -c src/repl.c
 
 list.o: src/list.c src/list.h
 	$(CC) -fPIC $(CFLAGS) -c src/list.c

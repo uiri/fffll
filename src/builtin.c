@@ -20,7 +20,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "evaluate.h"
+#include "typecast.h"
 #include "tree.h"
 
 extern Value* falsevalue;

@@ -18,9 +18,21 @@
 #include <stdlib.h>
 #include <string.h>
 #include "evaluate.h"
-#include "value.h"
 
 extern Value* falsevalue;
+
+/* Internal errmsg helper */
+
+int errmsgfd(char* format, char* s, int i) {
+  char* err;
+  err = malloc(strlen(format) + strlen(s) + (i/10) + 3);
+  sprintf(err, format, s, i);
+  errmsg(err);
+  free(err);
+  return 0;
+}
+
+/* External repl functions */
 
 Value* evaluateFuncVal(FuncVal* fv) {
   FuncDef* fd;

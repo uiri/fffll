@@ -21,7 +21,6 @@
 #include "list.h"
 #include "value.h"
 #include "tree.h"
-#include "evaluate.h"
 
 #undef YY_BUF_SIZE
 #define YY_BUF_SIZE 128

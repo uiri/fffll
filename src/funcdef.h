@@ -15,15 +15,9 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "repl.h"
 #include "tree.h"
 #include "value.h"
 
-/* Constant for PCRE */
-#define PCREOVECCOUNT 30
-
-BoolExpr* evaluateBoolExpr(BoolExpr* be);
-List* evaluateList(List* l);
-double evaluateValueAsBool(Value* v);
-Value* valueFromName(char* name);
-double valueToDouble(Value* v);
+Value* evaluateFuncDef(FuncDef* fd, List* arglist);
+int freeEachValueInTree(VarTree* vt, Value* v);
+int freeFuncDef(FuncDef* fd);

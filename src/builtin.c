@@ -71,6 +71,35 @@ char* errmsglist[] = {
 
 /* Internal helper functions */
 
+List* evaluateList(List* l) {
+  List* r;
+  Value* v;
+  FuncDef* fd;
+  r = newList();
+  while (l != NULL) {
+    if (((Value*)l->data)->type == 'd') {
+      ((Value*)l->data)->refcount++;
+      addToListEnd(r, l->data);
+    } else {
+      v = evaluateValue((Value*)l->data);
+      if (v == NULL) {
+	freeValueList(r);
+	return NULL;
+      }
+      fd = NULL;
+      if (((Value*)l->data)->type == 'c') {
+	fd = evaluateValue(((FuncVal*)l->data)->val)->data;
+      }
+      if (((Value*)l->data)->type == 'v' || (fd && !fd->alloc)) {
+	v->refcount++;
+      }
+      addToListEnd(r, v);
+    }
+    l = l->next;
+  }
+  return r;
+}
+
 size_t writeHttpBuffer(void* contents, size_t size, size_t nmemb, void* userp) {
   HttpVal* hv;
   hv = (HttpVal*)userp;

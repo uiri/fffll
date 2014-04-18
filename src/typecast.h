@@ -23,7 +23,6 @@
 #define PCREOVECCOUNT 30
 
 BoolExpr* evaluateBoolExpr(BoolExpr* be);
-List* evaluateList(List* l);
 double evaluateValueAsBool(Value* v);
 Value* valueFromName(char* name);
 double valueToDouble(Value* v);

@@ -15,4 +15,41 @@ set(mod, [y, x] {
     })
     set(y, mul(y, x))
 })
+
+set(sin, [x] {
+    set(y, x)
+    set(sq, mul(x, x))
+    set(fact, mul(-3, 2))
+    set(count, 5)
+    set(x, mul(x, sq))
+    set(z, add(y, mul(x, rcp(fact))))
+    for( !(y=z) {
+        set(y, z)
+        set(x, mul(x, sq))
+        set(fact, mul(-1, count, add(-1, count), fact))
+        set(count, add(count, 2))
+        set(z, add(y, mul(x, rcp(fact))))
+    })
+    set(y, z)
+})
+
+set(cos, [x] {
+    set(y, 1)
+    set(sq, mul(x, x))
+    set(fact, -2)
+    set(count, 4)
+    set(x, sq)
+    set(z, add(y, mul(x, rcp(fact))))
+    for( !(y=z) {
+        -- write(stdout, z)
+        set(y, z)
+        set(x, mul(x, sq))
+        set(fact, mul(-1, count, add(-1, count), fact))
+        set(count, add(count, 2))
+        -- write(stdout, z)
+        set(z, add(y, mul(x, rcp(fact))))
+    })
+    set(y, z)
+})
+
 set(_pi, 3.14159)

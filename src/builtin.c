@@ -380,7 +380,7 @@ Value* pushDef(FuncDef* fd, List* arglist) {
 }
 
 Value* rcpDef(FuncDef* fd, List* arglist) {
-  double b, c, d, *n;
+  double b, c, d, m, *n;
   int i, e;
   if (lengthOfList(arglist->next) != 1) {
     return raiseErr(8);
@@ -394,11 +394,15 @@ Value* rcpDef(FuncDef* fd, List* arglist) {
   for (i=0;i<e;i++) {
     *n *= 0.5;
   }
+  c = 0.0;
   do {
+    m = c;
     c = *n;
     b = *n * (-1.0);
     *n = fma(d,b,2.0);
     *n *= (-1.0)*b;
+    if (*n == m)
+      break;
   } while (c != *n);
   return newValue('n', n);
 }

@@ -15,12 +15,16 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <float.h>
 #include <math.h>
 #include <pcre.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "typecast.h"
+
+#define EPSILON 5e-11
+#define IOTA 4*DBL_EPSILON
 
 extern List* varlist;
 extern VarTree* globalvars;
@@ -178,20 +182,32 @@ BoolExpr* evaluateBoolExpr(BoolExpr* be) {
       continue;
     }
     p = 0;
+    if (fabs(j) < IOTA) {
+      if (j < 0)
+	j = -0.0;
+      else
+	j = 0.0;
+    }
+    if (fabs(k) < IOTA) {
+      if (k < 0)
+	k = -0.0;
+      else
+	k = 0.0;
+    }
     if (j>k) {
       if (j<=0.0) {
-	if (fabs((j-k)/k)>=0.00000000005)
+	if (fabs((j-k)/k)>=EPSILON)
 	  p = 1;
       } else {
-	if (fabs((j-k)/j)>=0.00000000005)
+	if (fabs((j-k)/j)>=EPSILON)
 	  p = 1;
       }
     } else {
       if (k<=0.0) {
-	if (fabs((k-j)/j)>=0.00000000005)
+	if (fabs((k-j)/j)>=EPSILON)
 	  p = -1;
       } else {
-	if (fabs((k-j)/k)>=0.00000000005)
+	if (fabs((k-j)/k)>=EPSILON)
 	  p = -1;
       }
     }

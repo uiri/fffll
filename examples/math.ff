@@ -52,4 +52,12 @@ set(cos, [x] {
     set(y, z)
 })
 
+set(abs, [x]{
+    if( (x<0) {
+        set(y, mul(-1, x))
+    }, {
+        set(y, x)
+    })
+})
+
 set(_pi, 3.141592653589794)

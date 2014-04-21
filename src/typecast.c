@@ -182,17 +182,19 @@ BoolExpr* evaluateBoolExpr(BoolExpr* be) {
       continue;
     }
     p = 0;
-    if (fabs(j) < IOTA) {
-      if (j < 0)
-	j = -0.0;
-      else
-	j = 0.0;
-    }
-    if (fabs(k) < IOTA) {
-      if (k < 0)
-	k = -0.0;
-      else
-	k = 0.0;
+    if (c[0] == '=') {
+      if (fabs(j) < IOTA) {
+	if (j < 0)
+	  j = -0.0;
+	else
+	  j = 0.0;
+      }
+      if (fabs(k) < IOTA) {
+	if (k < 0)
+	  k = -0.0;
+	else
+	  k = 0.0;
+      }
     }
     if (j>k) {
       if (j<=0.0) {

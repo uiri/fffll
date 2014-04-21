@@ -60,4 +60,15 @@ set(abs, [x]{
     })
 })
 
+set(ceil, [x]{
+    set(y, add(2, mul(-1, mod(x, 2))))
+    if( (y=1|y=2) {
+        set(z, x)
+    }, (y>1) {
+        set(z, add(x, y, -1))
+    }, {
+        set(z, add(x, y))
+    })
+})
+
 set(_pi, 3.141592653589794)

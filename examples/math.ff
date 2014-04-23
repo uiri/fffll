@@ -71,4 +71,38 @@ set(ceil, [x]{
     })
 })
 
+set(sqrt, [x]{
+    set(y, x)
+    set(z, 1)
+    for( (mul(y, 0.1)>1) {
+        set(z, mul(z, 10))
+        set(y, mul(y, 0.1))
+    })
+    for( !(mul(z,z)=x) {
+        set(z, mul(0.5, add(z, mul(x, rcp(z)))))
+    })
+    set(y, z)
+})
+
+set(pow, [x, n]{
+    set(o, mod(n, 2))
+    if( (o>1) {
+        set(o, add(o, -1))
+    })
+    -- handle square roots portion...
+    set(o, rcp(o))
+    for( (o&mod(o, 2)=0) {
+        set(o, mul(o, 0.5))
+        set(n, mul(n, 2))
+        set(x, sqrt(x))
+    })
+    set(c, x)
+    -- handle numerator portion
+    for( (n>1) {
+        set(x, mul(x, c))
+        set(n, add(n, -1))
+    })
+    set(y, x)
+})
+
 set(_pi, 3.141592653589794)

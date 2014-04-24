@@ -85,11 +85,11 @@ set(sqrt, [x]{
 })
 
 set(pow, [x, n]{
-    set(o, mod(n, 2))
-    if( (o>1) {
+    -- handle square roots portion...
+    set(o, n)
+    for( (o>1) {
         set(o, add(o, -1))
     })
-    -- handle square roots portion...
     set(o, rcp(o))
     for( (o&mod(o, 2)=0) {
         set(o, mul(o, 0.5))

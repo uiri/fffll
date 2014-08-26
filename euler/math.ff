@@ -10,7 +10,7 @@ set(mod, [y, x] {
 	set(w, mul(w, -1))
         set(y, add(y, w))
     })
-    if( (y<0) {
+    if( (y<0|y>0.999999) {
         set(y, 0)
     })
     set(y, mul(y, x))

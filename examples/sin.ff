@@ -1,0 +1,3 @@
+%math
+
+write(stdout, (0=math.cos(mul(rcp(2), math._pi))))

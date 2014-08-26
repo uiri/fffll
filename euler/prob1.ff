@@ -1,10 +1,9 @@
 %math
 
 set(x, 0)
-for( y: [1..20], {
+for( y: [1..1000], {
     if( (math.mod(y, 3)=0|math.mod(y, 5)=0) {
         set(x, add(x, y))
     })
-    write(stdout, x)
 })
 write(stdout, x)

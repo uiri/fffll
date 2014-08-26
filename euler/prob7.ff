@@ -2,6 +2,7 @@
 
 set(l, [2])
 set(x, 3)
+set(a, 2)
 for( i: [1..10001], {
     set(m, len(l))
     for( (m=len(l)), {
@@ -17,8 +18,9 @@ for( i: [1..10001], {
         })
         if( (x=y) {
             push(l, x)
+            set(a, x)
         })
         set(x, add(x, 2))
     })
 })
-write(stdout, l.[-1])
+write(stdout, a)

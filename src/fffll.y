@@ -248,11 +248,11 @@ funcall		: VAR arglist		{
 					  if (repl && !parencount[parencountind]) {
 					    val = evaluateFuncVal($$);
 					    freeValue((Value*)$$);
+					    if (val == NULL)
+					      YYABORT;
 					    s = valueToString(val);
 					    printf("=> %s\n", s);
 					    free(s);
-					    if (val == NULL)
-					      YYABORT;
 					    $$ = (FuncVal*)val;
 					    printf(">>> ");
 					  }
@@ -333,7 +333,7 @@ range		: value '.' '.' value '.'  '.' value	{
 					  double* d;
 					  Value* end;
 					  d = malloc(sizeof(double));
-					  *d = (double)$6;
+					  *d = $6;
 					  end = newValue('n', d);
 					  $$ = newRange($1, end, $4);
 					}

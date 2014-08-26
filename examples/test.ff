@@ -9,8 +9,13 @@ set(pow, [x, n]{
 set(quitloop, [] {
     set(x, "")
     for(!(x="QUIT"), {
-        write(stdout, "Type QUIT to exit")
-        set(x, read(stdin))
+        save({
+            write(stdout, "Type QUIT to exit")
+            set(x, read(stdin))
+        }, err: {
+            set(err, "")
+            set(x, "QUIT")
+        })
     })
 })
 

@@ -1,0 +1,11 @@
+%math
+
+set(x, 600851475143)
+set(y, 2)
+for( (mul(y,y)<x) {
+    for( (math.mod(x, y)=0) {
+        set(x, mul(x, rcp(y)))
+    })
+    set(y, add(y, 1))
+})
+write(stdout, x)

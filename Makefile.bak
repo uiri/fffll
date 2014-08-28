@@ -1,32 +1,33 @@
 CC=gcc
 CFLAGS=-Wall -g -pedantic -O2
-LIBS=-L. -lm -lcurl -lpcre -lffflllist -lfffllstd -lfffllglue
+LIBS=-L. -lm -lcurl -lpcre -lreadline -lffflllist -lfffllstd -lfffllglue -lfffllvalue
 # you may possible also want the following for profiling:
 # -fprofile-arcs -ftest-coverage -pg
 
 all:
 	make libffflllist.so
 	make libfffllglue.so
+	make libfffllvalue.so
 	make libfffllstd.so
 	make fffll
 
-fffll:	src/fffll.l.c src/fffll.c src/value.c tree.o
-	$(CC) $(LIBS) $(CFLAGS) -o fffll tree.o src/value.c src/fffll.l.c src/fffll.c
-
-src/fffll.l.c: src/fffll.l
-	flex -o src/fffll.l.c src/fffll.l
+fffll:	src/lexer.c src/fffll.c
+	$(CC) $(LIBS) $(CFLAGS) -o fffll src/lexer.c src/fffll.c
 
 src/fffll.c: src/fffll.y
-	bison -d -o src/fffll.c src/fffll.y
+	bison -t -d -o src/fffll.c src/fffll.y
 
 libffflllist.so: list.o array.o
 	$(CC) -shared $(CFLAGS) -o libffflllist.so list.o array.o
 
-libfffllstd.so: builtin.o evaluate.o
-	$(CC) -L. -lfffllglue -shared $(CFLAGS) -o libfffllstd.so builtin.o evaluate.o
+libfffllstd.so: builtin.o evaluate.o typecast.o exception.o
+	$(CC) -L. -lfffllglue -shared $(CFLAGS) -o libfffllstd.so builtin.o evaluate.o typecast.o exception.o
 
 libfffllglue.so: tree.o repl.o
 	$(CC) -shared $(CFLAGS) -o libfffllglue.so tree.o repl.o
+
+libfffllvalue.so: value.o funcdef.o
+	$(CC) -shared $(CFLAGS) -o libfffllvalue.so value.o funcdef.o
 
 array.o: src/array.c src/array.h
 	$(CC) -fPIC $(CFLAGS) -c src/array.c
@@ -37,24 +38,41 @@ builtin.o: src/builtin.c src/builtin.h
 evaluate.o: src/evaluate.c src/evaluate.h
 	$(CC) -fPIC $(CFLAGS) -c src/evaluate.c
 
-repl.o: src/repl.c src/repl.h
-	$(CC) -fPIC $(CFLAGS) -c src/repl.c
+exception.o: src/exception.c src/exception.h
+	$(CC) -fPIC $(CFLAGS) -c src/exception.c
+
+funcdef.o: src/funcdef.c src/funcdef.h
+	$(CC) -fPIC $(CFLAGS) -c src/funcdef.c
 
 list.o: src/list.c src/list.h
 	$(CC) -fPIC $(CFLAGS) -c src/list.c
 
+repl.o: src/repl.c src/repl.h
+	$(CC) -fPIC $(CFLAGS) -c src/repl.c
+
 tree.o: src/tree.c src/tree.h
 	$(CC) -fPIC $(CFLAGS) -c src/tree.c
 
+typecast.o: src/typecast.c src/typecast.h
+	$(CC) -fPIC $(CFLAGS) -c src/typecast.c
+
+value.o: src/value.c src/value.h
+	$(CC) -fPIC $(CFLAGS) -c src/value.c
+
+
 clean:
-	rm list.o
-	rm tree.o
 	rm array.o
 	rm builtin.o
 	rm evaluate.o
+	rm exception.o
+	rm funcdef.o
+	rm list.o
+	rm repl.o
+	rm tree.o
+	rm typecast.o
+	rm value.o
 	rm src/fffll.c
 	rm src/fffll.h
-	rm src/fffll.l.c
 	rm fffll
 	rm ./libfffll*
 

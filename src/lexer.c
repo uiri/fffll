@@ -61,8 +61,10 @@ int getfffll() {
       add_history(readlinebuf);
     readlinebufpos = 0;
   }
-  if (!readlinebuf)
+  if (!readlinebuf) {
+    printf("\n");
     return EOF;
+  }
   return readlinebuf[readlinebufpos++];
 }
 

@@ -60,6 +60,7 @@ void yyerror(const char* msg) {
  int funcnum = 16;
  Value* funcdeftable[17];
 
+ List* yyinlist;
  List* parseTreeList;
  char* eq, *gt, *lt, *and, *or, *sq, *ty;
  char* anonfunc = "anonymous function";
@@ -181,7 +182,6 @@ funcall		: VAR arglist		{
 					    if (val == NULL)
 					      YYABORT;
 					    $$ = (FuncVal*)val;
-					    printf(">>> ");
 					  }
 					}
 		| value '.' VAR arglist	{
@@ -567,7 +567,8 @@ int main(int argc, char** argv) {
       return 1;
     }
   } else {
-    yyin = stdin;
+    yyin = NULL;
+    repl = 1;
   }
   falsevalue = newValue('0', NULL);
   varnames = newList();
@@ -684,10 +685,7 @@ int main(int argc, char** argv) {
   signal(SIGINT, siginfo);
   signal(SIGTERM, siginfo);
   parseTreeList = newList();
-  if (yyin == stdin) {
-    repl = 1;
-    printf(">>> ");
-  }
+  yyinlist = newList();
   yyparse();
   free(parencount);
   v = NULL;

@@ -512,6 +512,255 @@ value	: STR			{
 	;
 %%
 
+char* valueToLlvmString(Value* v) {
+  char* s, *t, *strptr = "__fffll_strlist", *underscore = "const ";
+  Variable* var;
+  FuncDef* fd;
+  FuncVal* fv;
+  BoolExpr* be;
+  List* node;
+  int i = 0, j, k, m;
+  k = 0;
+  switch (v->type) {
+  case 'v':
+    var = (Variable*)v;
+    j = 0;
+    if (var->name[0] == '_')
+      j = 6;
+    s = malloc(strlen(var->name) + j + 1);
+    if (var->name[0] == '_')
+      while (( s[i] = underscore[i] )) i++;
+    while (( s[i] = var->name[i-j] )) i++;
+    break;
+  case 'a':
+    fd = v->data;
+    j = 256;
+    s = malloc(j);
+    snprintf(s+i, j-i, "function(");
+    i += 9;
+    for (node = fd->arguments;node != NULL; node = node->next) {
+      if (node->data) {
+	k = snprintf(s+i, j-i, "%s,", (t = valueToLlvmString(node->data)));
+	if (k+i >= j) {
+	  j *= 2;
+	  s = realloc(s, j);
+	  snprintf(s+i, j-i, "%s,", t);
+	}
+	i += k;
+	free(t);
+      }
+    }
+    if (k)
+      i--;
+    snprintf(s+i, j-i, ") {\n");
+    i += 4;
+    for (node = fd->statements;node != NULL; node = node->next) {
+      if (node->data) {
+	k = snprintf(s+i, j-i, "%s;\n", (t = valueToLlvmString(node->data)));
+	if (i+k >= j) {
+	  j *= 2;
+	  s = realloc(s, j);
+	  snprintf(s+i, j-i, "%s;\n", t);
+	}
+	i += k;
+	free(t);
+      }
+    }
+    snprintf(s+i, j-i, "}");
+    break;
+  case 'c':
+    fv = (FuncVal*)v;
+    j = 256;
+    s = malloc(j);
+    if (fv->name == constants+39) {
+      snprintf(s+i, j-i, "%s = ", (t = valueToLlvmString(fv->arglist->next->data)));
+      i += strlen(t) + 3;
+      free(t);
+      snprintf(s+i, j-i, "%s", (t = valueToLlvmString(fv->arglist->next->next->data)));
+      i += strlen(t) + 1;
+      free(t);
+    } else if (fv->name == constants+45) {
+      k = snprintf(s+i, j-i, "if %s {\n", (t = valueToLlvmString(fv->arglist->next->data)));
+      i += k;
+      free(t);
+      k = snprintf(s+i, j-i, "%s", (t = valueToLlvmString(fv->arglist->next->next->data)));
+      if (i+k > j) {
+	j *= 2;
+	s = realloc(s, j);
+	snprintf(s+i, j-i, "%s", t);
+      }
+      i += k;
+      free(t);
+      for (node = fv->arglist->next->next->next;node != NULL; node = node->next) {
+	if (node->data) {
+	  snprintf(s+i, j-i, "} else ");
+	  i += 7;
+	  if (node->next && node->next->data) {
+	    k = snprintf(s+i, j-i, "if %s ", (t = valueToLlvmString(node->data)));
+	    if (i+k >= j) {
+	      j *= 2;
+	      s = realloc(s, j);
+	      snprintf(s+i, j-i, "if %s ", t);
+	    }
+	    i += k;
+	    free(t);
+	    node = node->next;
+	  }
+	  k = snprintf(s+i, j-i, "{\n%s", (t = valueToLlvmString(node->data)));
+	  if (i+k >= j) {
+	    j *= 2;
+	    s = realloc(s, j);
+	    snprintf(s+i, j-i, "{\n%s", t);
+	  }
+	  i += k;
+	  free(t);
+	}
+      }
+      snprintf(s+i, j-i, "}\n");
+    } else if (fv->name == constants+49) {
+      snprintf(s+i, j-i, "while %s {\n", (t = valueToLlvmString(fv->arglist->next->data)));
+      i += strlen(t) + 9;
+      free(t);
+      for (node = fv->arglist->next->next;node != NULL; node = node->next) {
+	if (node->data) {
+	  t = valueToLlvmString(node->data);
+	  k = snprintf(s+i, j-i, "%s", t);
+	  if (i+k >= j) {
+	    j *= 2;
+	    s = realloc(s, j);
+	    snprintf(s+i, j-i, "%s", t);
+	  }
+	  i += k;
+	  free(t);
+	}
+      }
+      if (k)
+	i--;
+      snprintf(s+i, j-i, "\n}\n");
+    } else {
+      snprintf(s+i, j-i, "%s(", fv->name);
+      i += strlen(fv->name) + 1;
+      for (node = fv->arglist;node != NULL; node = node->next) {
+	if (node->data) {
+	  k = 1;
+	  t = valueToLlvmString(node->data);
+	  snprintf(s+i, j-i, "%s,", t);
+	  if (t != NULL)
+	    i += strlen(t) + 1;
+	  if (i+10 >= j) {
+	    j *= 2;
+	    s = realloc(s, j);
+	  }
+	  free(t);
+	}
+      }
+      if (k)
+	i--;
+      snprintf(s+i, j-i, ")");
+    }
+    break;
+  case 's':
+    for (node = stringlist;node != NULL;node = node->next) {
+      if (v->data == node->data)
+	break;
+      i++;
+    }
+    j = 1;
+    k = i;
+    while (i > 9) {
+      i /= 10;
+      j++;
+    }
+    s = malloc(18+j);
+    j += 17;
+    i = 0;
+    while ((s[i] = strptr[i])) i++;
+    s[j--] = '\0';
+    s[j--] = ']';
+    while (i != j) {
+      s[j--] = k%10 + 48;
+      k /= 10;
+    }
+    s[j--] = '[';
+    break;
+  case 'b':
+    be = (BoolExpr*)v;
+    j = 256;
+    s = malloc(j);
+    if (be->neg) {
+      snprintf(s+i, j-i, "(!");
+      i++;
+    }
+    snprintf(s+i, j-i, "(");
+    i++;
+    for (node = be->stack;node != NULL; node = node->next) {
+      if (node->data) {
+	t = node->data;
+	if (t[0] == '&' || t[0] == '|' || t[0] == '?' ||
+	    t[0] == '>' || t[0] == '<' || t[0] == '=' ||
+	    t[0] == '~') {
+	  snprintf(s+i, j-i, "%c", t[0]);
+	  i++;
+	} else {
+	  snprintf(s+i, j-i, "%s", (t = valueToLlvmString(node->data)));
+	  i += strlen(t);
+	  free(t);
+	}
+      }
+    }
+    snprintf(s+i, j-i, ")");
+    i++;
+    if (be->neg) {
+      snprintf(s+i, j-i, ")");
+    }
+    break;
+  case 'd':
+    j = 256;
+    s = malloc(j);
+    for (node = v->data; node != NULL; node = node->next) {
+      if (node->data) {
+	k = snprintf(s+i, j-i, "%s;\n", (t = valueToLlvmString(node->data)));
+	if (i+k >= j) {
+	  j *= 2;
+	  s = realloc(s, j);
+	  snprintf(s+i, j-i, "%s;\n", t);
+	}
+	i += k;
+	free(t);
+      }
+    }
+    break;
+  case 'l':
+    j = 256;
+    s = malloc(j);
+    snprintf(s+i, j-i, "{ ");
+    i += 2;
+    m = 0;
+    /* named keys here */
+    for (node = ((List*)v->data)->next; node != NULL; node = node->next) {
+      if (node->data) {
+	k = snprintf(s+i, j-i, "%d: %s, ", m++, (t = valueToLlvmString(node->data)));
+	if (i+k >= j) {
+	  j *= 2;
+	  s = realloc(s, j);
+	  snprintf(s+i, j-i, "%d: %s, ", m-1, t);
+	}
+	i += k;
+	free(t);
+      }
+    }
+    if (m) {
+      i -= 2;
+    }
+    snprintf(s+i, j-i, "}");
+    break;
+  default:
+    s = valueToString(v);
+    break;
+  }
+  return s;
+}
+
 int main(int argc, char** argv) {
   FILE* fp;
   /* The value between str's [] should be the value of strsize
@@ -520,6 +769,8 @@ int main(int argc, char** argv) {
 	92, 98, 104, 110, 116, 122, 128, 134}; /* 140 next */
   int i;
   Value* v;
+  List* sl;
+  char* s;
   /* if (argc != 2) { */
   /*   printf("This program takes exactly one argument. The file to interpret\n"); */
   /*   return 1; */
@@ -614,11 +865,27 @@ int main(int argc, char** argv) {
   yyparse();
   free(parencount);
   v = NULL;
+  i = 0;
   if (repl) {
     if (lineno-1)
       v = ((List*)parseTreeList->data)->data;
   } else {
-    v = evaluateStatements(parseTreeList->data);
+    printf("const _stdout = process.stdout; stdout = _stdout;\n"
+	   "const _stderr = process.stderr; stderr = _stderr;\n"
+	   "const _stdin = process.stdin; stdin = _stdin;\n");
+    printf("__fffll_strlist = [");
+    for (sl = stringlist;sl != NULL;sl = sl->next) {
+      if (sl->data)
+	printf("\"%s\", ", ((String*)sl->data)->val);
+    }
+    printf("]\n");
+    /* v = evaluateStatements(parseTreeList->data); */
+    for (sl = parseTreeList->data;sl != NULL;sl = sl->next) {
+      if (sl->data) {
+	printf("%s\n", (s = valueToLlvmString(sl->data)));
+	free(s);
+      }
+    }
   }
   cleanupFffll(v);
   return 0;

@@ -354,6 +354,7 @@ int yylex(void) {
   case '7':
   case '8':
   case '9':
+    d = 0;
     s = malloc(l);
     s[i] = c;
     do {

@@ -512,7 +512,7 @@ value	: STR			{
 	;
 %%
 
-char* valueToLlvmString(Value* v) {
+char* valueToLlvmString(Value* v, int stmnt) {
   char* s, *t, *strptr = "__fffll_strlist", *underscore = "const ";
   Variable* var;
   FuncDef* fd;
@@ -524,13 +524,47 @@ char* valueToLlvmString(Value* v) {
   switch (v->type) {
   case 'v':
     var = (Variable*)v;
-    j = 0;
-    if (var->name[0] == '_')
-      j = 6;
-    s = malloc(strlen(var->name) + j + 1);
-    if (var->name[0] == '_')
+    m = 0;
+    if (var->name[0] == '_' && stmnt)
+      m = 6;
+    if (var->indextype[0] != '0') {
+      j = 256;
+      s = malloc(j);
+    } else {
+      s = malloc(strlen(var->name) + m + 1);
+    }
+    if (var->name[0] == '_' && stmnt)
       while (( s[i] = underscore[i] )) i++;
-    while (( s[i] = var->name[i-j] )) i++;
+    while (( s[i] = var->name[i-m] )) i++;
+    for (m=0;var->indextype[m] != '0';m++) {
+      t = NULL;
+      switch (var->indextype[m]) {
+      case 'v':
+	k = snprintf(s+i, j-i,"[%s]", (t = valueToLlvmString(var->index[m], 0)));
+	break;
+      case 'n':
+	k = snprintf(s+i, j-i,"[%d]", *(int*)var->index[m]);
+	break;
+      default:
+	k = snprintf(s+i, j-i, "[\"%s\"]", var->index[m]);
+      }
+      if (k+i >= j) {
+	j *= 2;
+	s = realloc(s, j);
+	switch (var->indextype[m]) {
+	case 'v':
+	  k = snprintf(s+i, j-i,"[%s]", t);
+	  break;
+	case 'n':
+	  k = snprintf(s+i, j-i,"[%d]", *(int*)var->index[m]);
+	  break;
+	default:
+	  k = snprintf(s+i, j-i, "[\"%s\"]", var->index[m]);
+	}
+      }
+      i += k;
+      free(t);
+    }
     break;
   case 'a':
     fd = v->data;
@@ -538,33 +572,30 @@ char* valueToLlvmString(Value* v) {
     s = malloc(j);
     snprintf(s+i, j-i, "function(");
     i += 9;
-    for (node = fd->arguments;node != NULL; node = node->next) {
-      if (node->data) {
-	k = snprintf(s+i, j-i, "%s,", (t = valueToLlvmString(node->data)));
+    if (fd->arguments && fd->arguments->next) {
+      for (node = fd->arguments->next;node != NULL; node = node->next) {
+	k = snprintf(s+i, j-i, "%s,", (t = valueToLlvmString(node->data, 0)));
 	if (k+i >= j) {
 	  j *= 2;
 	  s = realloc(s, j);
-	  snprintf(s+i, j-i, "%s,", t);
+	  k = snprintf(s+i, j-i, "%s,", t);
 	}
 	i += k;
 	free(t);
       }
-    }
-    if (k)
       i--;
+    }
     snprintf(s+i, j-i, ") {\n");
     i += 4;
     for (node = fd->statements;node != NULL; node = node->next) {
-      if (node->data) {
-	k = snprintf(s+i, j-i, "%s;\n", (t = valueToLlvmString(node->data)));
-	if (i+k >= j) {
-	  j *= 2;
-	  s = realloc(s, j);
-	  snprintf(s+i, j-i, "%s;\n", t);
-	}
-	i += k;
-	free(t);
+      k = snprintf(s+i, j-i, "%s\n", (t = valueToLlvmString(node->data, 1)));
+      if (i+k >= j) {
+	j *= 2;
+	s = realloc(s, j);
+	k = snprintf(s+i, j-i, "%s\n", t);
       }
+      i += k;
+      free(t);
     }
     snprintf(s+i, j-i, "}");
     break;
@@ -573,90 +604,151 @@ char* valueToLlvmString(Value* v) {
     j = 256;
     s = malloc(j);
     if (fv->name == constants+39) {
-      snprintf(s+i, j-i, "%s = ", (t = valueToLlvmString(fv->arglist->next->data)));
-      i += strlen(t) + 3;
-      free(t);
-      snprintf(s+i, j-i, "%s", (t = valueToLlvmString(fv->arglist->next->next->data)));
-      i += strlen(t) + 1;
-      free(t);
-    } else if (fv->name == constants+45) {
-      k = snprintf(s+i, j-i, "if %s {\n", (t = valueToLlvmString(fv->arglist->next->data)));
+      k = snprintf(s+i, j-i, "%s = ", (t = valueToLlvmString(fv->arglist->next->data, 1)));
       i += k;
       free(t);
-      k = snprintf(s+i, j-i, "%s", (t = valueToLlvmString(fv->arglist->next->next->data)));
+      k = snprintf(s+i, j-i, "%s", (t = valueToLlvmString(fv->arglist->next->next->data, 1)));
+      if (i+k >= j) {
+	while (i+k >= j)
+	  j *= 2;
+	s = realloc(s, j);
+	k = snprintf(s+i, j-i, "%s", t);
+      }
+      i += k;
+      free(t);
+    } else if (fv->name == constants+45) {
+      k = snprintf(s+i, j-i, "if %s {\n", (t = valueToLlvmString(fv->arglist->next->data, 0)));
+      if (i+k >= j) {
+	j *= 2;
+	s = realloc(s, j);
+	snprintf(s+i, j-i, "if %s {\n", t);
+      }
+      i += k;
+      free(t);
+      k = snprintf(s+i, j-i, "%s", (t = valueToLlvmString(fv->arglist->next->next->data, 0)));
       if (i+k > j) {
 	j *= 2;
 	s = realloc(s, j);
-	snprintf(s+i, j-i, "%s", t);
+	k = snprintf(s+i, j-i, "%s", t);
       }
       i += k;
       free(t);
       for (node = fv->arglist->next->next->next;node != NULL; node = node->next) {
-	if (node->data) {
-	  snprintf(s+i, j-i, "} else ");
-	  i += 7;
-	  if (node->next && node->next->data) {
-	    k = snprintf(s+i, j-i, "if %s ", (t = valueToLlvmString(node->data)));
-	    if (i+k >= j) {
-	      j *= 2;
-	      s = realloc(s, j);
-	      snprintf(s+i, j-i, "if %s ", t);
-	    }
-	    i += k;
-	    free(t);
-	    node = node->next;
-	  }
-	  k = snprintf(s+i, j-i, "{\n%s", (t = valueToLlvmString(node->data)));
+	snprintf(s+i, j-i, "} else ");
+	i += 7;
+	if (node->next && node->next->data) {
+	  k = snprintf(s+i, j-i, "if %s ", (t = valueToLlvmString(node->data, 0)));
 	  if (i+k >= j) {
 	    j *= 2;
 	    s = realloc(s, j);
-	    snprintf(s+i, j-i, "{\n%s", t);
+	    k = snprintf(s+i, j-i, "if %s ", t);
 	  }
 	  i += k;
 	  free(t);
+	  node = node->next;
 	}
+	k = snprintf(s+i, j-i, "{\n%s", (t = valueToLlvmString(node->data, 0)));
+	if (i+k >= j) {
+	  j *= 2;
+	  s = realloc(s, j);
+	  k = snprintf(s+i, j-i, "{\n%s", t);
+	}
+	i += k;
+	free(t);
       }
       snprintf(s+i, j-i, "}\n");
     } else if (fv->name == constants+49) {
-      snprintf(s+i, j-i, "while %s {\n", (t = valueToLlvmString(fv->arglist->next->data)));
-      i += strlen(t) + 9;
-      free(t);
-      for (node = fv->arglist->next->next;node != NULL; node = node->next) {
-	if (node->data) {
-	  t = valueToLlvmString(node->data);
-	  k = snprintf(s+i, j-i, "%s", t);
+      if (fv->arglist->data) {
+	var = ((List*)fv->arglist->data)->next->data;
+	k = snprintf(s+i, j-i, "var __fffll_list = %s;\nfor (__fffll_%s in __fffll_list) {\nvar %s = __fffll_list[__fffll_%s];\n", (t = valueToLlvmString(findInTree(((List*)fv->arglist->data)->data, var->name), 0)), var->name, var->name, var->name);
+	if (i+k >= j) {
+	  j *= 2;
+	  s = realloc(s, j);
+	  k = snprintf(s+i, j-i, "var __fffll_list = %s;\nfor (__fffll_%s in __fffll_list) {\nvar %s = __fffll_list[__fffll_%s];\n", t, var->name, var->name, var->name);
+	}
+	i += k;
+	free(t);
+	node = fv->arglist->next;
+	if (fv->arglist->next->next) {
+	  k = snprintf(s+i, j-i, "if (!%s) break;\n", (t = valueToLlvmString(node->data, 0)));
 	  if (i+k >= j) {
 	    j *= 2;
 	    s = realloc(s, j);
-	    snprintf(s+i, j-i, "%s", t);
+	    k = snprintf(s+i, j-1, "if (!%s) break;\n", t);
+	  }
+	  i += k;
+	  free(t);
+	  node = fv->arglist->next->next;
+	}
+      } else {
+	if (fv->arglist->next->next) {
+	  k = snprintf(s+i, j-i, "while %s {\n", (t = valueToLlvmString(fv->arglist->next->data, 0)));
+	  node = fv->arglist->next->next;
+	  if (i+k >= j) {
+	    j *= 2;
+	    s = realloc(s, j);
+	    k = snprintf(s+i, j-i, "while %s {\n", t);
+	  }
+	} else {
+	  k = snprintf(s+i, j-i, "while (1) {\n");
+	  node = fv->arglist->next;
+	  if (i+k >= j) {
+	    j *= 2;
+	    s = realloc(s, j);
+	    k = snprintf(s+i, j-i, "while (1) {\n");
+	  }
+	  t = NULL;
+	}
+	i += k;
+	free(t);
+      }
+      k = snprintf(s+i, j-i, "%s", (t = valueToLlvmString(node->data, 1)));
+      if (i+k >= j) {
+	j *= 2;
+	s = realloc(s, j);
+	k = snprintf(s+i, j-i, "%s", t);
+      }
+      i += k;
+      free(t);
+      snprintf(s+i, j-i, "}\n");
+    } else {
+      k = 0;
+      if (fv->name == anonfunc) {
+	k = snprintf(s+i, j-i, "%s(", (t = valueToLlvmString(fv->val, 0)));
+	if (i+k >= j) {
+	  j *= 2;
+	  s = realloc(s, j);
+	  k = snprintf(s+i, j-i, "%s(", t);
+	}
+	free(t);
+      } else {
+	k = snprintf(s+i, j-i, "%s(", fv->name);
+	if (i+k >= j) {
+	  j *= 2;
+	  s = realloc(s, j);
+	  k = snprintf(s+i, j-i, "%s(", fv->name);
+	}
+      }
+      i += k;
+      if (fv->arglist && fv->arglist->next) {
+	for (node = fv->arglist->next;node != NULL; node = node->next) {
+	  t = valueToLlvmString(node->data, 0);
+	  k = snprintf(s+i, j-i, "%s,", t);
+	  if (i+k >= j) {
+	    j *= 2;
+	    s = realloc(s, j);
+	    k = snprintf(s+i, j-i, "%s,", t);
 	  }
 	  i += k;
 	  free(t);
 	}
-      }
-      if (k)
 	i--;
-      snprintf(s+i, j-i, "\n}\n");
-    } else {
-      snprintf(s+i, j-i, "%s(", fv->name);
-      i += strlen(fv->name) + 1;
-      for (node = fv->arglist;node != NULL; node = node->next) {
-	if (node->data) {
-	  k = 1;
-	  t = valueToLlvmString(node->data);
-	  snprintf(s+i, j-i, "%s,", t);
-	  if (t != NULL)
-	    i += strlen(t) + 1;
-	  if (i+10 >= j) {
-	    j *= 2;
-	    s = realloc(s, j);
-	  }
-	  free(t);
-	}
       }
-      if (k)
-	i--;
       snprintf(s+i, j-i, ")");
+      if (stmnt) {
+	i++;
+	snprintf(s+i, j-i, ";");
+      }
     }
     break;
   case 's':
@@ -689,23 +781,25 @@ char* valueToLlvmString(Value* v) {
     s = malloc(j);
     if (be->neg) {
       snprintf(s+i, j-i, "(!");
-      i++;
+      i += 2;
     }
     snprintf(s+i, j-i, "(");
     i++;
     for (node = be->stack;node != NULL; node = node->next) {
-      if (node->data) {
-	t = node->data;
-	if (t[0] == '&' || t[0] == '|' || t[0] == '?' ||
-	    t[0] == '>' || t[0] == '<' || t[0] == '=' ||
-	    t[0] == '~') {
+      t = node->data;
+      if (t[0] == '&' || t[0] == '|' || t[0] == '?' ||
+	  t[0] == '>' || t[0] == '<' || t[0] == '=' ||
+	  t[0] == '~') {
+	snprintf(s+i, j-i, "%c", t[0]);
+	i++;
+	if (t[0] == '=' || t[0] == '&' || t[0] == '|') {
 	  snprintf(s+i, j-i, "%c", t[0]);
 	  i++;
-	} else {
-	  snprintf(s+i, j-i, "%s", (t = valueToLlvmString(node->data)));
-	  i += strlen(t);
-	  free(t);
 	}
+      } else {
+	snprintf(s+i, j-i, "%s", (t = valueToLlvmString(node->data, 0)));
+	i += strlen(t);
+	free(t);
       }
     }
     snprintf(s+i, j-i, ")");
@@ -718,16 +812,14 @@ char* valueToLlvmString(Value* v) {
     j = 256;
     s = malloc(j);
     for (node = v->data; node != NULL; node = node->next) {
-      if (node->data) {
-	k = snprintf(s+i, j-i, "%s;\n", (t = valueToLlvmString(node->data)));
-	if (i+k >= j) {
-	  j *= 2;
-	  s = realloc(s, j);
-	  snprintf(s+i, j-i, "%s;\n", t);
-	}
-	i += k;
-	free(t);
+      k = snprintf(s+i, j-i, "%s\n", (t = valueToLlvmString(node->data, 1)));
+      if (i+k >= j) {
+	j *= 2;
+	s = realloc(s, j);
+	snprintf(s+i, j-i, "%s\n", t);
       }
+      i += k;
+      free(t);
     }
     break;
   case 'l':
@@ -736,10 +828,23 @@ char* valueToLlvmString(Value* v) {
     snprintf(s+i, j-i, "{ ");
     i += 2;
     m = 0;
-    /* named keys here */
-    for (node = ((List*)v->data)->next; node != NULL; node = node->next) {
-      if (node->data) {
-	k = snprintf(s+i, j-i, "%d: %s, ", m++, (t = valueToLlvmString(node->data)));
+    if (v->data && (node = ((List*)v->data)->data)) {
+      for (node = node->next; node != NULL; node = node->next) {
+	var = node->data;
+	k = snprintf(s+i, j-i, "%s: %s, ", var->name, (t = valueToLlvmString(findInTree(((List*)((List*)v->data)->data)->data, var->name), 0)));
+	if (i+k >= j) {
+	  j *= 2;
+	  s = realloc(s, j);
+	  snprintf(s+i, j-i, "%s: %s, ", var->name, t);
+	}
+	i += k;
+	free(t);
+      }
+      i -= 2;
+    }
+    if (v->data) {
+      for (node = ((List*)v->data)->next; node != NULL; node = node->next) {
+	k = snprintf(s+i, j-i, "%d: %s, ", m++, (t = valueToLlvmString(node->data, 0)));
 	if (i+k >= j) {
 	  j *= 2;
 	  s = realloc(s, j);
@@ -753,6 +858,12 @@ char* valueToLlvmString(Value* v) {
       i -= 2;
     }
     snprintf(s+i, j-i, "}");
+    break;
+  case 'r':
+    j = 256;
+    s = malloc(j);
+    k = snprintf(s+i, j-i, "Range()");
+    i += k;
     break;
   default:
     s = valueToString(v);
@@ -870,9 +981,14 @@ int main(int argc, char** argv) {
     if (lineno-1)
       v = ((List*)parseTreeList->data)->data;
   } else {
-    printf("const _stdout = process.stdout; stdout = _stdout;\n"
-	   "const _stderr = process.stderr; stderr = _stderr;\n"
-	   "const _stdin = process.stdin; stdin = _stdin;\n");
+    printf("const _stdout = process.stdout.fd; stdout = _stdout;\n"
+	   "const _stderr = process.stderr.fd; stderr = _stderr;\n"
+	   "const _stdin = process.stdin.fd; stdin = _stdin;\n"
+	   "fffll = require('./fffll.js');\n"
+	   "write = fffll.write;\n"
+	   "read = fffll.read;\n"
+	   "add = fffll.add;\n"
+	   "mul = fffll.mul;\n");
     printf("__fffll_strlist = [");
     for (sl = stringlist;sl != NULL;sl = sl->next) {
       if (sl->data)
@@ -882,7 +998,7 @@ int main(int argc, char** argv) {
     /* v = evaluateStatements(parseTreeList->data); */
     for (sl = parseTreeList->data;sl != NULL;sl = sl->next) {
       if (sl->data) {
-	printf("%s\n", (s = valueToLlvmString(sl->data)));
+	printf("%s\n", (s = valueToLlvmString(sl->data, 1)));
 	free(s);
       }
     }

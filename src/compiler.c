@@ -112,6 +112,33 @@ char* valueToLlvmString(Value* v, int stmnt) {
       }
       i += k;
       free(t);
+    } else if (fv->name == constants+129) {
+      k = snprintf(s+i, j-i, "throw %s", (t = valueToLlvmString(fv->arglist->next->data, 0)));
+      if (i+k >= j) {
+	j *= 2;
+	s = realloc(s, j);
+	k = snprintf(s+i, j-i, "throw %s", t);
+      }
+      i += k;
+      free(t);
+    } else if (fv->name == constants+135) {
+      var = ((List*)fv->arglist->data)->next->data;
+      k = snprintf(s+i, j-i, "try {\n%s} catch (%s) {\nvar __fffll_%s = %s;\n", (t = valueToLlvmString(fv->arglist->next->data, 1)), var->name, var->name, var->name);
+      if (i+k >= j) {
+	j *= 2;
+	s = realloc(s, j);
+	k = snprintf(s+i, j-i, "try {\n%s} catch (%s) {\nvar __fffll_%s = %s;\n", t, var->name, var->name, var->name);
+      }
+      i += k;
+      free(t);
+      k = snprintf(s+i, j-i, "%s\nif (__fffll_%s == %s) throw %s;\n}\n", (t = valueToLlvmString(findInTree(((List*)fv->arglist->data)->data, var->name), 1)), var->name, var->name, var->name);
+      if (i+k >= j) {
+	j *= 2;
+	s = realloc(s, j);
+	k = snprintf(s+i, j-i, "%s\nif (__fffll_%s == %s) throw %s;\n}\n", t, var->name, var->name, var->name);
+      }
+      i += k;
+      free(t);
     } else if (fv->name == constants+45) {
       k = snprintf(s+i, j-i, "if %s {\n", (t = valueToLlvmString(fv->arglist->next->data, 0)));
       if (i+k >= j) {

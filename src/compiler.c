@@ -131,7 +131,7 @@ char* valueToLlvmString(Value* v, int stmnt) {
       }
       i += k;
       free(t);
-      k = snprintf(s+i, j-i, "%s\nif (__fffll_%s == %s) throw %s;\n}\n", (t = valueToLlvmString(findInTree(((List*)fv->arglist->data)->data, var->name), 1)), var->name, var->name, var->name);
+      k = snprintf(s+i, j-i, "%sif (__fffll_%s == %s) throw %s;\n}\n", (t = valueToLlvmString(findInTree(((List*)fv->arglist->data)->data, var->name), 1)), var->name, var->name, var->name);
       if (i+k >= j) {
 	j *= 2;
 	s = realloc(s, j);

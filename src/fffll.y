@@ -623,9 +623,9 @@ int main(int argc, char** argv) {
     if (lineno-1)
       v = ((List*)parseTreeList->data)->data;
   } else {
-    printf("const _stdout = process.stdout.fd; stdout = _stdout;\n"
-	   "const _stderr = process.stderr.fd; stderr = _stderr;\n"
-	   "const _stdin = process.stdin.fd; stdin = _stdin;\n"
+    printf("const _stdout = process.stdout; stdout = _stdout;\n"
+	   "const _stderr = process.stderr; stderr = _stderr;\n"
+	   "const _stdin = process.stdin; stdin = _stdin;\n"
 	   "fffll = require('./fffll.js');\n"
 	   "write = fffll.write;\n"
 	   "read = fffll.read;\n"

@@ -116,6 +116,96 @@ int freeTree(VarTree* vt) {
   return 1;
 }
 
+VarTree* recurInsertInTree(VarTree* vt, char* key, void* data) {
+  VarTree* t;
+  if (key < vt->key) {
+    if (vt->left == NULL) {
+      vt->left = newTree(key, data);
+      if (!vt->count) vt->count++;
+    } else {
+      vt->left = recurInsertInTree(vt->left, key, data);
+      if (vt->left->count == vt->count) {
+        if (!vt->right || vt->left->count - vt->right->count > 1) {
+	  t = vt->left;
+	  if (t->right && (!t->left || t->right->count > t->left->count)) {
+	    t = t->right;
+	    vt->left->right = t->left;
+	    t->left = vt->left;
+	    if (vt->left->right) {
+	      vt->left->count = vt->left->right->count;
+	      if (vt->left->left && vt->left->left->count > vt->left->count)
+		vt->left->count = vt->left->left->count;
+	    } else if (vt->left->left) {
+	      vt->left->count = vt->left->left->count;
+	    } else {
+	      vt->left->count = -1;
+	    }
+	    vt->left->count++;
+	  }
+	  vt->left = t->right;
+	  t->right = vt;
+	  if (vt->right) {
+	    vt->count = vt->right->count + 1;
+	    if (vt->left && vt->left->count > vt->right->count) {
+	      vt->count = vt->left->count + 1;
+	    }
+	  } else if (vt->left) {
+	    vt->count = vt->left->count + 1;
+	  } else {
+	    vt->count = 0;
+	  }
+	  vt = t;
+	  vt->count = vt->right->count;
+	}
+	vt->count++;
+      }
+    }
+  } else {
+    if (vt->right == NULL) {
+      vt->right = newTree(key, data);
+      if (!vt->count) vt->count++;
+    } else {
+      vt->right = recurInsertInTree(vt->right, key, data);
+      if (vt->right->count == vt->count) {
+	if (!vt->left || vt->right->count - vt->left->count > 1) {
+	  t = vt->right;
+	  if (t->left && (!t->right || t->left->count > t->right->count)) {
+	    t = t->left;
+	    vt->right->left = t->right;
+	    t->right = vt->right;
+	    if (vt->right->right) {
+	      vt->right->count = vt->right->right->count;
+	      if (vt->right->left && vt->right->left->count > vt->right->count)
+		vt->right->count = vt->right->left->count;
+	    } else if (vt->right->left) {
+	      vt->right->count = vt->right->left->count;
+	    } else {
+	      vt->right->count = -1;
+	    }
+	    vt->right->count++;
+	  }
+	  vt->right = t->left;
+	  t->left = vt;
+	  if (vt->left) {
+	    vt->count = vt->left->count + 1;
+	    if (vt->right && vt->right->count > vt->left->count) {
+	      vt->count = vt->right->count + 1;
+	    }
+	  } else if (vt->right) {
+	    vt->count = vt->right->count + 1;
+	  } else {
+	    vt->count = 0;
+	  }
+	  vt = t;
+	  vt->count = vt->left->count;
+	}
+	vt->count++;
+      }
+    }
+  }
+  return vt;
+}
+
 VarTree* insertInTree(VarTree* vt, char* key, void* data) {
   VarTree* t;
   t = findNodeInTree(vt, key);
@@ -123,26 +213,7 @@ VarTree* insertInTree(VarTree* vt, char* key, void* data) {
     t->data = data;
     return vt;
   }
-  t = vt;
-  while (1) {
-    t->count++;
-    if (key < t->key) {
-      if (t->left == NULL) {
-	t->left = newTree(key, data);
-	break;
-      } else {
-	t = t->left;
-      }
-    } else {
-      if (t->right == NULL) {
-	t->right = newTree(key, data);
-	break;
-      } else {
-	t = t->right;
-      }
-    }
-  }
-  return rebalanceTree(vt);
+  return recurInsertInTree(vt, key, data);
 }
 
 VarTree* mergeTree(VarTree* left, VarTree* right) {
@@ -176,7 +247,7 @@ VarTree* newTree(char* key, void* data) {
   vt->right = NULL;
   vt->key = key;
   vt->data = data;
-  vt->count = 1;
+  vt->count = 0;
   return vt;
 }
 

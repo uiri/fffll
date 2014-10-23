@@ -29,62 +29,116 @@ VarTree* copyTree(VarTree* vt) {
   return nt;
 }
 
+VarTree* recurDeleteInTree(VarTree* vt) {
+  VarTree* t;
+  if (vt) {
+    if (vt->left) {
+      if (!vt->right || (!vt->left->right && !vt->right->left && !vt->right->right)) {
+	vt->key = vt->left->key;
+	vt->data = vt->left->data;
+	vt->left = recurDeleteInTree(vt->left);
+	vt->count = 0;
+	if (vt->left)
+	  vt->count = vt->left->count;
+	if (vt->right && vt->right->count > vt->count)
+	  vt->count = vt->right->count;
+	if (vt->right || vt->left) vt->count++;
+      } else if (vt->right->left && (vt->right->right || !vt->left->right)) {
+	t = vt->right;
+	vt->key = t->left->key;
+	vt->data = t->left->data;
+	t->left = recurDeleteInTree(t->left);
+	t->count = 0;
+	if (t->left)
+	  t->count = t->left->count;
+	if (t->right && t->right->count > t->count) {
+	  if (t->right->count - t->count > 1) {
+	    vt->right = t->right;
+	    t->right = vt->right->left;
+	    vt->right->left = t;
+	    t = vt->right;
+	    t->count = 0;
+	    if (t->left)
+	      t->count = t->left->count;
+	    if (t->right && t->right->count > t->count)
+	      t->count = t->right->count;
+	  } else {
+	    t->count = t->right->count;
+	  }
+	}
+	if (t->right || t->left) t->count++;
+      } else if (vt->left->right) {
+	t = vt->left;
+	vt->key = t->right->key;
+	vt->data = t->right->data;
+	t->right = recurDeleteInTree(vt->left->right);
+	t->count = 0;
+	if (t->right)
+	  t->count = t->right->count;
+	if (t->left && t->left->count > t->count) {
+	  if (t->left->count - t->count > 1) {
+	    vt->left = t->left;
+	    t->left = vt->left->right;
+	    vt->left->right = t;
+	    t = vt->left;
+	    t->count = 0;
+	    if (t->left)
+	      t->count = t->left->count;
+	    if (t->right && t->right->count > t->count)
+	      t->count = t->right->count;
+	  } else {
+	    t->count = t->left->count;
+	  }
+	}
+	if (t->left || t->right)
+	  t->count++;
+      } else {
+	vt->key = vt->right->key;
+	vt->data = vt->right->data;
+	vt->right = recurDeleteInTree(vt->right);
+	vt->count = 0;
+	if (vt->right) vt->count = vt->right->count;
+	if (vt->left->count > vt->count)
+	  vt->count = vt->left->count;
+	vt->count++;
+      }
+    } else if (vt->right) {
+      vt->key = vt->right->key;
+      vt->data = vt->right->data;
+      vt->right = recurDeleteInTree(vt->right);
+      vt->count = 0;
+      if (vt->right) vt->count = vt->right->count + 1;
+    } else {
+      free(vt);
+      return NULL;
+    }
+  }
+  return vt;
+}
+
 VarTree* deleteDataInTree(VarTree* vt, void* data) {
-  VarTree* ret;
   if (vt == NULL)
     return NULL;
-  if (vt->data == data) {
-    ret = mergeTree(deleteDataInTree(vt->right, data), deleteDataInTree(vt->left, data));
-    free(vt);
-    return ret;
-  }
-  vt->right = deleteDataInTree(vt->right, data);
   vt->left = deleteDataInTree(vt->left, data);
-  return rebalanceTree(vt);
+  vt->right = deleteDataInTree(vt->right, data);
+  if (vt->data == data)
+    vt = recurDeleteInTree(vt);
+  return vt;
 }
 
 VarTree* deleteInTree(VarTree* vt, char* key) {
-  VarTree* ret, *t, *u;
-  int i;
-  ret = NULL;
-  t = vt;
-  if (t == NULL)
-    return vt;
-  if (t->key == key) {
-    return mergeTree(t->right, t->left);
-  }
-  while (1) {
-    u = NULL;
-    if (t == NULL)
-      break;
-    t->count--;
-    if (t->left != NULL && key == t->left->key) {
-      i = 1;
-      u = t->left;
-    } else if (t->right != NULL && key == t->right->key) {
-      i = 0;
-      u = t->right;
-    }
-    if (u != NULL) {
-      if (u->left != NULL || u->right != NULL) {
-	ret = mergeTree(u->left, u->right);
-      }
-      free(u);
-      if (i)
-	t->left = ret;
-      else
-	t->right = ret;
-      break;
-    }
-    if (t == NULL)
-      break;
-    if (key < t->key) {
-      t = t->left;
-    } else if (key > t->key) {
-      t = t->right;
+  if (vt) {
+    if (vt->key == key) {
+      vt = recurDeleteInTree(vt);
+   } else if (vt->key < key) {
+      /* rebalance */
+      vt->left = deleteInTree(vt->left, key);
+    } else {
+      /* rebalance */
+      vt->right = deleteInTree(vt->right, key);
     }
   }
-  return rebalanceTree(vt);
+  return vt;
 }
 
 static inline VarTree* findNodeInTree(VarTree* vt, char* key) {
@@ -216,30 +270,6 @@ VarTree* insertInTree(VarTree* vt, char* key, void* data) {
   return recurInsertInTree(vt, key, data);
 }
 
-VarTree* mergeTree(VarTree* left, VarTree* right) {
-  VarTree* root;
-  if (left == NULL && right == NULL) {
-    return NULL;
-  }
-  if (left == NULL)
-    return right;
-  if (right == NULL)
-    return left;
-  if (left->count < right->count) {
-    root = right;
-    root->left = mergeTree(left, right->left);
-  } else {
-    root = left;
-    root->right = mergeTree(left->right, right);
-  }
-  root->count = 1;
-  if (root->left != NULL)
-    root->count += root->left->count;
-  if (root->right != NULL)
-    root->count += root->right->count;
-  return root;
-}
-
 VarTree* newTree(char* key, void* data) {
   VarTree* vt;
   vt = malloc(sizeof(VarTree));
@@ -249,61 +279,4 @@ VarTree* newTree(char* key, void* data) {
   vt->data = data;
   vt->count = 0;
   return vt;
-}
-
-VarTree* rebalanceTree(VarTree* vt) {
-  VarTree* root, *left, *right;
-  int i;
-  if (vt == NULL)
-    return NULL;
-  root = vt;
-  left = vt->left;
-  right = vt->right;
-  if (left == NULL || right == NULL) {
-    if (3 > root->count)
-      return root;
-    root->count = 1;
-    if (left != NULL) {
-      root->left = NULL;
-      return mergeTree(left, root);
-    }
-    if (right != NULL) {
-      root->right = NULL;
-      return mergeTree(root, right);
-    }
-    /* Just in case */
-    return root;
-  }
-  i = left->count - right->count;
-  if (i < 0)
-    i = 0 - i;
-  if (i < 2)
-    return root;
-  if (left->count > right->count) {
-    root->count = 1;
-    root->left = NULL;
-    root->right = NULL;
-    if (right->left)
-      right->count -= right->left->count;
-    right->left = mergeTree(root, right->left);
-    right->count += right->left->count;
-    left->right = mergeTree(left->right, right);
-    root = left;
-  } else {
-    root->count = 1;
-    root->left = NULL;
-    root->right = NULL;
-    if (left->right)
-      left->count -= left->right->count;
-    left->right = mergeTree(left->right, root);
-    left->count += left->right->count;
-    right->left = mergeTree(left, right->left);
-    root = right;
-  }
-  root->count = 1;
-  if (root->right != NULL)
-    root->count += root->right->count;
-  if (root->left != NULL)
-    root->count += root->left->count;
-  return root;
 }

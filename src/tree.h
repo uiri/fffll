@@ -38,4 +38,3 @@ int freeTree(VarTree* vt);
 VarTree* insertInTree(VarTree* vt, char* key, void* data);
 VarTree* mergeTree(VarTree* left, VarTree* right);
 VarTree* newTree(char* key, void* data);
-VarTree* rebalanceTree(VarTree* vt);

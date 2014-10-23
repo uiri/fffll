@@ -205,7 +205,7 @@ Value* forDef(FuncDef* fd, List* arglist) {
 	    }
 	  }
 	}
-	freeValue(findInTree(varlist->data, ((Variable*)((List*)arglist->data)->next->data)->name));
+	/* freeValue(findInTree(varlist->data, ((Variable*)((List*)arglist->data)->next->data)->name)); */
 	varlist->data = deleteInTree(varlist->data, ((Variable*)((List*)arglist->data)->next->data)->name);
       } else {
 	while (l) {

@@ -130,29 +130,34 @@ __write_num_divint:
 	push rcx
 	div ebx
 	mov rbx, rdx
-	;; shl rax, 1
-	;; shr rbx, 2
-	;; add rax, rbx
 	pop rdx
-	;; shl rdx, 1
-	;; shr rcx, 31
-	;; add rdx, rcx
+	cmp rbx, 0
+	jne __write_num_round
+	add rbx, 5
+
+__write_num_round:
+	test rdx, 0xFFE00000
+	jnz __write_num_full
+	shr ebx, 1
+	add eax, ebx
+	mov ecx, eax
+	shl eax, 1
+	shl edx, 1
+	shr ecx, 31
+	add edx, ecx
+
+__write_num_nocarry:
+	pop rcx
+	dec cx
+	push rcx
+	dec dword [eexp]
+	cmp cx, 52
+	jg __write_num_round
+
+__write_num_full:	
 	pop rcx
 	cmp cx, 52
 	jg __write_num_divint
-	;; mov cx, [eexp]
-
-;; __write_num_mulint:
-;; 	dec cx
-;; 	shr rax, 1
-;; 	test edx, 0x00000001
-;; 	jz __write_num_mulint_zero
-;; 	add eax, 0x80000000
-
-;; __write_num_mulint_zero:
-	;; shr rdx, 1
-	;; cmp cx, 52
-	;; jg __write_num_mulint
 
 __write_num_smallint:
 	mov bx, 52
@@ -226,10 +231,9 @@ __write_digit_notone:
 	int 0x80
 	pop rax
 	add ecx, edx
-	add ecx, 2
+	inc ecx
 	push rbx
 	mov rbx, 10
-	add rdx, 2
 	push rdx
 	push rax
 	mov rax, 1
@@ -243,11 +247,12 @@ __write_digit_exp_len:
 	cmp rdx, rax
 	jg __write_digit_exp_len
 	pop rax
-
-__write_digit_exp:
 	pop rdx
+	mov edx, ecx
 	inc rdx
 	push rdx
+
+__write_digit_exp:
 	xor rdx, rdx
 	div ebx
 	add dl, 48
@@ -256,13 +261,15 @@ __write_digit_exp:
 	cmp eax, 0
 	jne __write_digit_exp
 	pop rdx
+	sub edx, ecx
 	pop rbx
-	dec ecx
 	mov eax, 4
 	int 0x80
 
 __write_stdout_nl:
 	cmp ebx, 0x0001
+	je __write_newline
+	cmp ebx, 0x0002
 	je __write_newline
 	mov eax, 1
 	ret

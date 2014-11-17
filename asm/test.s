@@ -20,4 +20,4 @@ _start:			;tell linker entry point
 section	.data
 	msg_contents	db "I like turtles", 10, "Look at me!!!", 10, 10, 0 ; our dear string
 	msg		dd 's', msg_contents ; value for string
-	num		dd 'n', 0x00000000, 0x46080000
+	num		dd 'n', 0x54442D18, 0x400921FB

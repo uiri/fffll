@@ -61,12 +61,68 @@ __write_digit_loop:
 	jne __write_digit_loop
 	ret
 
-__write_num_frac:
-	cmp cx, 0
+__write_num_tinyint:
+	test eax, 1
+	jnz __write_num_mulint
+	shr eax, 1
+	test edx, 1
+	jz __write_num_nocarry
+	add eax, 0x80000000
+
+__write_num_nocarry:
+	shr edx, 1
+	inc cx
+	inc word [eexp]
+	cmp cx, 1075
 	je __write_num_fin
+	jmp __write_num_tinyint
+
+__write_num_mulint:
+	push rcx
+	push rax
+	mov ebx, 5
+	mov rax, rdx
+	xor rdx, rdx
+	mul ebx
+	mov rdx, rax
+	pop rax
+	push rdx
+	mul ebx
+	mov rcx, rdx
+	pop rdx
+	add rdx, rcx
+
+__write_num_tinyround:
+	pop rcx
+	inc cx
+	push rcx
+	test rdx, 0xFFF00000
+	jz __write_num_tinytail
+	mov rcx, rdx
+	shr edx, 1
+	shl ecx, 31
+	shr eax, 1
+	add eax, ecx
+	inc word [eexp]
+	jmp __write_num_tinyround
+
+__write_num_tinytail:
+	pop rcx
+
+__write_num_tinycond:
+	cmp cx, 1075
+	jl __write_num_tinyint
+	je __write_num_fin
+	push rcx
+	mov ecx, eax
+	shl edx, 1
+	shr ecx, 31
+	add edx, ecx
+	shl eax, 1
+	pop rcx
 	dec cx
-	shl rbx, 1
-	jmp __write_num_frac
+	dec word [eexp]
+	jmp __write_num_tinycond
 
 __write_num:
 	add eax, 4
@@ -104,18 +160,12 @@ __write_num_pos:
 	pop rdx
 	pop rax
 	pop rcx
-	cmp cx, 1023
-	jl __write_num_frac
-	je __write_num_fin
-	sub cx, 1023
-	cmp cx, 21
-	jl __write_num_tinyint
-	cmp cx, 52
-	jl __write_num_smallint
 	push rcx
-	sub rcx, 52
+	sub rcx, 1076
 	mov [eexp], cx
 	pop rcx
+	cmp cx, 1075
+	jl __write_num_tinyint
 
 __write_num_divint:
 	dec cx
@@ -145,23 +195,22 @@ __write_num_round:
 	shl edx, 1
 	shr ecx, 31
 	add edx, ecx
-
-__write_num_nocarry:
 	pop rcx
 	dec cx
 	push rcx
-	dec dword [eexp]
-	cmp cx, 52
+	dec word [eexp]
+	cmp cx, 1075
 	jg __write_num_round
 
 __write_num_full:	
 	pop rcx
-	cmp cx, 52
+	cmp cx, 1075
 	jg __write_num_divint
 
 __write_num_smallint:
-	mov bx, 52
+	mov bx, 1075
 	sub bx, cx
+	sub bx, 1023
 	mov cx, bx
 	shr rax, cl
 	push rax
@@ -173,15 +222,6 @@ __write_num_smallint:
 	shl rax, cl
 	pop rbx
 	add rax, rbx
-	jmp __write_num_fin
-
-__write_num_tinyint:
-	mov rax, rdx
-	xor rdx, rdx
-	mov bx, 20
-	sub bx, cx
-	mov cx, bx
-	shr rax, cl
 
 __write_num_fin:
 	mov ecx, wnb+27
@@ -207,8 +247,7 @@ __write_digit_skip:
 	je __write_digit_skip
 	mov edx, wnb+27
 	sub edx, ecx
-	dec rdx
-	add rdx, [eexp]
+	add dx, [eexp]
 	push rdx
 	xor rdx, rdx
 	mov dl, [ecx]
@@ -244,8 +283,17 @@ __write_digit_exp_len:
 	pop rdx
 	push rdx
 	inc ecx
+	cmp byte [ecx], '-'
+	jne __write_digit_exp_len_possign
+	inc ecx
+	pop rdx
+	not dx
+	add dx, 1
+	push rdx
+
+__write_digit_exp_len_possign:
 	cmp rdx, rax
-	jg __write_digit_exp_len
+	jge __write_digit_exp_len
 	pop rax
 	pop rdx
 	mov edx, ecx
@@ -260,6 +308,11 @@ __write_digit_exp:
 	dec ecx
 	cmp eax, 0
 	jne __write_digit_exp
+	cmp byte [ecx], '-'
+	jne __write_digit_exp_possign
+	dec ecx
+
+__write_digit_exp_possign:
 	pop rdx
 	sub edx, ecx
 	pop rbx

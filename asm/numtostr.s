@@ -1,83 +1,93 @@
 section	.text
-	global _write
-	extern _safe_exit
-	extern _deref_var
+	global _numtostr
 
-__write_negsign:
+__num_negsign:
 	test cx, 0x0800
-	jz __write_negsign_ret
+	jz __num_negsign_ret
 	push rcx
 	push rax
 	push rdx
 	mov ecx, neg_sign
-	mov eax, 4
-	mov edx, 1
-	int 0x80
+	mov al, [ecx]
+	mov [ebx], al
+	inc ebx
 	pop rdx
 	pop rax
 	pop rcx
 
-__write_negsign_ret:
+__num_negsign_ret:
 	ret
 
-__write_inf:
+__num_inf:
 	cmp eax, 0
-	jne __write_nan
+	jne __num_nan
 	sub edx, 0x00100000
 	cmp edx, 0
-	jne __write_nan
+	jne __num_nan
 	pop rbx
 	mov ecx, inf
 	mov edx, 8
-	mov eax, 4
-	int 0x80
-	jmp __write_stdout_nl
-	
-__write_nan:
+__num_inf_loop:
+	mov al, [ecx]
+	mov [ebx], al
+	inc ebx
+	inc ecx
+	dec edx
+	cmp edx, 0
+	jne __num_inf_loop
+	ret
+
+__num_nan:
 	pop rbx
 	mov ecx, nan
 	mov edx, 3
-	mov eax, 4
-	int 0x80
-	jmp __write_stdout_nl
+__num_nan_loop:
+	mov al, [ecx]
+	mov [ebx], al
+	inc ebx
+	inc ecx
+	dec edx
+	cmp edx, 0
+	jne __num_nan_loop
+	ret
 
-__write_exp_negsign:
+__num_exp_negsign:
 	cmp ax, 1023
-	jg __write_exp_negsign_ret
+	jg __num_exp_negsign_ret
 	inc ecx
 	mov byte [ecx], '-'
 	inc ecx
 
-__write_exp_negsign_ret:
+__num_exp_negsign_ret:
 	ret
 
-__write_digit_loop:
+__num_digit_loop:
 	dec ecx
 	div ebx		; divide by 10
 	add dl, 48
 	mov [ecx], dl	; write div remainder
 	xor rdx, rdx
 	cmp rax, 0
-	jne __write_digit_loop
+	jne __num_digit_loop
 	ret
 
-__write_num_tinyint:
+__num_tinyint:
 	test eax, 1
-	jnz __write_num_mulint
+	jnz __num_mulint
 	shr eax, 1
 	test edx, 1
-	jz __write_num_nocarry
+	jz __num_nocarry
 	add eax, 0x80000000
 
-__write_num_nocarry:
+__num_nocarry:
 	shr edx, 1
 	inc cx
 	inc word [eexp]
 	cmp cx, 1075
-	je __write_num_fin
-	jmp __write_num_tinyint
+	je __num_fin
+	jmp __num_tinyint
 
-__write_num_mulint:
+__num_mulint:
 	push rcx
 	push rax
 	mov ebx, 5
@@ -92,27 +102,27 @@ __write_num_mulint:
 	pop rdx
 	add rdx, rcx
 
-__write_num_tinyround:
+__num_tinyround:
 	pop rcx
 	inc cx
 	push rcx
 	test rdx, 0xFFF00000
-	jz __write_num_tinytail
+	jz __num_tinytail
 	mov rcx, rdx
 	shr edx, 1
 	shl ecx, 31
 	shr eax, 1
 	add eax, ecx
 	inc word [eexp]
-	jmp __write_num_tinyround
+	jmp __num_tinyround
 
-__write_num_tinytail:
+__num_tinytail:
 	pop rcx
 
-__write_num_tinycond:
+__num_tinycond:
 	cmp cx, 1075
-	jl __write_num_tinyint
-	je __write_num_fin
+	jl __num_tinyint
+	je __num_fin
 	push rcx
 	mov ecx, eax
 	shl edx, 1
@@ -122,11 +132,12 @@ __write_num_tinycond:
 	pop rcx
 	dec cx
 	dec word [eexp]
-	jmp __write_num_tinycond
+	jmp __num_tinycond
 
-__write_num:
+_numtostr:
 	add eax, 4
 	push rbx
+	xor rcx, rcx
 	mov edx, [eax]
 	add eax, 4
 	mov ebx, [eax]
@@ -137,18 +148,37 @@ __write_num:
 	shr cx, 4
 	pop rax
 	xchg rbx, rax
-	call __write_negsign
+	call __num_negsign
 	xchg rdx, rax
+	cmp byte [ebx], '-'
+	jne __num_no_equals
+	inc ebx
+__num_no_equals:
 	push rbx
 	cmp cx, 0x07FF
-	je __write_inf
+	je __num_inf
 	cmp cx, 0x0FFF
-	je __write_inf
+	je __num_inf
 	test cx, 0x0800
-	jz __write_num_pos
+	jz __num_zero
 	sub cx, 0x0800
 
-__write_num_pos:
+__num_zero:
+	cmp cx, 0
+	jne __num_nonzero
+	cmp eax, 0
+	jne __num_nonzero
+	cmp edx, 0x00100000
+	jne __num_nonzero
+	mov [eexp], cx
+	add cx, 1075
+	xor rdx, rdx
+	mov dl, 48
+	pop rbx
+	mov [ebx], dl
+	ret
+
+__num_nonzero:
 	push rcx
 	push rax
 	push rdx
@@ -156,7 +186,7 @@ __write_num_pos:
 	mov ax, cx
 	mov ecx, wnb+28
 	mov byte [ecx], 'e'
-	call __write_exp_negsign
+	call __num_exp_negsign
 	pop rdx
 	pop rax
 	pop rcx
@@ -165,9 +195,10 @@ __write_num_pos:
 	mov [eexp], cx
 	pop rcx
 	cmp cx, 1075
-	jl __write_num_tinyint
+	je __num_fin
+	jl __num_tinyint
 
-__write_num_divint:
+__num_divint:
 	dec cx
 	mov ebx, 5
 	push rcx
@@ -182,12 +213,16 @@ __write_num_divint:
 	mov rbx, rdx
 	pop rdx
 	cmp rbx, 0
-	jne __write_num_round
+	jne __num_round
 	add rbx, 5
 
-__write_num_round:
+__num_round:
+	pop rcx
+	cmp cx, 1075
+	je __num_fin
+	push rcx
 	test rdx, 0xFFE00000
-	jnz __write_num_full
+	jnz __num_full
 	shr ebx, 1
 	add eax, ebx
 	mov ecx, eax
@@ -200,51 +235,35 @@ __write_num_round:
 	push rcx
 	dec word [eexp]
 	cmp cx, 1075
-	jg __write_num_round
+	jg __num_round
 
-__write_num_full:	
+__num_full:
 	pop rcx
 	cmp cx, 1075
-	jg __write_num_divint
+	jg __num_divint
 
-__write_num_smallint:
-	mov bx, 1075
-	sub bx, cx
-	sub bx, 1023
-	mov cx, bx
-	shr rax, cl
-	push rax
-	mov rax, rdx
-	shr rdx, cl
-	mov bx, 32
-	sub bx, cx
-	mov cx, bx
-	shl rax, cl
-	pop rbx
-	add rax, rbx
-
-__write_num_fin:
+__num_fin:
 	mov ecx, wnb+27
 	mov rbx, 10000000
 
-__write_digit:
+__num_digit:
 	div ebx		; divide by 10 000 000
 	push rax
 	mov rax, rdx
 	mov rbx, 10
 	xor rdx, rdx
-	call __write_digit_loop
+	call __num_digit_loop
 	pop rax
 	xor rdx, rdx
 	cmp rax, 0
-	jne __write_digit
+	jne __num_digit
 	pop rbx
 	dec ecx
 
-__write_digit_skip:
+__num_digit_skip:
 	inc ecx
 	cmp byte [ecx], 48
-	je __write_digit_skip
+	je __num_digit_skip
 	mov edx, wnb+27
 	sub edx, ecx
 	add dx, [eexp]
@@ -255,7 +274,7 @@ __write_digit_skip:
 	dec ecx
 	mov [ecx], dl
 	cmp ecx, wnb+25
-	jne __write_digit_notone
+	jne __num_digit_notone
 	inc ecx
 	mov byte [ecx], '0'
 	dec ecx
@@ -263,11 +282,17 @@ __write_digit_skip:
 	dec ecx
 	mov [ecx], dl
 
-__write_digit_notone:	
+__num_digit_notone:
 	mov edx, wnb+27
 	sub edx, ecx
-	mov eax, 4
-	int 0x80
+__num_digit_notone_loop:
+	mov al, [ecx]
+	mov [ebx], al
+	inc ebx
+	inc ecx
+	dec edx
+	cmp edx, 0
+	jne __num_digit_notone_loop
 	pop rax
 	add ecx, edx
 	inc ecx
@@ -277,102 +302,60 @@ __write_digit_notone:
 	push rax
 	mov rax, 1
 
-__write_digit_exp_len:
+__num_digit_exp_len:
 	xor rdx, rdx
 	mul rbx
 	pop rdx
 	push rdx
 	inc ecx
 	cmp byte [ecx], '-'
-	jne __write_digit_exp_len_possign
+	jne __num_digit_exp_len_possign
 	inc ecx
 	pop rdx
 	not dx
 	add dx, 1
 	push rdx
 
-__write_digit_exp_len_possign:
+__num_digit_exp_len_possign:
 	cmp rdx, rax
-	jge __write_digit_exp_len
+	jge __num_digit_exp_len
 	pop rax
 	pop rdx
 	mov edx, ecx
 	inc rdx
 	push rdx
 
-__write_digit_exp:
+__num_digit_exp:
 	xor rdx, rdx
 	div ebx
 	add dl, 48
 	mov [ecx], dl
 	dec ecx
 	cmp eax, 0
-	jne __write_digit_exp
+	jne __num_digit_exp
 	cmp byte [ecx], '-'
-	jne __write_digit_exp_possign
+	jne __num_digit_exp_possign
 	dec ecx
 
-__write_digit_exp_possign:
+__num_digit_exp_possign:
 	pop rdx
 	sub edx, ecx
 	pop rbx
-	mov eax, 4
-	int 0x80
-
-__write_stdout_nl:
-	cmp ebx, 0x0001
-	je __write_newline
-	cmp ebx, 0x0002
-	je __write_newline
-	mov eax, 1
-	ret
-
-__write_newline:
-	mov ecx, wnb	; use write buf
-	mov byte [ecx], 10	; store newline
-	mov edx, 1	; len 1
-	mov eax, 4	; sys_write
-	int 0x80
-	ret
-
-__write_str:
-	inc edx			; increase length
-	inc eax			; look at next character
-	cmp byte [eax], 0	; compare with null
-	jne __write_str		; write it if it isn't null
-	mov eax, 4		; sys_write
-	int 0x80
+__num_digit_exp_loop:
+	mov al, [ecx]
+	mov [ebx], al
+	inc ebx
+	inc ecx
 	dec edx
-	add ecx, edx
-	cmp byte [ecx], 10
-	jne __write_stdout_nl
+	cmp edx, 0
+	jne __num_digit_exp_loop
 	ret
 
-_write:
-	mov edx, eax
-	mov eax, ebx
-	;; Check for 'f' or 'h'
-	cmp byte [edx], 'f'
-	jne _safe_exit
-	add edx, 4
-	xor ebx, ebx
-	mov bl, [edx]
-	xor edx, edx
-	call _deref_var
-	cmp byte [eax], 'n'	; check for number
-	je __write_num		; go to number routine
-	cmp byte [eax], 's'
-	jne _safe_exit
-	add eax, 4
-	mov ecx, [eax]
-	mov eax, ecx
-	jmp __write_str		; go to string routine
+section .bss
+	eexp		resb 4
+	wnb		resb 32
 
 section	.data
 	neg_sign	db '-'
 	inf		db "infinity"
 	nan		db "NaN"
-
-section .bss
-	eexp		resb 4
-	wnb		resb 32

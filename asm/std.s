@@ -5,8 +5,23 @@ section		.text
 	global stdin
 	global stdout
 	global stderr
+	global brk
 	extern _numtostr
-	extern brk
+
+_allocstr:
+	mov ebx, [sbrk]
+	add ebx, 32
+	cmp ebx, brk
+	jl __allocstr_room
+	mov eax, 0x2d
+	int 0x80
+	cmp eax, 0
+	jl _safe_exit		; Out of Memory
+	mov dword [brk], eax
+__allocstr_room:
+	mov eax, [sbrk]
+	mov dword [sbrk], ebx
+	ret
 
 __deref_var_once:
 	inc eax
@@ -30,15 +45,21 @@ _write:
 	jne _safe_exit
 	add edx, 4
 	xor ebx, ebx
+	mov [rnb], ebx
 	mov bl, [edx]
 	xor edx, edx
 	call _deref_var
 	cmp byte [eax], 'n'	; check for number
 	jne __write_not_num
 	push rbx
-	mov ebx, rnb
+	push rax
+	call _allocstr
+	mov ebx, eax
+	mov [rnb], eax
+	pop rax
+	push rbx
 	call _numtostr		; go to number routine
-	mov eax, rnb
+	pop rax
 	pop rbx
 	jmp __write_syscall
 
@@ -81,9 +102,11 @@ __write_ret:
 	ret
 
 section .bss
-	rnb		resb 32
+	rnb	resb 4
+	brk	resb 4
 
 section	.data
 	stdin		dd 'f', 0 	; stdin
 	stdout		dd 'f', 1	; stdout
 	stderr		dd 'f', 2	; stderr
+	sbrk		dd $+64		; best guess at start of uninitialized heap...

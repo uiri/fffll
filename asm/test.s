@@ -6,8 +6,13 @@ section		.text
 	extern 	stdin
 	extern	stdout
 	extern	stderr
+	extern 	brk
 
 _start:			;tell linker entry point
+	mov eax, 0x2d
+	mov ebx, 0
+	int 0x80
+	mov dword [brk], eax
 	mov eax, stdout	; file to write to
 	mov ebx, msg	; string to write
 	call _write
@@ -21,4 +26,3 @@ section	.data
 	msg_contents	db "I like turtles", 10, "Look at me!!!", 10, 10, 0 ; our dear string
 	msg		dd 's', msg_contents ; value for string
 	num		dd 'n', 0x54442D18, 0x400921FB
-	brk		dd $

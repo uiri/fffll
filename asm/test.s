@@ -1,28 +1,43 @@
 section		.text
 	global	_start	; must be declared for linker (ld)
 	extern	_write
+	extern 	_read
 	extern	_deref_var
 	extern	_safe_exit
+	extern	_init_heap
 	extern 	stdin
 	extern	stdout
 	extern	stderr
-	extern 	brk
+
+_echo:
+	mov ebx, eax
+	mov eax, stdin	; file to read from
+	push rbx
+	call _read
+	pop rbx
+	mov dword [ebx], 's'
+	add ebx, 4
+	mov [ebx], eax
+	sub ebx, 4
+	mov eax, stdout	; file to write to
+	call _write
+	ret
 
 _start:			;tell linker entry point
-	mov eax, 0x2d
-	mov ebx, 0
-	int 0x80
-	mov dword [brk], eax
-	mov eax, stdout	; file to write to
-	mov ebx, msg	; string to write
-	call _write
+	call _init_heap
+	mov eax, x
+	call _echo
 	mov eax, stdout	; file to write to
 	mov ebx, num	; number to write
 	call _write
+	mov eax, y
+	call _echo
 	mov eax, 0
 	call _safe_exit
 
 section	.data
 	msg_contents	db "I like turtles", 10, "Look at me!!!", 10, 10, 0 ; our dear string
 	msg		dd 's', msg_contents ; value for string
+	x		dd '0', 0x00000000
+	y		dd '0', 0x00000000
 	num		dd 'n', 0x54442D18, 0x400921FB

@@ -1,5 +1,5 @@
-all:	test.o numtostr.o std.o
-	ld -o test test.o numtostr.o std.o
+all:	test.o numtostr.o std.o list.o
+	ld -o test test.o numtostr.o std.o list.o
 
 test.o: test.s
 	nasm -f elf64 test.s
@@ -9,3 +9,6 @@ numtostr.o: numtostr.s
 
 std.o: std.s
 	nasm -f elf64 std.s
+
+list.o: list.s
+	nasm -f elf64 list.s

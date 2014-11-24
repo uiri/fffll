@@ -5,6 +5,9 @@ section		.text
 	extern	_deref_var
 	extern	_safe_exit
 	extern	_init_heap
+	extern	_init_list
+	extern	_alloc_list
+	extern	_free_list
 	extern 	stdin
 	extern	stdout
 	extern	stderr
@@ -25,6 +28,7 @@ _echo:
 
 _start:			;tell linker entry point
 	call _init_heap
+	call _init_list
 	mov eax, x
 	call _echo
 	mov eax, stdout	; file to write to
@@ -32,6 +36,9 @@ _start:			;tell linker entry point
 	call _write
 	mov eax, y
 	call _echo
+	call _alloc_list
+	call _free_list
+	call _alloc_list
 	mov eax, 0
 	call _safe_exit
 

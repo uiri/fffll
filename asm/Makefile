@@ -1,14 +1,20 @@
-all:	test.o numtostr.o std.o list.o
-	ld -o test test.o numtostr.o std.o list.o
+#test.o: test.s
+#	nasm -f elf64 test.s
 
-test.o: test.s
-	nasm -f elf64 test.s
+#numtostr.o: numtostr.s
+#	nasm -f elf64 numtostr.s
 
-numtostr.o: numtostr.s
-	nasm -f elf64 numtostr.s
+#std.o: std.s
+#	nasm -f elf64 std.s
 
-std.o: std.s
-	nasm -f elf64 std.s
 
-list.o: list.s
-	nasm -f elf64 list.s
+#std.o: std.s
+#	nasm -f elf64 std.s
+
+#list.o: list.s
+#	nasm -f elf64 list.s
+
+#all:	test.o numtostr.o std.o
+#	ld -o test test.o numtostr.o std.o
+all:	test.s std.s numtostr.s list.s
+	cat test.s std.s numtostr.s list.s | gcc -x assembler -nostdlib -o test -

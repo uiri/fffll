@@ -1,5 +1,7 @@
-section	.text
-	global _numtostr
+#section	.text
+.intel_syntax noprefix
+.text
+	.globl _numtostr
 
 __num_negsign:
 	test cx, 0x0800
@@ -7,7 +9,7 @@ __num_negsign:
 	push rcx
 	push rax
 	push rdx
-	mov ecx, neg_sign
+	mov ecx, offset neg_sign
 	mov al, [ecx]
 	mov [ebx], al
 	inc ebx
@@ -25,7 +27,7 @@ __num_inf:
 	cmp edx, 0
 	jne __num_nan
 	pop rbx
-	mov ecx, inf
+	mov ecx, offset inf
 	mov edx, 8
 __num_inf_loop:
 	mov al, [ecx]
@@ -39,7 +41,7 @@ __num_inf_loop:
 
 __num_nan:
 	pop rbx
-	mov ecx, nan
+	mov ecx, offset nan
 	mov edx, 3
 __num_nan_loop:
 	mov al, [ecx]
@@ -55,7 +57,7 @@ __num_exp_negsign:
 	cmp ax, 1023
 	jg __num_exp_negsign_ret
 	inc ecx
-	mov byte [ecx], '-'
+	mov byte ptr [ecx], '-'
 	inc ecx
 
 __num_exp_negsign_ret:
@@ -63,9 +65,9 @@ __num_exp_negsign_ret:
 
 __num_digit_loop:
 	dec ecx
-	div ebx		; divide by 10
+	div ebx		# divide by 10
 	add dl, 48
-	mov [ecx], dl	; write div remainder
+	mov [ecx], dl	# write div remainder
 	xor rdx, rdx
 	cmp rax, 0
 	jne __num_digit_loop
@@ -82,7 +84,7 @@ __num_tinyint:
 __num_nocarry:
 	shr edx, 1
 	inc cx
-	inc word [eexp]
+	inc word ptr [eexp]
 	cmp cx, 1075
 	je __num_fin
 	jmp __num_tinyint
@@ -106,14 +108,14 @@ __num_tinyround:
 	pop rcx
 	inc cx
 	push rcx
-	test rdx, 0xFFF00000
+	test rdx, 0xFFFFFFFFFFF00000
 	jz __num_tinytail
 	mov rcx, rdx
 	shr edx, 1
 	shl ecx, 31
 	shr eax, 1
 	add eax, ecx
-	inc word [eexp]
+	inc word ptr [eexp]
 	jmp __num_tinyround
 
 __num_tinytail:
@@ -131,7 +133,7 @@ __num_tinycond:
 	shl eax, 1
 	pop rcx
 	dec cx
-	dec word [eexp]
+	dec word ptr [eexp]
 	jmp __num_tinycond
 
 _numtostr:
@@ -150,7 +152,7 @@ _numtostr:
 	xchg rbx, rax
 	call __num_negsign
 	xchg rdx, rax
-	cmp byte [ebx], '-'
+	cmp byte ptr [ebx], '-'
 	jne __num_no_equals
 	inc ebx
 __num_no_equals:
@@ -184,8 +186,8 @@ __num_nonzero:
 	push rdx
 	xor rax, rax
 	mov ax, cx
-	mov ecx, wnb+28
-	mov byte [ecx], 'e'
+	mov ecx, offset wnb+28
+	mov byte ptr [ecx], 'e'
 	call __num_exp_negsign
 	pop rdx
 	pop rax
@@ -221,7 +223,7 @@ __num_round:
 	cmp cx, 1075
 	je __num_fin
 	push rcx
-	test rdx, 0xFFE00000
+	test rdx, 0xFFFFFFFFFFE00000
 	jnz __num_full
 	shr ebx, 1
 	add eax, ebx
@@ -233,7 +235,7 @@ __num_round:
 	pop rcx
 	dec cx
 	push rcx
-	dec word [eexp]
+	dec word ptr [eexp]
 	cmp cx, 1075
 	jg __num_round
 
@@ -243,11 +245,11 @@ __num_full:
 	jg __num_divint
 
 __num_fin:
-	mov ecx, wnb+27
+	mov ecx, offset wnb+27
 	mov rbx, 10000000
 
 __num_digit:
-	div ebx		; divide by 10 000 000
+	div ebx		# divide by 10 000 000
 	push rax
 	mov rax, rdx
 	mov rbx, 10
@@ -262,28 +264,28 @@ __num_digit:
 
 __num_digit_skip:
 	inc ecx
-	cmp byte [ecx], 48
+	cmp byte ptr [ecx], 48
 	je __num_digit_skip
-	mov edx, wnb+27
+	mov edx, offset wnb+27
 	sub edx, ecx
 	add dx, [eexp]
 	push rdx
 	xor rdx, rdx
 	mov dl, [ecx]
-	mov byte [ecx], '.'
+	mov byte ptr [ecx], '.'
 	dec ecx
 	mov [ecx], dl
-	cmp ecx, wnb+25
+	cmp ecx, offset wnb+25
 	jne __num_digit_notone
 	inc ecx
-	mov byte [ecx], '0'
+	mov byte ptr [ecx], '0'
 	dec ecx
-	mov byte [ecx], '.'
+	mov byte ptr [ecx], '.'
 	dec ecx
 	mov [ecx], dl
 
 __num_digit_notone:
-	mov edx, wnb+27
+	mov edx, offset wnb+27
 	sub edx, ecx
 __num_digit_notone_loop:
 	mov al, [ecx]
@@ -308,7 +310,7 @@ __num_digit_exp_len:
 	pop rdx
 	push rdx
 	inc ecx
-	cmp byte [ecx], '-'
+	cmp byte ptr [ecx], '-'
 	jne __num_digit_exp_len_possign
 	inc ecx
 	pop rdx
@@ -333,7 +335,7 @@ __num_digit_exp:
 	dec ecx
 	cmp eax, 0
 	jne __num_digit_exp
-	cmp byte [ecx], '-'
+	cmp byte ptr [ecx], '-'
 	jne __num_digit_exp_possign
 	dec ecx
 
@@ -351,11 +353,11 @@ __num_digit_exp_loop:
 	jne __num_digit_exp_loop
 	ret
 
-section .bss
-	eexp		resb 4
-	wnb		resb 32
+.bss
+	.lcomm eexp	4
+	.lcomm wnb	32
 
-section	.data
-	neg_sign	db '-'
-	inf		db "infinity"
-	nan		db "NaN"
+.data
+neg_sign:	.byte '-'
+inf:		.ascii "infinity"
+nan:		.ascii "NaN"

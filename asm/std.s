@@ -1,4 +1,3 @@
-	#section		.text
 .intel_syntax noprefix
 .text
 	.globl	_deref_var
@@ -11,49 +10,7 @@
 	.globl	stderr
 	.globl	brk
 	.globl	sbrk
-	#extern	_numtostr
 
-_init_heap:
-	mov rax, 0x0c
-	xor rdx, rdx
-	mov rdi, rbx
-	mov rsi, rcx
-	syscall
-	mov [sbrk], rax
-	mov rbx, rax
-	add rbx, 2048
-	mov rax, 0x0c
-	mov rdi, rbx
-	mov rsi, rcx
-	syscall
-	cmp rax, rbx
-	jb _safe_exit
-	mov [brk], rax
-	ret
-
-_freestr:
-	push rax
-
-__freestr_overwrite:
-	mov byte ptr [rax], 0
-	inc rax
-	cmp byte ptr [rax], 0
-	jne __freestr_overwrite
-
-__freestr_clearblock:
-	inc rax
-	cmp rax, sbrk
-	jae __freestr_shrink
-	cmp byte ptr [rax], 0
-	je __freestr_clearblock
-__freestr_ret:
-	pop rax
-	ret
-__freestr_shrink:
-	pop rax
-	mov [sbrk], rax
-	xor rax, rax
-	ret
 
 _allocstr:
 	push rbx
@@ -76,18 +33,59 @@ __allocstr_room:
 	pop rbx
 	ret
 
+
+_init_heap:
+	mov rax, 0x0c
+	xor rdx, rdx
+	mov rdi, rbx
+	mov rsi, rcx
+	syscall
+	mov [sbrk], rax
+	mov rbx, rax
+	add rbx, 2048
+	mov rax, 0x0c
+	mov rdi, rbx
+	mov rsi, rcx
+	syscall
+	cmp rax, rbx
+	jb _safe_exit
+	mov [brk], rax
+	ret
+
+
+_freestr:
+	push rax
+__freestr_overwrite:
+	mov byte ptr [rax], 0
+	inc rax
+	cmp byte ptr [rax], 0
+	jne __freestr_overwrite
+__freestr_clearblock:
+	inc rax
+	cmp rax, sbrk
+	jae __freestr_shrink
+	cmp byte ptr [rax], 0
+	je __freestr_clearblock
+__freestr_ret:
+	pop rax
+	ret
+__freestr_shrink:
+	pop rax
+	mov [sbrk], rax
+	xor rax, rax
+	ret
+
+
 _reallocstr:
 	push rbx
 	push rax
 	push rax
 	mov rcx, 32
-
 __reallocstr_readstr:
 	inc rax
 	cmp byte ptr [rax], 0
 	jne __reallocstr_readstr
 	mov rbx, [sbrk]
-
 __reallocstr_clearblock:
 	cmp rax, rbx
 	je __reallocstr_extend
@@ -129,104 +127,40 @@ __reallocstr_copyloop:
 	inc rax
 	inc rcx
 	jmp __reallocstr_copyloop
-
 __reallocstr_ret:
 	pop rax
 	mov [sbrk], rbx
 	pop rbx
 	ret
 
+
 __deref_var_once:
 	inc rax
 	mov rax, [rax]
-
 _deref_var:
 	cmp byte ptr [rax], 'v'	# check for variable
 	je __deref_var_once
 	ret
 
+
 _safe_exit:
-	mov rdi, rax 	# move return value
-	mov rax,60		# sys_exit
+	mov rdi, rax	# move return value
+	mov rax,60	# sys_exit
 	syscall
 
-_write:
-	mov rdx, rax
-	mov rax, rbx
-	## Check for 'f' or 'h'
-	cmp byte ptr [rdx], 'f'
+
+_pop:
+	cmp byte ptr [rax], 'l'
 	jne _safe_exit
-	add rdx, 4
-	xor rbx, rbx
-	mov [rnb], rbx
-	mov bl, [rdx]
-	xor rdx, rdx
-	call _deref_var
-	cmp byte ptr [rax], 'n'	# check for number
-	jne __write_not_num
-	push rbx
 	push rax
-	call _allocstr
-	mov rbx, rax
-	mov [rnb], rax
-	pop rax
-	push rbx
-	call _numtostr		# go to number routine
-	pop rax
-	pop rbx
-	jmp __write_syscall
 
-__write_not_num:
-	cmp byte ptr [rax], 's'
+
+_push:
+	cmp byte ptr [rax], 'l'
 	jne _safe_exit
-	add rax, 4
-	mov rax, [rax]
-
-__write_syscall:
-	mov rcx, rax
-
-__write_str:
-	inc rdx			# increase length
-	inc rax			# look at next character
-	cmp byte ptr [rax], 0	# compare with null
-	jne __write_str		# write it if it isn't null
-	mov rsi, rcx
-	mov rdi, rbx
-	mov rax, 1		# sys_write
-	syscall
-	mov rcx, rsi
-	dec rdx
-	add rcx, rdx
-	cmp byte ptr [rcx], 10
-	je __write_ret
-
-__write_stdout_nl:
-	cmp rbx, 0x0001
-	je __write_newline
-	cmp rbx, 0x0002
-	je __write_newline
-	mov rax, 1
+	mov rax, [rax+4]
+	call _list_push
 	ret
-
-__write_newline:
-	mov rcx, offset rnb	# use write buf
-	cmp byte ptr [rcx], 0
-	jne __write_freestr
-
-__write_freestr_ret:
-	mov byte ptr [rcx], 10	# store newline
-	mov rdx, 1	# len 1
-	mov rdi, rbx
-	mov rsi, rcx
-	mov rax, 1	# sys_write
-	syscall
-__write_ret:
-	ret
-
-__write_freestr:
-	mov rax, [rcx]
-	call _freestr
-	jmp __write_freestr_ret
 
 _read:
 	## cmp byte ptr [rax], 'h'
@@ -277,15 +211,81 @@ __read_ret:
 	pop rax
 	pop rax
 	ret
-#section .bss
-#	rnb	resb 4
-#	brk	resb 4
-#	sbrk	resb 4
 
-#section	.data
-#	stdin		dd 'f', 0 	; stdin
-#	stdout		dd 'f', 1	; stdout
-#	stderr		dd 'f', 2	; stderr
+
+_write:
+	mov rdx, rax
+	mov rax, rbx
+	## Check for 'f' or 'h'
+	# cmp byte ptr [rdx], 'h'
+	# je _write_http
+	cmp byte ptr [rdx], 'f'
+	jne _safe_exit
+	add rdx, 4
+	xor rbx, rbx
+	mov [rnb], rbx
+	mov bl, [rdx]
+	xor rdx, rdx
+	call _deref_var
+	cmp byte ptr [rax], 'n'	# check for number
+	jne __write_not_num
+	push rbx
+	push rax
+	call _allocstr
+	mov rbx, rax
+	mov [rnb], rax
+	pop rax
+	push rbx
+	call _numtostr		# go to number routine
+	pop rax
+	pop rbx
+	jmp __write_syscall
+__write_not_num:
+	cmp byte ptr [rax], 's'
+	jne _safe_exit
+	add rax, 4
+	mov rax, [rax]
+__write_syscall:
+	mov rcx, rax
+__write_str:
+	inc rdx			# increase length
+	inc rax			# look at next character
+	cmp byte ptr [rax], 0	# compare with null
+	jne __write_str		# write it if it isn't null
+	mov rsi, rcx
+	mov rdi, rbx
+	mov rax, 1		# sys_write
+	syscall
+	mov rcx, rsi
+	dec rdx
+	add rcx, rdx
+	cmp byte ptr [rcx], 10
+	je __write_ret
+__write_stdout_nl:
+	cmp rbx, 0x0001
+	je __write_newline
+	cmp rbx, 0x0002
+	je __write_newline
+	mov rax, 1
+	ret
+__write_newline:
+	mov rcx, offset rnb	# use write buf
+	cmp byte ptr [rcx], 0
+	jne __write_freestr
+__write_freestr_ret:
+	mov byte ptr [rcx], 10	# store newline
+	mov rdx, 1	# len 1
+	mov rdi, rbx
+	mov rsi, rcx
+	mov rax, 1	# sys_write
+	syscall
+__write_ret:
+	ret
+
+__write_freestr:
+	mov rax, [rcx]
+	call _freestr
+	jmp __write_freestr_ret
 
 .bss
 	.lcomm	rnb	4

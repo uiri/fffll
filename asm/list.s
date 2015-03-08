@@ -1,10 +1,11 @@
-	#section .text
 .intel_syntax noprefix
 .text
 	.globl	_init_list
 	.globl	_alloc_list
 	.globl	_free_list
-	#extern	_safe_exit
+	.globl  _list_push
+	.globl	_list_get
+	.globl	_list_set
 
 _init_list:
 	push r9
@@ -21,13 +22,9 @@ _init_list:
 	mov r8, -1
 	xor r9, r9
 	syscall
-	test ax, 0x00FF
+	test ax, 0x0FFF
 	jnz _safe_exit
 	mov [listmanager], rax
-	mov rbx, rax
-	add rbx, 8
-	mov [rax], rbx
-	mov rax, rbx
 	pop rdi
 	pop rsi
 	pop rdx
@@ -37,69 +34,84 @@ _init_list:
 	ret
 
 _free_list:
-	mov rcx, [listmanager]
-	add rax, 24
-	mov rdx, [rcx]
-	sub rdx, rax
-	cmp rdx, 24
-	je __free_end_list
-	add rdx, rax
+	mov qword ptr [rax], 0
+	add rax, 8
+	mov rdx, [listmanager]
 	mov [rax], rdx
-__free_end_list:
-	mov [rcx], rax
+	sub rax, 8
+	mov [listmanager], rax
 	xor rax, rax
 	ret
 
 _alloc_list:
-	mov rcx, [listmanager]
-	mov rax, [rcx]
-	mov rdx, [rcx]
-	add rdx, 24
+	mov rax, [listmanager]
+	mov rdx, rax
+	add rdx, 8
 	cmp qword ptr [rdx], 0
 	je __alloc_list_nextblock
 	mov rdx, [rdx]
-	mov [rcx], rdx
-	jmp __alloc_list_ret
+	mov [listmanager], rdx
+	ret
 
 __alloc_list_nextblock:
 	add rdx, 8
-	sub rdx, rcx
-	cmp rdx, 0x1000
-	je __alloc_list_newpage
-	add qword ptr [rcx], 24
-	jmp __alloc_list_ret
-
-__alloc_list_newpage:
-	push r9
-	push r8
-	push r10
-	push rdx
-	push rsi
-	push rdi
-	mov rax, 0x09
-	xor rdi, rdi
-	mov rsi, 4096
-	mov rdx, 3
-	mov r10, 0x0022
-	mov r8, -1
-	xor r9, r9
-	syscall
+	test rdx, 0x0FFF
+	jnz __alloc_list_ret
+	call _init_list
 	mov [listmanager], rax
-	mov rbx, rax
-	add rax, 8
-	mov [rbx], rax
-	pop rdi
-	pop rsi
-	pop rdx
-	pop r10
-	pop r8
-	pop r9
-
 __alloc_list_ret:
+	add qword ptr [listmanager], 16
 	ret
 
-#section .bss
-#	listmanager	resb 8
+_list_get:
+	cmp rbx, 0
+	je __list_get_ret
+	mov rax, [rax+8]
+	dec rbx
+	jmp _list_get
+
+__list_get_ret:
+	mov rax, [rax]
+	ret
+
+
+_list_pop:
+	cmp qword ptr [rax+8], 0
+	je __list_pop_ret
+	mov rax, [rax+8]
+	jmp _list_pop
+__list_pop_ret:
+	mov rax, [rax]
+	ret
+
+
+_list_push:
+	push rax
+__list_push_traverse:
+	add rax, 8
+	cmp qword ptr [rax], 0
+	je __list_push_ret
+	mov rax, [rax]
+	jmp __list_push_traverse
+__list_push_ret:
+	sub rax, 8
+	mov [rax], rbx
+	pop rax
+	ret
+
+
+_list_set:
+	push rax
+	cmp rbx, 0
+	je __list_set_ret
+	mov rax, [rax+8]
+	dec rbx
+	jmp _list_set
+
+__list_set_ret:
+	mov [rax], rcx
+	pop rax
+	ret
 
 .bss
 	.comm listmanager 8

@@ -16,5 +16,6 @@
 
 #all:	test.o numtostr.o std.o
 #	ld -o test test.o numtostr.o std.o
+#cat test.s | gcc -x assembler -nostdlib -o test std.s numtostr.s list.s -
 all:	test.s std.s numtostr.s list.s
-	cat test.s std.s numtostr.s list.s | gcc -x assembler -nostdlib -o test -
+	gcc -g -nostdlib -o test test.s std.s numtostr.s list.s

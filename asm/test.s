@@ -1,15 +1,6 @@
 .intel_syntax noprefix
 .text
-#section		.text
-	.globl	_start	# must be declared for linker (ld)
-	#extern	_write
-	#extern 	_read
-	#extern	_deref_var
-	#extern	_safe_exit
-	#extern	_init_heap
-	#extern 	stdin
-	#extern	stdout
-	#extern	stderr
+	.globl	_start	# linker entry point
 
 _echo:
 	mov rbx, rax
@@ -25,7 +16,61 @@ _echo:
 	call _write
 	ret
 
-_start:			#tell linker entry point
+_list_test:
+	push rax
+	mov rbx, rax
+
+__list_test_iter_loop:
+	push rbx
+	call __list_test_iter
+	pop rbx
+	dec rbx
+	cmp rbx, 0
+	jne __list_test_iter_loop
+
+	pop rax
+__list_test_rev_iter_loop:
+	push rbx
+	call __list_test_iter
+	pop rbx
+	inc rbx
+	cmp rbx, rax
+	jne __list_test_rev_iter_loop
+	ret
+
+__list_test_iter:
+	mov rcx, 1
+
+__list_shl_loop:
+	shl rcx, 1
+	cmp rbx, 0
+	je __list_shl_break
+	dec rbx
+	jmp __list_shl_loop
+
+__list_shl_break:
+	mov rdx, rcx
+__list_test_alloc_loop:
+	push rax
+	push rdx
+	push rcx
+	call _alloc_list
+	pop rcx
+	pop rdx
+	dec rcx
+	cmp rcx, 0
+	jne __list_test_alloc_loop
+
+	mov rcx, rdx
+__list_test_free_loop:
+	call _free_list
+	pop rax
+	dec rcx
+	cmp rcx, 0
+	jne __list_test_free_loop
+	ret
+
+_start:
 	call _init_heap
 	call _init_list
 	mov rax, offset x
@@ -35,18 +80,10 @@ _start:			#tell linker entry point
 	call _write
 	mov rax, offset y
 	call _echo
-	call _alloc_list
-	call _free_list
-	call _alloc_list
-	mov eax, 0
+	mov rax, 15
+	call _list_test
+	mov rax, 0
 	call _safe_exit
-
-#section	.data
-#	msg_contents	db "I like turtles", 10, "Look at me!!!", 10, 10, 0 ; our dear string
-#	msg		dd 's', msg_contents ; value for string
-#	x		dd '0', 0x00000000
-#	y		dd '0', 0x00000000
-#	num		dd 'n', 0x54442D18, 0x400921FB
 
 	.data
 msg_contents:	.ascii	"I like turtles\nLookatme!!!\n\n\0"

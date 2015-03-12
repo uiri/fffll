@@ -41,7 +41,9 @@ void yyerror(const char* msg) {
 }
 
  Value* falsevalue;
- char* constants;
+ char* constants = "=\0<\0>\0&\0|\0~\0?\0_stdin\0\0_stdout\0_stderr\0_set\0\0_if\0"
+	"_for\0\0_write\0\0_read\0_open\0_add\0\0_mul\0\0_rcp\0\0_len\0\0_tok\0\0_cat\0\0_head"
+	"\0_tail\0_push\0_die\0\0_save\0";
 
  Value* stdfiles[3];
  FILE** stdinp, **stdoutp, **stderrp;
@@ -514,11 +516,9 @@ int main(int argc, char** argv) {
   FILE* fp;
   /* The value between str's [] should be the value of strsize
    * Don't forget to change it at the top of the file */
-  const char* str[] = { "=", "<", ">", "&", "|", "~", "?", "_stdin", "_stdout",
-                        "_stderr", "_set", "_if", "_for", "_write", "_read",
-                        "_open", "_add", "_mul", "_rcp", "_len", "_tok", "_cat",
-                        "_head", "_tail", "_push", "_die", "_save"};
-  int i, j, k, l;
+  const int constoffsets[] = {38, 44, 48, 54, 62, 68, 74, 80, 86,
+	92, 98, 104, 110, 116, 122, 128, 134}; /* 140 next */
+  int i;
   Value* v;
   /* if (argc != 2) { */
   /*   printf("This program takes exactly one argument. The file to interpret\n"); */
@@ -527,19 +527,6 @@ int main(int argc, char** argv) {
   /* Number of bytes needed to store all the chars in str,
    * with alignment padding */
   lenconstants = 140;
-  constants = calloc(lenconstants, 1);
-  l = 0;
-  for (i=0;i<strsize;i++) {
-    k = strlen(str[i]);
-    for (j=0;j<k;j++) {
-      constants[l] = str[i][j];
-      l++;
-    }
-    l++;
-    if (k%2 == 0) {
-      l++;
-    }
-  }
   eq = constants;
   lt = constants+2;
   gt = constants+4;
@@ -602,80 +589,18 @@ int main(int argc, char** argv) {
   globalvars = insertInTree(globalvars, constants+23, stdfiles[1]);
   globalvars = insertInTree(globalvars, constants+30, stdfiles[2]);
   globalvars = insertInTree(globalvars, constants+31, stdfiles[2]);
-  globalvars = insertInTree(globalvars, constants+38, funcdeftable[0]); /* _set */
-  globalvars = insertInTree(globalvars, constants+39, funcdeftable[0]); /* set */
-  globalvars = insertInTree(globalvars, constants+44, funcdeftable[1]); /* _if */
-  globalvars = insertInTree(globalvars, constants+45, funcdeftable[1]); /* if */
-  globalvars = insertInTree(globalvars, constants+48, funcdeftable[2]); /* _for */
-  globalvars = insertInTree(globalvars, constants+49, funcdeftable[2]); /* for */
-  globalvars = insertInTree(globalvars, constants+54, funcdeftable[3]); /* _write */
-  globalvars = insertInTree(globalvars, constants+55, funcdeftable[3]); /* write */
-  globalvars = insertInTree(globalvars, constants+62, funcdeftable[4]); /* _read */
-  globalvars = insertInTree(globalvars, constants+63, funcdeftable[4]); /* read */
-  globalvars = insertInTree(globalvars, constants+68, funcdeftable[5]); /* _open */
-  globalvars = insertInTree(globalvars, constants+69, funcdeftable[5]); /* open */
-  globalvars = insertInTree(globalvars, constants+74, funcdeftable[6]); /* _add */
-  globalvars = insertInTree(globalvars, constants+75, funcdeftable[6]); /* add */
-  globalvars = insertInTree(globalvars, constants+80, funcdeftable[7]); /* _mul */
-  globalvars = insertInTree(globalvars, constants+81, funcdeftable[7]); /* mul */
-  globalvars = insertInTree(globalvars, constants+86, funcdeftable[8]); /* _rcp */
-  globalvars = insertInTree(globalvars, constants+87, funcdeftable[8]); /* rcp */
-  globalvars = insertInTree(globalvars, constants+92, funcdeftable[9]); /* _len */
-  globalvars = insertInTree(globalvars, constants+93, funcdeftable[9]); /* len */
-  globalvars = insertInTree(globalvars, constants+98, funcdeftable[10]); /* _tok */
-  globalvars = insertInTree(globalvars, constants+99, funcdeftable[10]); /* tok */
-  globalvars = insertInTree(globalvars, constants+104, funcdeftable[11]); /* _cat */
-  globalvars = insertInTree(globalvars, constants+105, funcdeftable[11]); /* cat */
-  globalvars = insertInTree(globalvars, constants+110, funcdeftable[12]); /* _head */
-  globalvars = insertInTree(globalvars, constants+111, funcdeftable[12]); /* head */
-  globalvars = insertInTree(globalvars, constants+116, funcdeftable[13]); /* _tail */
-  globalvars = insertInTree(globalvars, constants+117, funcdeftable[13]); /* tail */
-  globalvars = insertInTree(globalvars, constants+122, funcdeftable[14]); /* _push */
-  globalvars = insertInTree(globalvars, constants+123, funcdeftable[14]); /* push */
-  globalvars = insertInTree(globalvars, constants+128, funcdeftable[15]); /* _die */
-  globalvars = insertInTree(globalvars, constants+129, funcdeftable[15]); /* die */
-  globalvars = insertInTree(globalvars, constants+134, funcdeftable[16]); /* _save */ /* +140 next */
-  globalvars = insertInTree(globalvars, constants+135, funcdeftable[16]); /* save */ /* +141 next */
   addToListBeginning(varnames, constants+14);
   addToListBeginning(varnames, constants+15);
   addToListBeginning(varnames, constants+22);
   addToListBeginning(varnames, constants+23);
   addToListBeginning(varnames, constants+30);
   addToListBeginning(varnames, constants+31);
-  addToListBeginning(varnames, constants+38);
-  addToListBeginning(varnames, constants+39);
-  addToListBeginning(varnames, constants+44);
-  addToListBeginning(varnames, constants+45);
-  addToListBeginning(varnames, constants+48);
-  addToListBeginning(varnames, constants+49);
-  addToListBeginning(varnames, constants+54);
-  addToListBeginning(varnames, constants+55);
-  addToListBeginning(varnames, constants+62);
-  addToListBeginning(varnames, constants+63);
-  addToListBeginning(varnames, constants+68);
-  addToListBeginning(varnames, constants+69);
-  addToListBeginning(varnames, constants+74);
-  addToListBeginning(varnames, constants+75);
-  addToListBeginning(varnames, constants+80);
-  addToListBeginning(varnames, constants+81);
-  addToListBeginning(varnames, constants+86);
-  addToListBeginning(varnames, constants+87);
-  addToListBeginning(varnames, constants+92);
-  addToListBeginning(varnames, constants+93);
-  addToListBeginning(varnames, constants+98);
-  addToListBeginning(varnames, constants+99);
-  addToListBeginning(varnames, constants+104);
-  addToListBeginning(varnames, constants+105);
-  addToListBeginning(varnames, constants+110);
-  addToListBeginning(varnames, constants+111);
-  addToListBeginning(varnames, constants+116);
-  addToListBeginning(varnames, constants+117);
-  addToListBeginning(varnames, constants+122);
-  addToListBeginning(varnames, constants+123);
-  addToListBeginning(varnames, constants+128);
-  addToListBeginning(varnames, constants+129);
-  addToListBeginning(varnames, constants+134);
-  addToListBeginning(varnames, constants+135);
+  for (i=0;i<17;i++) {
+    globalvars = insertInTree(globalvars, constants+constoffsets[i],   funcdeftable[i]);
+    globalvars = insertInTree(globalvars, constants+constoffsets[i]+1, funcdeftable[i]);
+    addToListBeginning(varnames, constants+constoffsets[i]);
+    addToListBeginning(varnames, constants+constoffsets[i]+1);
+  }
   addToListBeginning(varlist, globalvars);
   parencount = malloc(16*sizeof(int));
   parencount[parencountind] = 0;

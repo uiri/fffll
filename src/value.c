@@ -132,7 +132,6 @@ int cleanupFffll(Value* v) {
   free(stdinp);
   free(stdoutp);
   free(stderrp);
-  free(constants);
   if (curl_init)
     curl_global_cleanup();
   return 0;

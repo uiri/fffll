@@ -43,6 +43,7 @@ struct funcdef {
   List* statements;
   List* arguments;
   int alloc;
+  int blocknum;
 };
 
 typedef struct funcval FuncVal;

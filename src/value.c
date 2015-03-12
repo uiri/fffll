@@ -35,6 +35,7 @@ extern VarTree* globalvars;
 extern short curl_init;
 extern int strsize;
 extern int funcnum;
+extern int blocknum;
 extern Value* funcdeftable[15];
 
 extern Value* stdfiles[3];
@@ -282,6 +283,7 @@ FuncDef* newFuncDef(List* al, List* sl, int alloc) {
   fd->arguments = al;
   fd->evaluate = &evaluateFuncDef;
   fd->alloc = alloc;
+  fd->blocknum = blocknum-1;
   return fd;
 }
 

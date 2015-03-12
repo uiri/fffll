@@ -5,12 +5,25 @@
 	.globl	_init_heap
 	.globl	_read
 	.globl	_write
-	.globl	stdin
-	.globl	stdout
-	.globl	stderr
+	.globl	var_stdin
+	.globl	var_stdout
+	.globl	var_stderr
 	.globl	brk
 	.globl	sbrk
 
+_allocvar:
+	mov rax, offset brkvar
+	cmp qword ptr [rax], 0xffffffffffffffff
+	jne __allocvar_ret
+	call _allocstr
+	add rax, 24
+	mov qword ptr [rax], 0xffffffffffffffff
+	sub rax, 24
+__allocvar_ret:
+	mov rbx, rax
+	add rbx, 12
+	mov [brkvar], rbx
+	ret
 
 _allocstr:
 	push rbx
@@ -138,6 +151,7 @@ __deref_var_once:
 	inc rax
 	mov rax, [rax]
 _deref_var:
+	mov rax, [rax]
 	cmp byte ptr [rax], 'v'	# check for variable
 	je __deref_var_once
 	ret
@@ -163,6 +177,12 @@ _push:
 	ret
 
 _read:
+	push rbp
+	mov rbp, rsp
+	mov rax, rbp
+	add rax, 16
+	mov rbx, rax
+	add rbx, 8
 	## cmp byte ptr [rax], 'h'
 	## je __read_http		# check for http stream
 	cmp byte ptr [rax], 'f'
@@ -210,12 +230,38 @@ __read_clearbuf:
 __read_ret:
 	pop rax
 	pop rax
+	mov rdx, rax
+	call _allocvar
+	mov byte ptr [rax], 's'
+	add rax, 4
+	mov [rax], rdx
+	sub rax, 4
+	mov rsp, rbp
+	pop rbp
 	ret
 
 
 _write:
-	mov rdx, rax
-	mov rax, rbx
+	push rbp
+	mov rbp, rsp
+	mov rdx, rbp
+	add rdx, 16
+	mov rax, rdx
+__write_arg_loop:
+	add rax, 8
+	cmp qword ptr [rax], 0
+	je __write_outret
+	push rdx
+	push rax
+	call __write_arg
+	pop rax
+	pop rdx
+	jmp __write_arg_loop
+__write_outret:
+	mov rsp, rbp
+	pop rbp
+	ret
+__write_arg:
 	## Check for 'f' or 'h'
 	# cmp byte ptr [rdx], 'h'
 	# je _write_http
@@ -293,6 +339,7 @@ __write_freestr:
 	.lcomm	sbrk	8
 
 .data
-stdin:	.long 0x66, 0x0, 0x0
-stdout:	.long 0x66, 0x1, 0x0
-stderr:	.long 0x66, 0x2, 0x0
+var_stdin:	.long 0x66, 0x0, 0x0
+var_stdout:	.long 0x66, 0x1, 0x0
+var_stderr:	.long 0x66, 0x2, 0x0
+brkvar:		.quad 0xffffffffffffffff

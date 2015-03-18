@@ -3,6 +3,7 @@
 	.globl	_deref_var
 	.globl	_safe_exit
 	.globl	_init_heap
+	.globl	_add
 	.globl	_read
 	.globl	_write
 	.globl	var_stdin
@@ -148,7 +149,7 @@ __reallocstr_ret:
 
 
 __deref_var_once:
-	inc rax
+	add rax, 4
 	mov rax, [rax]
 _deref_var:
 	mov rax, [rax]
@@ -162,6 +163,42 @@ _safe_exit:
 	mov rax,60	# sys_exit
 	syscall
 
+_add:
+	push rbp
+	mov rbp, rsp
+	mov rax, rbp
+	add rax, 16
+	mov rbx, rax
+	call _deref_var
+	cmp byte ptr [rax], 'n' # check for number
+	jne _safe_exit
+	add rax, 4
+	fld qword ptr [rax]
+__add_next_arg:
+	add rbx, 8
+	cmp qword ptr [rbx], 0
+	je __add_ret
+	push rbx
+	push rax
+	mov rax, rbx
+	call _deref_var
+	mov rbx, rax
+	pop rax
+	cmp byte ptr [rbx], 'n' # check for number
+	jne _safe_exit
+	add rbx, 4
+	fadd qword ptr [rbx]
+	pop rbx
+	jmp __add_next_arg
+__add_ret:
+	call _allocvar
+	mov byte ptr [rax], 'n'
+	add rax, 4
+	fstp qword ptr [rax]
+	sub rax, 4
+	mov rsp, rbp
+	pop rbp
+	ret
 
 _pop:
 	cmp byte ptr [rax], 'l'
@@ -260,6 +297,7 @@ __write_arg_loop:
 __write_outret:
 	mov rsp, rbp
 	pop rbp
+	xor rax, rax
 	ret
 __write_arg:
 	## Check for 'f' or 'h'

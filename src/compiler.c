@@ -22,18 +22,18 @@ extern List* buffernames;
 
 #define BOOL_REALLOC(data) digit = ((Value*)data)->type;\
   if (digit == 'c' || digit == 'b') {\
-    SNPRINTF_REALLOC(snprintf(s+i, j-i, "%s\nadd rax, 4\nmov rax, [rax]\n", (t = valueToLlvmString(data, prefix, localvars))),\
-		     snprintf(s+i, j-i, "%s\nadd rax, 4\nmov rax, [rax]\n", t));\
+    SNPRINTF_REALLOC(snprintf(s+i, j-i, "%s\nmov rax, [rax+4]\n", (t = valueToLlvmString(data, prefix, localvars))),\
+		     snprintf(s+i, j-i, "%s\nmov rax, [rax+4]\n", t));\
   } else if (digit == 'n' || digit == 's') {\
     SNPRINTF_REALLOC(snprintf(s+i, j-i, "mov rax, offset %s\n", (t = valueToLlvmString(data, prefix, localvars))),\
 		     snprintf(s+i, j-i, "mov rax, offset %s\n", t));\
     if (digit == 'n') {\
-      SNPRINTF_REALLOC(snprintf(s+i, j-i, "mov rbx, rax\nadd rbx, 4\nmov rax, [rbx]\n"),\
-		       snprintf(s+i, j-i, "mov rbx, rax\nadd rbx, 4\nmov rax, [rbx]\n"));\
+      SNPRINTF_REALLOC(snprintf(s+i, j-i, "mov rax, [rax+4]\n"),\
+		       snprintf(s+i, j-i, "mov rax, [rax+4]\n"));\
     }\
   } else {\
-    SNPRINTF_REALLOC(snprintf(s+i, j-i, "mov rax, [%s]\nadd rax, 4\nmov rax, [rax]\n", (t = valueToLlvmString(data, prefix, localvars))),\
-		     snprintf(s+i, j-i, "mov rax, [%s]\nadd rax, 4\nmov rax, [rax]\n", t));\
+    SNPRINTF_REALLOC(snprintf(s+i, j-i, "mov rax, [%s]\nmov rax, [rax+4]\n", (t = valueToLlvmString(data, prefix, localvars))),\
+		     snprintf(s+i, j-i, "mov rax, [%s]\nmov rax, [rax+4]\n", t));\
   }\
   free(t)
 
@@ -239,8 +239,8 @@ char* valueToLlvmString(Value* v, char* prefix, List* localvars) {
       free(t);
     } else if (fvname == constants+44) {
       c = branchnum++;
-      SNPRINTF_REALLOC(snprintf(s+i, j-i, "%s\nadd rax, 4\ncmp qword ptr [rax], 0x0\nje _branch_%d\n", (t = valueToLlvmString(fv->arglist->next->data, prefix, localvars)), c),
-		       snprintf(s+i, j-i, "%s\nadd rax, 4\ncmp qword ptr [rax], 0x0\nje _branch_%d\n", t, c));
+      SNPRINTF_REALLOC(snprintf(s+i, j-i, "%s\ncmp qword ptr [rax+4], 0x0\nje _branch_%d\n", (t = valueToLlvmString(fv->arglist->next->data, prefix, localvars)), c),
+		       snprintf(s+i, j-i, "%s\ncmp qword ptr [rax+4], 0x0\nje _branch_%d\n", t, c));
       free(t);
       SNPRINTF_REALLOC(snprintf(s+i, j-i, "%s", (t = valueToLlvmString(fv->arglist->next->next->data, prefix, localvars))),
 		       snprintf(s+i, j-i, "%s", t));
@@ -261,8 +261,8 @@ char* valueToLlvmString(Value* v, char* prefix, List* localvars) {
 	  } else {
 	    b = c;
 	  }
-	  SNPRINTF_REALLOC(snprintf(s+i, j-i, "%s\nadd rax, 4\ncmp qword ptr [rax], 0x0\nje _branch_%d\n", (t = valueToLlvmString(node->data, prefix, localvars)), b),
-			   snprintf(s+i, j-i, "%s\nadd rax, 4\ncmp qword ptr [rax], 0x0\nje _branch_%d\n", t, b));
+	  SNPRINTF_REALLOC(snprintf(s+i, j-i, "%s\ncmp qword ptr [rax+4], 0x0\nje _branch_%d\n", (t = valueToLlvmString(node->data, prefix, localvars)), b),
+			   snprintf(s+i, j-i, "%s\ncmp qword ptr [rax+4], 0x0\nje _branch_%d\n", t, b));
 	  free(t);
 	  node = node->next;
 	}
@@ -292,8 +292,8 @@ char* valueToLlvmString(Value* v, char* prefix, List* localvars) {
       t = NULL;
       if (fv->arglist->next->next) {
 	c = branchnum++;
-	SNPRINTF_REALLOC(snprintf(s+i, j-i, "%s\nadd rax, 4\ncmp qword ptr [rax], 0x0\nje _branch_%d\n", (t = valueToLlvmString(node->data, prefix, localvars)), c),
-			 snprintf(s+i, j-i, "%s\nadd rax, 4\ncmp qword ptr [rax], 0x0\nje _branch_%d\n", t, c));
+	SNPRINTF_REALLOC(snprintf(s+i, j-i, "%s\ncmp qword ptr [rax+4], 0x0\nje _branch_%d\n", (t = valueToLlvmString(node->data, prefix, localvars)), c),
+			 snprintf(s+i, j-i, "%s\ncmp qword ptr [rax+4], 0x0\nje _branch_%d\n", t, c));
 	node = fv->arglist->next->next;
       }
       free(t);
@@ -443,8 +443,8 @@ char* valueToLlvmString(Value* v, char* prefix, List* localvars) {
       SNPRINTF_REALLOC(snprintf(s+i, j-i, "xor rax, 1\n"),
 		       snprintf(s+i, j-i, "xor rax, 1\n"));
     }
-    SNPRINTF_REALLOC(snprintf(s+i, j-i, "mov rdx, rax\ncall _allocvar\nmov byte ptr [rax], 'b'\nadd rax, 4\nmov qword ptr [rax], rdx\nsub rax, 4"),
-		     snprintf(s+i, j-i, "mov rdx, rax\ncall _allocvar\nmov byte ptr [rax], 'b'\nadd rax, 4\nmov qword ptr [rax], rdx\nsub rax, 4"));
+    SNPRINTF_REALLOC(snprintf(s+i, j-i, "mov rdx, rax\ncall _allocvar\nmov byte ptr [rax], 'b'\nmov qword ptr [rax+4], rdx"),
+		     snprintf(s+i, j-i, "mov rdx, rax\ncall _allocvar\nmov byte ptr [rax], 'b'\nmov qword ptr [rax+4], rdx"));
     break;
   case 'd':
     j = 256;
@@ -528,11 +528,29 @@ char* valueToLlvmString(Value* v, char* prefix, List* localvars) {
   return s;
 }
 
+char* stringToHexString(char* t) {
+  char* s;
+  int i, j, k, h;
+  unsigned char digit;
+  i = 0;
+  j = 256;
+  s = malloc(j);
+  for (h = 0;t[h];h++) {
+    digit = t[h];
+    SNPRINTF_REALLOC(snprintf(s+i, j-i, "0x%02x,", digit),
+		     snprintf(s+i, j-i, "0x%02x,", digit));
+  }
+  SNPRINTF_REALLOC(snprintf(s+i, j-i, "0x00"),
+		   snprintf(s+i, j-i, "0x00"));
+  return s;
+}
+
 char* doubleToHexString(double* d) {
-  int i = 0, j, b, c;
+  int i = 0, j, b, c, neg;
   char* s, *t, digit;
   j = 24;
   s = malloc(j);
+  neg = (*d < 0.0);
   t = (char*)d;
   i += snprintf(s+i, j-i, "0x");
   c = 1;
@@ -544,6 +562,9 @@ char* doubleToHexString(double* d) {
     }
     digit = (t[8-b]/16)+48;
     if (digit < 48) digit += 16;
+    if (b == 1 && neg) {
+      digit -= 1;
+    }
     if (57 < digit)
       i += snprintf(s+i, j-i, "%c", digit+39);
     else

@@ -5,6 +5,7 @@
 	.globl	_safe_exit
 	.globl	_init_heap
 	.globl	_add
+	.globl	_mul
 	.globl	_read
 	.globl	_write
 	.globl	var_stdin
@@ -14,13 +15,11 @@
 	.globl	sbrk
 
 _allocvar:
-	mov rax, offset brkvar
-	cmp qword ptr [rax], 0xffffffffffffffff
+	mov rax, [brkvar]
+	cmp rax, 0xffffffffffffffff
 	jne __allocvar_ret
 	call _allocstr
-	add rax, 24
-	mov qword ptr [rax], 0xffffffffffffffff
-	sub rax, 24
+	mov qword ptr [rax+24], 0xffffffffffffffff
 __allocvar_ret:
 	mov rbx, rax
 	add rbx, 12
@@ -173,8 +172,7 @@ _add:
 	call _deref_var
 	cmp byte ptr [rax], 'n' # check for number
 	jne _safe_exit
-	add rax, 4
-	fld qword ptr [rax]
+	fld qword ptr [rax+4]
 __add_next_arg:
 	add rbx, 8
 	cmp qword ptr [rbx], 0
@@ -187,24 +185,57 @@ __add_next_arg:
 	pop rax
 	cmp byte ptr [rbx], 'n' # check for number
 	jne _safe_exit
-	add rbx, 4
-	fadd qword ptr [rbx]
+	fadd qword ptr [rbx+4]
 	pop rbx
 	jmp __add_next_arg
 __add_ret:
 	call _allocvar
 	mov byte ptr [rax], 'n'
-	add rax, 4
-	fstp qword ptr [rax]
-	sub rax, 4
+	fstp qword ptr [rax+4]
 	mov rsp, rbp
 	pop rbp
 	ret
+
+
+_mul:
+	push rbp
+	mov rbp, rsp
+	mov rax, rbp
+	add rax, 16
+	mov rbx, rax
+	call _deref_var
+	cmp byte ptr [rax], 'n' # check for number
+	jne _safe_exit
+	fld qword ptr [rax+4]
+__mul_next_arg:
+	add rbx, 8
+	cmp qword ptr [rbx], 0
+	je __mul_ret
+	push rbx
+	push rax
+	mov rax, rbx
+	call _deref_var
+	mov rbx, rax
+	pop rax
+	cmp byte ptr [rbx], 'n' # check for number
+	jne _safe_exit
+	fmul qword ptr [rbx+4]
+	pop rbx
+	jmp __mul_next_arg
+__mul_ret:
+	call _allocvar
+	mov byte ptr [rax], 'n'
+	fstp qword ptr [rax+4]
+	mov rsp, rbp
+	pop rbp
+	ret
+
 
 _pop:
 	cmp byte ptr [rax], 'l'
 	jne _safe_exit
 	push rax
+	ret
 
 
 _push:
@@ -213,6 +244,7 @@ _push:
 	mov rax, [rax+4]
 	call _list_push
 	ret
+
 
 _read:
 	push rbp

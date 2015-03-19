@@ -952,7 +952,7 @@ int main(int argc, char** argv) {
     i = 0;
     for (sl = stringlist;sl != NULL;sl = sl->next) {
       if (sl->data) {
-	printf("strlist_%d:	.long 0x73\n		.quad .+8\n		.asciz \"%s\"\n", i, ((String*)sl->data)->val);
+	printf("strlist_%d:	.long 0x73\n		.quad .+8\n		.byte %s\n", i, stringToHexString(((String*)sl->data)->val));
 	i++;
       }
     }

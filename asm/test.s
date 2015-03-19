@@ -3,17 +3,17 @@
 	.globl	_start	# linker entry point
 
 _echo:
-	mov rbx, rax
-	mov rax, offset stdin	# file to read from
-	push rbx
+	push 0
+	push 0
+	mov rax, [var_stdin]	# file to read from
+	push rax
 	call _read
-	pop rbx
-	mov byte ptr [rbx], 's'
-	add rbx, 4
-	mov [rbx], rax
-	sub rbx, 4
-	mov rax, offset stdout	# file to write to
+	add rsp, 16
+	push rax
+	mov rax, [var_stdout]	# file to write to
+	push rax
 	call _write
+	add rsp, 24
 	ret
 
 _list_test:
@@ -73,12 +73,14 @@ __list_test_free_loop:
 _start:
 	call _init_heap
 	call _init_list
-	mov rax, offset x
 	call _echo
-	mov rax, offset stdout
-	mov rbx, offset num
+	push 0
+	mov rax, offset num
+	push rax
+	mov rax, [var_stdout]
+	push rax
 	call _write
-	mov rax, offset y
+	add rsp, 24
 	call _echo
 	mov rax, 15
 	call _list_test
@@ -88,6 +90,4 @@ _start:
 	.data
 msg_contents:	.ascii	"I like turtles\nLookatme!!!\n\n\0"
 msg:		.long	0x73, msg_contents
-x:		.long	0x30, 0x0, 0x0
-y:		.long	0x30, 0x0, 0x0
-num:		.long	0x6e, 0x54442D18, 0x400921FB
+num:		.long	0x6e, 0x54442D18, 0xc00921FB

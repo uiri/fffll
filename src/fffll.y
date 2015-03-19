@@ -36,7 +36,7 @@ int parencountmax = 16;
 #define YYERROR_VERBOSE
 
 void yyerror(const char* msg) {
-  printf("%s, try line %d\n", msg, lineno);
+  fprintf(stderr, "%s, try line %d\n", msg, lineno);
 }
 
  Value* falsevalue;
@@ -50,6 +50,7 @@ void yyerror(const char* msg) {
  List* varlist;
  List* varnames;
  List* stringlist;
+ List* numlist;
  List* jmplist;
  List* localvarlist;
  VarTree* globalvars;
@@ -489,8 +490,18 @@ value	: STR			{
 				}
 	| NUM			{
 				  double* n;
+				  List* node;
 				  n = malloc(sizeof(double));
 				  *n = $1;
+				  if (!repl) {
+				    for (node = numlist; node != NULL; node = node->next) {
+				      if (node->data && *(double*)node->data == *n) {
+					break;
+				      }
+				    }
+				    if (node == NULL)
+				      addToListEnd(numlist, n);
+				  }
 				  $$ = newValue('n', n);
 				}
 	| VAR			{
@@ -569,6 +580,7 @@ int main(int argc, char** argv) {
   varnames = newList();
   varlist = newList();
   stringlist = newList();
+  numlist = newList();
   jmplist = newList();
   stdfiles[0] = newValue('f', stdinp);
   stdfiles[1] = newValue('f', stdoutp);
@@ -930,6 +942,7 @@ int main(int argc, char** argv) {
 	free(s);
       }
     }
+    freeList(localvarlist);
     printf("call _safe_exit\n\n");
     printf(".data\n"
 	   /* "stdin:	.long 0x66, 0x0, 0x0\n" */
@@ -941,6 +954,14 @@ int main(int argc, char** argv) {
       if (sl->data) {
 	printf("strlist_%d:	.long 0x73\n		.quad .+8\n		.asciz \"%s\"\n", i, ((String*)sl->data)->val);
 	i++;
+      }
+    }
+    i = 0;
+    for (sl = numlist; sl != NULL;sl = sl->next) {
+      if (sl->data) {
+	printf("numlist_%d:	.long 0x6e, %s\n", i, (s = doubleToHexString(sl->data)));
+	i++;
+	free(s);
       }
     }
     printf(".bss\n"

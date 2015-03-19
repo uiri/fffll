@@ -1,6 +1,7 @@
 .intel_syntax noprefix
 .text
 	.globl	_deref_var
+	.globl	_allocvar
 	.globl	_safe_exit
 	.globl	_init_heap
 	.globl	_add
@@ -312,7 +313,7 @@ __write_arg:
 	xor rdx, rdx
 	call _deref_var
 	cmp byte ptr [rax], 'n'	# check for number
-	jne __write_not_num
+	jne __write_bool
 	push rbx
 	push rax
 	call _allocstr
@@ -323,6 +324,18 @@ __write_arg:
 	call _numtostr		# go to number routine
 	pop rax
 	pop rbx
+	jmp __write_syscall
+__write_bool:
+	cmp byte ptr [rax], 'b'
+	jne __write_not_num
+	add rax, 4
+	cmp qword ptr [rax], 0
+	jne __write_true
+	mov rax, offset false
+	jmp __write_false
+__write_true:
+	mov rax, offset true
+__write_false:
 	jmp __write_syscall
 __write_not_num:
 	cmp byte ptr [rax], 's'
@@ -377,7 +390,9 @@ __write_freestr:
 	.lcomm	sbrk	8
 
 .data
-var_stdin:	.long 0x66, 0x0, 0x0
-var_stdout:	.long 0x66, 0x1, 0x0
-var_stderr:	.long 0x66, 0x2, 0x0
-brkvar:		.quad 0xffffffffffffffff
+var_stdin:	.long	0x66, 0x0, 0x0
+var_stdout:	.long	0x66, 0x1, 0x0
+var_stderr:	.long	0x66, 0x2, 0x0
+false:		.asciz	"false"
+true:		.asciz	"true"
+brkvar:		.long	0xffffffff, 0xffffffff

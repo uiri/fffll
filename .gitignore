@@ -12,3 +12,4 @@ parse*
 massif.out.*
 src/fffll.c
 src/fffll.h
+target/

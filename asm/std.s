@@ -6,6 +6,7 @@
 	.globl	_init_heap
 	.globl	_add
 	.globl	_mul
+	.globl	_rcp
 	.globl	_read
 	.globl	_write
 	.globl	var_stdin
@@ -246,6 +247,25 @@ _push:
 	ret
 
 
+_rcp:
+	push rbp
+	mov rbp, rsp
+	mov rbx, rbp
+	add rbx, 16
+	call _deref_var
+	cmp byte ptr [rax], 'n' # check for number
+	jne _safe_exit
+	mov rax, offset one
+	fld qword ptr [rax]
+	fdiv qword ptr [rax+4]
+	call _allocvar
+	mov byte ptr [rax], 'n'
+	fstp qword ptr [rax+4]
+	mov rsp, rbp
+	pop rbp
+	ret
+
+
 _read:
 	push rbp
 	mov rbp, rsp
@@ -320,13 +340,30 @@ _write:
 __write_arg_loop:
 	add rax, 8
 	cmp qword ptr [rax], 0
-	je __write_outret
+	je __write_outnl
 	push rdx
 	push rax
 	call __write_arg
 	pop rax
 	pop rdx
 	jmp __write_arg_loop
+__write_outnl:
+	cmp byte ptr [rcx], 10
+	je __write_ret
+	cmp rbx, 0x0001
+	je __write_newline
+	cmp rbx, 0x0002
+	je __write_newline
+	mov rax, 1
+	ret
+__write_newline:
+	mov rcx, offset rnb	# use write buf
+	mov byte ptr [rcx], 10
+	mov rdx, 1	# len 1
+	mov rdi, rbx
+	mov rsi, rcx
+	mov rax, 1	# sys_write
+	syscall
 __write_outret:
 	mov rsp, rbp
 	pop rbp
@@ -388,21 +425,20 @@ __write_str:
 	mov rcx, rsi
 	dec rdx
 	add rcx, rdx
-	cmp byte ptr [rcx], 10
+	cmp byte ptr [rcx], 32
 	je __write_ret
-__write_stdout_nl:
 	cmp rbx, 0x0001
-	je __write_newline
+	je __write_space
 	cmp rbx, 0x0002
-	je __write_newline
+	je __write_space
 	mov rax, 1
 	ret
-__write_newline:
+__write_space:
 	mov rcx, offset rnb	# use write buf
 	cmp byte ptr [rcx], 0
 	jne __write_freestr
 __write_freestr_ret:
-	mov byte ptr [rcx], 10	# store newline
+	mov byte ptr [rcx], 32	# store newline
 	mov rdx, 1	# len 1
 	mov rdi, rbx
 	mov rsi, rcx
@@ -428,3 +464,4 @@ var_stderr:	.long	0x66, 0x2, 0x0
 false:		.asciz	"false"
 true:		.asciz	"true"
 brkvar:		.long	0xffffffff, 0xffffffff
+one:		.long	0x00000000, 0x3ff00000

@@ -136,7 +136,7 @@ char* valueToLlvmString(Value* v, char* prefix, List* localvars) {
   FuncVal* fv;
   BoolExpr* be;
   List* node;
-  int i = 0, j, k, m, n, b, c;
+  int i = 0, j, k, m, n, b, c, andor;
   k = 0;
   switch (v->type) {
   case 'v':
@@ -440,42 +440,77 @@ char* valueToLlvmString(Value* v, char* prefix, List* localvars) {
     be = (BoolExpr*)v;
     j = 256;
     s = malloc(j);
-    for (node = be->stack;node != NULL; node = node->next) {
-      BOOL_REALLOC(node->data);
-      if (node->next && node->next->next) {
+    andor = 0;
+    if (be->stack->data) {
+      BOOL_REALLOC(be->stack->data);
+    }
+    for (node = be->stack->next;node != NULL; node = node->next) {
+      SNPRINTF_REALLOC(snprintf(s+i, j-i, "push rax\n"),
+		       snprintf(s+i, j-i, "push rax\n"));
+      switch (*(char*)(node->data)) {
+      case '&':
+	andor = 1;
 	node = node->next;
-	SNPRINTF_REALLOC(snprintf(s+i, j-i, "push rax\n"),
-			 snprintf(s+i, j-i, "push rax\n"));
-	BOOL_REALLOC(node->next->data);
-	SNPRINTF_REALLOC(snprintf(s+i, j-i, "pop rbx\nxchg rax, rbx\n"),
-			 snprintf(s+i, j-i, "pop rbx\nxchg rax, rbx\n"));
-	switch (*(char*)(node->data)) {
-	case '&':
-	  SNPRINTF_REALLOC(snprintf(s+i, j-i, "test rax, rax\nsetnz al\nand rax, 0xFF\ntest rbx, rbx\nsetnz bl\nand rbx, 0xFF\ntest al, bl\nsetnz al\nand rax, 0xFF\n"),
-			   snprintf(s+i, j-i, "test rax, rax\nsetnz al\nand rax, 0xFF\ntest rbx, rbx\nsetnz bl\nand rbx, 0xFF\ntest al, bl\nsetnz al\nand rax, 0xFF\n"));
-	  break;
-	case '|':
-	  SNPRINTF_REALLOC(snprintf(s+i, j-i, "or rax, rbx\nsetnz al\nand rax, 0xFF\n"),
-			   snprintf(s+i, j-i, "or rax, rbx\nsetnz al\nand rax, 0xFF\n"));
-	  break;
-	case '>':
-	  SNPRINTF_REALLOC(snprintf(s+i, j-i, "cmp rax, rbx\nsetg al\nand rax, 0xFF\n"),
-			   snprintf(s+i, j-i, "cmp rax, rbx\nsetg al\nand rax, 0xFF\n"));
-	  break;
-	case '<':
-	  SNPRINTF_REALLOC(snprintf(s+i, j-i, "cmp rax, rbx\nsetl al\nand rax, 0xFF\n"),
-			   snprintf(s+i, j-i, "cmp rax, rbx\nsetl al\nand rax, 0xFF\n"));
-	  break;
-	case '=':
-	  SNPRINTF_REALLOC(snprintf(s+i, j-i, "cmp rax, rbx\nsete al\nand rax, 0xFF\n"), 
-			   snprintf(s+i, j-i, "cmp rax, rbx\nsete al\nand rax, 0xFF\n"));
-	  break;
-	case '?': /* oh fuck. */
-	  break;
-	case '~': /* oh fuck */
+	BOOL_REALLOC(node->data);
+	break;
+      case '|':
+	andor = 2;
+	node = node->next;
+	BOOL_REALLOC(node->data);
+	break;
+      default:
+	if (node->next) {
+	  if (andor) andor += 2;
+	  BOOL_REALLOC(node->next->data);
+	  SNPRINTF_REALLOC(snprintf(s+i, j-i, "pop rbx\nxchg rax, rbx\n"),
+			   snprintf(s+i, j-i, "pop rbx\nxchg rax, rbx\n"));
+	  switch (*(char*)(node->data)) {
+	  case '>':
+	    SNPRINTF_REALLOC(snprintf(s+i, j-i, "cmp rax, rbx\nsetg al\nand rax, 0xFF\n"),
+			     snprintf(s+i, j-i, "cmp rax, rbx\nsetg al\nand rax, 0xFF\n"));
+	    break;
+	  case '<':
+	    SNPRINTF_REALLOC(snprintf(s+i, j-i, "cmp rax, rbx\nsetl al\nand rax, 0xFF\n"),
+			     snprintf(s+i, j-i, "cmp rax, rbx\nsetl al\nand rax, 0xFF\n"));
+	    break;
+	  case '=':
+	    SNPRINTF_REALLOC(snprintf(s+i, j-i, "cmp rax, rbx\nsete al\nand rax, 0xFF\n"), 
+			     snprintf(s+i, j-i, "cmp rax, rbx\nsete al\nand rax, 0xFF\n"));
+	    break;
+	  case '?': /* oh fuck. */
+	    break;
+	  case '~': /* oh fuck */
+	    break;
+	  }
+	  node = node->next;
 	  break;
 	}
-	node = node->next;
+      }
+      switch (andor) {
+      case 4:
+	andor = 0;
+	SNPRINTF_REALLOC(snprintf(s+i, j-i, "pop rbx\nor rax, rbx\nsetnz al\nand rax, 0xFF\n"),
+			 snprintf(s+i, j-i, "pop rbx\nor rax, rbx\nsetnz al\nand rax, 0xFF\n"));
+	break;
+      case 3:
+	andor = 0;
+	SNPRINTF_REALLOC(snprintf(s+i, j-i, "pop rbx\ntest rax, rax\nsetnz al\nand rax, 0xFF\ntest rbx, rbx\nsetnz bl\nand rbx, 0xFF\ntest al, bl\nsetnz al\nand rax, 0xFF\n"),
+			 snprintf(s+i, j-i, "pop rbx\ntest rax, rax\nsetnz al\nand rax, 0xFF\ntest rbx, rbx\nsetnz bl\nand rbx, 0xFF\ntest al, bl\nsetnz al\nand rax, 0xFF\n"));
+	break;
+      }
+    }
+    if (andor) {
+      switch (andor) {
+      case 2:
+	andor = 0;
+	SNPRINTF_REALLOC(snprintf(s+i, j-i, "pop rbx\nor rax, rbx\nsetnz al\nand rax, 0xFF\n"),
+			 snprintf(s+i, j-i, "pop rbx\nor rax, rbx\nsetnz al\nand rax, 0xFF\n"));
+	break;
+      case 1:
+	andor = 0;
+	SNPRINTF_REALLOC(snprintf(s+i, j-i, "pop rbx\ntest rax, rax\nsetnz al\nand rax, 0xFF\ntest rbx, rbx\nsetnz bl\nand rbx, 0xFF\ntest al, bl\nsetnz al\nand rax, 0xFF\n"),
+			 snprintf(s+i, j-i, "pop rbx\ntest rax, rax\nsetnz al\nand rax, 0xFF\ntest rbx, rbx\nsetnz bl\nand rbx, 0xFF\ntest al, bl\nsetnz al\nand rax, 0xFF\n"));
+	break;
       }
     }
     if (be->neg) {

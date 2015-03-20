@@ -51,6 +51,7 @@ void yyerror(const char* msg) {
  List* varnames;
  List* stringlist;
  List* numlist;
+ List* constlist;
  List* jmplist;
  List* localvarlist;
  VarTree* globalvars;
@@ -581,6 +582,7 @@ int main(int argc, char** argv) {
   varlist = newList();
   stringlist = newList();
   numlist = newList();
+  constlist = newList();
   jmplist = newList();
   stdfiles[0] = newValue('f', stdinp);
   stdfiles[1] = newValue('f', stdoutp);
@@ -952,8 +954,9 @@ int main(int argc, char** argv) {
     i = 0;
     for (sl = stringlist;sl != NULL;sl = sl->next) {
       if (sl->data) {
-	printf("strlist_%d:	.long 0x73\n		.quad .+8\n		.byte %s\n", i, stringToHexString(((String*)sl->data)->val));
+	printf("strlist_%d:	.long 0x73\n		.quad .+8\n		.byte %s\n", i, (s = stringToHexString(((String*)sl->data)->val)));
 	i++;
+	free(s);
       }
     }
     i = 0;

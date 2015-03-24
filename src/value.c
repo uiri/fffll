@@ -283,7 +283,7 @@ FuncDef* newFuncDef(List* al, List* sl, int alloc) {
   fd->arguments = al;
   fd->evaluate = &evaluateFuncDef;
   fd->alloc = alloc;
-  fd->blocknum = blocknum-1;
+  fd->blocknum = blocknum;
   return fd;
 }
 

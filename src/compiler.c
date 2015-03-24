@@ -39,15 +39,16 @@ extern List* buffernames;
   free(t)
 
 int branchnum = 0;
-int blocknum = 0;
+int blocknum = -1;
 
 void printFunc(List* arglist, List* statementlist) {
   List* node;
   List* localvarlist;
   char* s, *prefix, *prepend, *t;
   int i, j, k, b;
-  printf("_block_%d:\npush rbp\nmov rbp, rsp\n", blocknum);
+  Value* v;
   blocknum++;
+  printf("_block_%d:\npush rbp\nmov rbp, rsp\n", blocknum);
   localvarlist = newList();
   prefix = NULL;
   if (buffernames)
@@ -57,10 +58,46 @@ void printFunc(List* arglist, List* statementlist) {
     for (node = arglist->next; node != NULL; node = node->next) {
       if (node->data) {
 	t = valueToLlvmString(node->data, prefix, localvarlist);
-	printf("mov rdx, [%s]\npush rdx\nmov rdx, [rbp+%d]\nmov [%s], rdx\n", t, i, t);
+	printf("mov rdx, [%s]\npush rdx\ntest byte ptr [%s+8], 0x80\njnz _block_%d_%d\nmov rdx, [rbp+%d]\nmov [%s], rdx\njmp _block_%d_%d\n_block_%d_%d:\nsub byte ptr [%s+8], 0x80\n_block_%d_%d:\n", t, t, blocknum, i, i, t, blocknum, i+1, blocknum, i, t, blocknum, i+1);
 	i += 8;
 	free(t);
       }
+    }
+    b = i;
+    if (arglist->data) {
+      node = arglist->data;
+      for (node = node->next; node != NULL; node = node->next) {
+	prepend = valueToLlvmString(node->data, prefix, localvarlist);
+	v = findInTree(((List*)arglist->data)->data, ((Variable*)node->data)->name);
+	t = valueToLlvmString(v, prefix, NULL);
+	printf("mov rdx, [%s]\npush rdx\n", prepend);
+	switch (v->type) {
+	case 'c':
+	case 'b':
+	  printf("%s\nmov [%s], rax\n", t, prepend);
+	  break;
+	case 'n':
+	case 's':
+	  printf("mov rax, offset %s\nmov [%s], rax\n", t, prepend);
+	  break;
+	default:
+	  printf("mov rax, [%s]\nmov [%s], rax\n", t, prepend);
+	  break;
+	}
+	free(t);
+	free(prepend);
+      }
+      node = arglist->data;
+      for (node = node->next; node != NULL; node = node->next) {
+	if (((Value*)node->data)->type == 'v' && ((Variable*)node->data)->name[0] == '_') {
+	  continue;
+	}
+	t = valueToLlvmString(node->data, prefix, localvarlist);
+	printf("mov rdx, [rbp+%d]\ntest rdx, rdx\njz _block_%d_default\nmov [%s], rdx\n", i, blocknum, t);
+	i += 8;
+	free(t);
+      }
+      printf("_block_%d_default:\n", blocknum);
     }
   }
   i = 0;
@@ -105,6 +142,24 @@ void printFunc(List* arglist, List* statementlist) {
   }
   b = 0;
   if (arglist) {
+    if (arglist->data) {
+      node = arglist->data;
+      for (node = node->next; node != NULL; node = node->next) {
+	prepend = malloc(b+1);
+	k = 0;
+	while (( prepend[k] = s[i+k] )) k++;
+	if (((Value*)node->data)->type == 'v' && (((Variable*)node->data)->name)[0] == '_') {
+	  SNPRINTF_REALLOC(snprintf(s+i, j-i, "pop rdx\n%s", prepend),
+			   snprintf(s+i, j-i, "pop rdx\n%s", prepend));
+	} else {
+	  SNPRINTF_REALLOC(snprintf(s+i, j-i, "pop rdx\nmov [%s], rdx\n%s", (t = valueToLlvmString(node->data, prefix, NULL)), prepend),
+			   snprintf(s+i, j-i, "pop rdx\nmov [%s], rdx\n%s", t, prepend));
+	  free(t);
+	}
+	b += k;
+	free(prepend);
+      }
+    }
     for (node = arglist->next; node != NULL; node = node->next) {
       if (node->data) {
 	prepend = malloc(b+1);
@@ -135,6 +190,7 @@ char* valueToLlvmString(Value* v, char* prefix, List* localvars) {
   FuncDef* fd;
   FuncVal* fv;
   BoolExpr* be;
+  Value* u;
   List* node;
   int i = 0, j, k, m, n, b, c, andor;
   k = 0;
@@ -350,6 +406,49 @@ char* valueToLlvmString(Value* v, char* prefix, List* localvars) {
       b = 1;
       s[i] = '\0';
       if (fv->arglist) {
+	if (fv->arglist->data) {
+	  node = fv->arglist->data;
+	  c = 0;
+	  for (node = node->next; node != NULL; node = node->next) {
+	    var = node->data;
+	    argpush = valueToLlvmString(node->data, prefix, localvars);
+	    SNPRINTF_REALLOC(snprintf(s+i, j-i, "mov rax, [%s]\npush rax\n", argpush),
+			     snprintf(s+i, j-i, "mov rax, [%s]\npush rax\n", argpush));
+	    if (var->name[0] == '_') {
+	      c = branchnum++;
+	      SNPRINTF_REALLOC(snprintf(s+i, j-i, "test rax, rax\njne _branch_%d\n", c),
+			       snprintf(s+i, j-i, "test rax, rax\njne _branch_%d\n", c));
+	    }
+	    u = findInTree(((List*)fv->arglist->data)->data, var->name);
+	    t = valueToLlvmString(u, prefix, localvars);
+	    switch (u->type) {
+	    case 'c':
+	    case 'b':
+	      SNPRINTF_REALLOC(snprintf(s+i, j-i, "%s\nmov [%s], rax\n", t, argpush),
+			       snprintf(s+i, j-i, "%s\nmov [%s], rax\n", t, argpush));
+	      break;
+	    case 'n':
+	    case 's':
+	      SNPRINTF_REALLOC(snprintf(s+i, j-i, "mov rax, offset %s\nmov [%s], rax\n", t, argpush),
+			       snprintf(s+i, j-i, "mov rax, offset %s\nmov [%s], rax\n", t, argpush));
+	      break;
+	    default:
+	      SNPRINTF_REALLOC(snprintf(s+i, j-i, "mov rax, [%s]\nmov [%s], rax\n", t, argpush),
+			       snprintf(s+i, j-i, "mov rax, [%s]\nmov [%s], rax\n", t, argpush));
+	      break;
+	    }
+	    SNPRINTF_REALLOC(snprintf(s+i, j-i, "add byte ptr [%s+8], 0x80\n", argpush),
+			     snprintf(s+i, j-i, "add byte ptr [%s+8], 0x80\n", argpush));
+	    free(t);
+	    free(argpush);
+	    if (var->name[0] == '_') {
+	      SNPRINTF_REALLOC(snprintf(s+i, j-i, "_branch_%d:\n", c),
+			       snprintf(s+i, j-i, "_branch_%d:\n", c));
+	    }
+	  }
+	  n = i;
+	  s[i] = '\0';
+	}
 	if (fv->arglist->next) {
 	  for (node = fv->arglist->next;node != NULL; node = node->next) {
 	    i = n;
@@ -362,15 +461,21 @@ char* valueToLlvmString(Value* v, char* prefix, List* localvars) {
 	      if (j-i == k) break;
 	    }
 	    digit = ((Value*)node->data)->type;
-	    if (digit == 'c' || digit == 'b') {
+	    switch (digit) {
+	    case 'c':
+	    case 'b':
 	      SNPRINTF_REALLOC(snprintf(s+i, j-i, "%s\npush rax\n%s", t, argpush),
 			       snprintf(s+i, j-i, "%s\npush rax\n%s", t, argpush));
-	    } else if (digit == 'n' || digit == 's') {
+	      break;
+	    case 'n':
+	    case 's':
 	      SNPRINTF_REALLOC(snprintf(s+i, j-i, "mov rax, offset %s\npush rax\n%s", t, argpush),
 			       snprintf(s+i, j-i, "mov rax, offset %s\npush rax\n%s", t, argpush));
-	    } else {
+	      break;
+	    default:
 	      SNPRINTF_REALLOC(snprintf(s+i, j-i, "mov rax, [%s]\npush rax\n%s", t, argpush),
 			       snprintf(s+i, j-i, "mov rax, [%s]\npush rax\n%s", t, argpush));
+	      break;
 	    }
 	    free(t);
 	    free(argpush);
@@ -409,6 +514,31 @@ char* valueToLlvmString(Value* v, char* prefix, List* localvars) {
       free(t);
       SNPRINTF_REALLOC(snprintf(s+i, j-i, "add rsp, %d\n", 8*b),
 		       snprintf(s+i, j-i, "add rsp, %d\n", 8*b));
+      n = i;
+      if (fv->arglist && fv->arglist->data) {
+	node = fv->arglist->data;
+	for (node = node->next;node != NULL; node = node->next) {
+	  i = n;
+	  t = valueToLlvmString(node->data, prefix, localvars);
+	  argpush = malloc(j-i+1);
+	  argpush[j-i] = '\0';
+	  k = 0;
+	  while ((argpush[k] = s[i+k])) {
+	    k++;
+	    if (j-i == k) break;
+	  }
+	  SNPRINTF_REALLOC(snprintf(s+i, j-i, "pop rbx\n"),
+			   snprintf(s+i, j-i, "pop rbx\n"));
+	  if (((Value*)node->data)->type == 'v' && ((Variable*)node->data)->name[0] == '_') {
+	    c = branchnum++;
+	    SNPRINTF_REALLOC(snprintf(s+i, j-i, "cmp rbx, [%s]\nje _branch_%d\nmov [%s], rbx\n_branch_%d:\n%s", t, c, t, c, argpush),
+			     snprintf(s+i, j-i, "cmp rbx, [%s]\nje _branch_%d\nmov [%s], rbx\n_branch_%d:\n%s", t, c, t, c, argpush));
+	  } else {
+	    SNPRINTF_REALLOC(snprintf(s+i, j-i, "mov [%s], rbx\n%s", t, argpush),
+			     snprintf(s+i, j-i, "mov [%s], rbx\n%s", t, argpush));
+	  }
+	}
+      }
       i--;
       s[i] = '\0';
     }

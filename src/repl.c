@@ -209,7 +209,7 @@ char* valueToString(Value* v) {
     freeValue(u);
     return s;
   }
-  if (v->type == 's') {
+  if (v->type == 's' || v->type == 'x') {
     t = ((String*)v->data)->val;
   }
   if (t == NULL) return NULL;

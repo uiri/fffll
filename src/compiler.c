@@ -25,17 +25,14 @@ extern List* buffernames;
   switch (digit) {\
   case 'c':\
   case 'b':\
+  case 'x':\
     SNPRINTF_REALLOC(snprintf(s+i, j-i, "%s\nmov rax, [rax+4]\n", (t = valueToLlvmString(data, prefix, localvars))),\
 		     snprintf(s+i, j-i, "%s\nmov rax, [rax+4]\n", t));\
     break;\
   case 'n':\
   case 's':\
-    SNPRINTF_REALLOC(snprintf(s+i, j-i, "mov rax, offset %s\n", (t = valueToLlvmString(data, prefix, localvars))),\
-		     snprintf(s+i, j-i, "mov rax, offset %s\n", t));\
-    if (digit == 'n') {\
-      SNPRINTF_REALLOC(snprintf(s+i, j-i, "mov rax, [rax+4]\n"),\
-		       snprintf(s+i, j-i, "mov rax, [rax+4]\n"));\
-    }\
+    SNPRINTF_REALLOC(snprintf(s+i, j-i, "mov rax, [%s+4]\n", (t = valueToLlvmString(data, prefix, localvars))),\
+		     snprintf(s+i, j-i, "mov rax, [%s+4]\n", t));\
     break;\
   default:\
     SNPRINTF_REALLOC(snprintf(s+i, j-i, "mov rax, [%s]\nmov rax, [rax+4]\n", (t = valueToLlvmString(data, prefix, localvars))),\
@@ -46,6 +43,7 @@ extern List* buffernames;
 
 int branchnum = 0;
 int blocknum = -1;
+int regexnum = 0;
 
 void printFunc(List* arglist, List* statementlist) {
   List* node;
@@ -191,13 +189,14 @@ void printFunc(List* arglist, List* statementlist) {
 }
 
 char* valueToLlvmString(Value* v, char* prefix, List* localvars) {
-  char* s, *t, *argpush, *fvname, *strptr = "strlist", *numptr = "numlist", *underscore = "const_", *varprefix = "var_", digit;
+  char* s, *t, *argpush, *fvname, digit;
+  char* strptr = "strlist", *numptr = "numlist", *underscore = "const_", *varprefix = "var_";
   Variable* var;
   FuncDef* fd;
   FuncVal* fv;
   BoolExpr* be;
   Value* u;
-  List* node;
+  List* node, *submatches;
   int i = 0, j, k, m, n, b, c, andor;
   k = 0;
   switch (v->type) {
@@ -250,32 +249,6 @@ char* valueToLlvmString(Value* v, char* prefix, List* localvars) {
     s = malloc(j);
     SNPRINTF_REALLOC(snprintf(s+i, j-i, "_block_%d", fd->blocknum),
 		     snprintf(s+i, j-i, "_block_%d", fd->blocknum));
-    /* if (fd->arguments && fd->arguments->next) { */
-    /*   n = 0; */
-    /*   for (node = fd->arguments->next;node != NULL; node = node->next) { */
-    /*  t = valueToLlvmString(node->data); */
-    /*  k = snprintf(s+i, j-i, "pop rax\nmov [%s], rax\n", t);/\*= options.%s || options['%d'];\n", t, t, n);*\/ */
-    /*  if (k+i >= j) { */
-    /*    j *= 2; */
-    /*    s = realloc(s, j); */
-    /*    k = snprintf(s+i, j-i, "pop rax\nmov [%s], rax\n", t);/\*= options.%s || options['%d'];\n", t, t, n);*\/ */
-    /*  } */
-    /*  i += k; */
-    /*  n++; */
-    /*  free(t); */
-    /*   } */
-    /* } */
-    /* for (node = fd->statements;node != NULL; node = node->next) { */
-    /*   k = snprintf(s+i, j-i, "%s\n", (t = valueToLlvmString(node->data))); */
-    /*   if (i+k >= j) { */
-    /*  j *= 2; */
-    /*  s = realloc(s, j); */
-    /*  k = snprintf(s+i, j-i, "%s\n", t); */
-    /*   } */
-    /*   i += k; */
-    /*   free(t); */
-    /* } */
-    /* snprintf(s+i, j-i, "}"); */
     break;
   case 'c':
     fv = (FuncVal*)v;
@@ -615,7 +588,9 @@ char* valueToLlvmString(Value* v, char* prefix, List* localvars) {
 	    break;
 	  case '?': /* oh fuck. */
 	    break;
-	  case '~': /* oh fuck */
+	  case '~':
+	    SNPRINTF_REALLOC(snprintf(s+i, j-i, "test rbx, rbx\nsetnz al\n"),
+			     snprintf(s+i, j-i, "test rbx, rbx\nsetnz al\n"));
 	    break;
 	  }
 	  node = node->next;
@@ -731,6 +706,17 @@ char* valueToLlvmString(Value* v, char* prefix, List* localvars) {
     }
     s[j--] = '_';
     break;
+  case 'x':
+    j = 256;
+    s = malloc(j);
+    SNPRINTF_REALLOC(snprintf(s+i, j-i, "pop rax\n"),
+		     snprintf(s+i, j-i, "pop rax\n"));
+    t = ((String*)v->data)->val;
+    submatches = newList();
+    /* generate assembly to check regular expression here */
+    freeList(submatches);
+    SNPRINTF_REALLOC(snprintf(s+i, j-i, "push 0\n"),
+		     snprintf(s+i, j-i, "push 0\n"));
   default:
     s = valueToString(v);
     break;

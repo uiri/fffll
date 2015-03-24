@@ -424,7 +424,7 @@ compexpr	: value '>' value
 				  Value* v;
 				  String* s;
 				  s = newString($3);
-				  v = newValue('s', s);
+				  v = newValue('x', s);
 				  $$ = newBoolExpr($1);
 				  addToListEnd($$->stack, sq);
 				  addToListEnd($$->stack, v);

@@ -50,7 +50,7 @@ void printFunc(List* arglist, List* statementlist) {
   List* localvarlist;
   char* s, *prefix, *prepend, *t;
   int i, j, k, b;
-  Value* v;
+  Value* v, *funcVal;
   blocknum++;
   printf("_block_%d:\npush rbp\nmov rbp, rsp\n", blocknum);
   localvarlist = newList();
@@ -90,6 +90,7 @@ void printFunc(List* arglist, List* statementlist) {
 	}
 	free(t);
 	free(prepend);
+	prepend = NULL;
       }
       node = arglist->data;
       for (node = node->next; node != NULL; node = node->next) {
@@ -104,19 +105,9 @@ void printFunc(List* arglist, List* statementlist) {
       printf("_block_%d_default:\n", blocknum);
     }
   }
-  i = 0;
-  j = 256;
-  s = malloc(j);
-  s[0] = '\0';
-  for (node = statementlist; node != NULL; node = node->next) {
-    if (node->data) {
-      t = valueToLlvmString(node->data, prefix, NULL);
-      SNPRINTF_REALLOC(snprintf(s+i, j-i, "%s\n", t),
-		       snprintf(s+i, j-i, "%s\n", t));
-      free(t);
-    }
-  }
-  prepend = s;
+  funcVal = newValue('d', statementlist);
+  prepend = valueToLlvmString(funcVal, prefix, localvarlist);
+  free(funcVal);
   i = 0;
   j = 256;
   s = malloc(j);
@@ -129,8 +120,8 @@ void printFunc(List* arglist, List* statementlist) {
       free(t);
     }
   }
-  SNPRINTF_REALLOC(snprintf(s+i, j-i, "%s", prepend),
-		   snprintf(s+i, j-i, "%s", prepend));
+  SNPRINTF_REALLOC(snprintf(s+i, j-i, "%s\n# -- END prepend --\n", prepend),
+		   snprintf(s+i, j-i, "%s\n# -- END prepend --\n", prepend));
   free(prepend);
   prepend = NULL;
   if (localvarlist->next != NULL || localvarlist->data != NULL) {
@@ -290,11 +281,11 @@ char* valueToLlvmString(Value* v, char* prefix, List* localvars) {
 	    if (((Value*)node->data)->data == ((Value*)fv->arglist->next->data)->data)
 	      break;
 	  }
+	  if (node == NULL && localvars != NULL) {
+	    addToListEnd(localvars, fv->arglist->next->data);
+	  }
 	}
 	t = valueToLlvmString(fv->arglist->next->data, prefix, localvars);
-	if (node == NULL && localvars != NULL) {
-	  addToListEnd(localvars, fv->arglist->next->data);
-	}
 	SNPRINTF_REALLOC(snprintf(s+i, j-i, "mov [%s], rax", t),
 			 snprintf(s+i, j-i, "mov [%s], rax", t));
       }

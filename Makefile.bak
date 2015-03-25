@@ -11,8 +11,8 @@ all:
 	make libfffllstd.so
 	make fffll
 
-fffll:	src/lexer.c src/fffll.c
-	$(CC) $(LIBS) $(CFLAGS) -o fffll src/lexer.c src/fffll.c
+fffll:	src/lexer.c src/fffll.c src/compiler.c
+	$(CC) $(LIBS) $(CFLAGS) -o fffll src/lexer.c src/fffll.c src/compiler.c
 
 src/fffll.c: src/fffll.y
 	bison -t -d -o src/fffll.c src/fffll.y

@@ -234,6 +234,8 @@ int freeValueList(List* r) {
     return 0;
   }
   for (node = r;node != NULL;node = node->next) {
+    if ((void*)(constants-1) < node->data && node->data < (void*)(constants+141))
+      continue;
     freeValue(node->data);
   }
   freeList(r);

@@ -54,6 +54,7 @@ void yyerror(const char* msg) {
  List* constlist;
  List* jmplist;
  List* localvarlist;
+ List* globalvarlist;
  VarTree* globalvars;
 
  short curl_init = 0;
@@ -538,8 +539,10 @@ int main(int argc, char** argv) {
 	92, 98, 104, 110, 116, 122, 128, 134}; /* 140 next */
   int i;
   Value* v;
-  List* sl;
+  Variable* var;
+  List* sl, *globalnode, *globalstart;
   char* s;
+  GlobalVar* gvar;
   /* if (argc != 2) { */
   /*   printf("This program takes exactly one argument. The file to interpret\n"); */
   /*   return 1; */
@@ -631,6 +634,7 @@ int main(int argc, char** argv) {
   signal(SIGILL, siginfo);
   signal(SIGINT, siginfo);
   signal(SIGTERM, siginfo);
+  globalvarlist = newList();
   parseTreeList = newList();
   yyinlist = newList();
   if (!repl) {
@@ -944,6 +948,25 @@ int main(int argc, char** argv) {
 	free(s);
       }
     }
+    globalstart = globalvarlist;
+    for (sl = varnames;sl != NULL;sl = sl->next) {
+      if (!sl->data) continue;
+      if (((void*)(constants-1) < sl->data) && (sl->data < (void*)(constants+140))) continue;
+      for (globalnode = globalstart; globalnode != NULL; globalnode = globalnode->next) {
+	if (globalnode->data && ((GlobalVar*)globalnode->data)->var == sl->data)
+	  break;
+      }
+      if (globalnode == NULL && sl->data) {
+	gvar = malloc(sizeof(GlobalVar));
+	gvar->var = sl->data;
+	var = newVariable(sl->data);
+	gvar->val = valueToLlvmString((Value*)var, NULL, NULL);
+	free(var->indextype);
+	free(var->index);
+	free(var);
+	addToListBeginning(globalvarlist, gvar);
+      }
+    }
     freeList(localvarlist);
     printf("call _safe_exit\n\n");
     printf(".data\n"
@@ -972,15 +995,15 @@ int main(int argc, char** argv) {
 	   /* "	.lcomm	brk	8\n" */
 	   /* "	.lcomm	sbrk	8\n" */
 	   );
-    for (sl = varnames; sl != NULL; sl = sl->next) {
-      if (sl->data && ((char*)sl->data < constants || constants+140 < (char*)sl->data)) {
-	if ((*(char*)sl->data) == '_')
-	  printf(".lcomm const_%s 12\n", (char*)sl->data);
-	else
-	  printf(".lcomm var_%s 12\n", (char*)sl->data);
+    for (sl = globalvarlist; sl != NULL; sl = sl->next) {
+      if (sl->data) {
+	printf(".lcomm %s 12\n", ((GlobalVar*)sl->data)->val);
+	free(((GlobalVar*)sl->data)->val);
+	free(sl->data);
       }
     }
   }
+  freeList(globalvarlist);
   cleanupFffll(v);
   return 0;
 }

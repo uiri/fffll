@@ -6,6 +6,7 @@
 
 extern char* constants;
 extern char* anonfunc;
+extern List* globalvarlist;
 extern List* stringlist;
 extern List* numlist;
 extern List* constlist;
@@ -46,11 +47,12 @@ int blocknum = -1;
 int regexnum = 0;
 
 void printFunc(List* arglist, List* statementlist) {
-  List* node;
+  List* node, *globalnode, *globalstart;
   List* localvarlist;
   char* s, *prefix, *prepend, *t;
   int i, j, k, b;
   Value* v, *funcVal;
+  GlobalVar* gvar;
   blocknum++;
   printf("_block_%d:\npush rbp\nmov rbp, rsp\n", blocknum);
   localvarlist = newList();
@@ -94,10 +96,11 @@ void printFunc(List* arglist, List* statementlist) {
       }
       node = arglist->data;
       for (node = node->next; node != NULL; node = node->next) {
+	t = valueToLlvmString(node->data, prefix, localvarlist);
 	if (((Value*)node->data)->type == 'v' && ((Variable*)node->data)->name[0] == '_') {
+	  free(t);
 	  continue;
 	}
-	t = valueToLlvmString(node->data, prefix, localvarlist);
 	printf("mov rdx, [rbp+%d]\ntest rdx, rdx\njz _block_%d_default\nmov [%s], rdx\n", i, blocknum, t);
 	i += 8;
 	free(t);
@@ -120,10 +123,11 @@ void printFunc(List* arglist, List* statementlist) {
       free(t);
     }
   }
-  SNPRINTF_REALLOC(snprintf(s+i, j-i, "%s\n# -- END prepend --\n", prepend),
-		   snprintf(s+i, j-i, "%s\n# -- END prepend --\n", prepend));
+  SNPRINTF_REALLOC(snprintf(s+i, j-i, "%s", prepend),
+		   snprintf(s+i, j-i, "%s", prepend));
   free(prepend);
   prepend = NULL;
+  globalstart = globalvarlist;
   if (localvarlist->next != NULL || localvarlist->data != NULL) {
     for (node = localvarlist; node != NULL; node = node->next) {
       prepend = malloc(i+1);
@@ -131,7 +135,18 @@ void printFunc(List* arglist, List* statementlist) {
       while (( prepend[k] = s[k] )) k++;
       SNPRINTF_REALLOC(snprintf(s+i, j-i, "pop rbx\nmov [%s], rbx\n%s", (t = valueToLlvmString(node->data, prefix, NULL)), prepend),
 		       snprintf(s+i, j-i, "pop rbx\nmov [%s], rbx\n%s", t, prepend));
-      free(t);
+      for (globalnode = globalstart; globalnode != NULL; globalnode = globalnode->next) {
+	if (globalnode->data && ((GlobalVar*)globalnode->data)->var == ((Variable*)node->data)->name)
+	  break;
+      }
+      if (globalnode == NULL && node->data) {
+	gvar = malloc(sizeof(GlobalVar));
+	gvar->var = ((Variable*)node->data)->name;
+	gvar->val = t;
+	addToListBeginning(globalvarlist, gvar);
+      } else {
+	free(t);
+      }
       free(prepend);
     }
   }
@@ -143,12 +158,24 @@ void printFunc(List* arglist, List* statementlist) {
 	prepend = malloc(b+1);
 	k = 0;
 	while (( prepend[k] = s[i+k] )) k++;
+	t = valueToLlvmString(node->data, prefix, NULL);
 	if (((Value*)node->data)->type == 'v' && (((Variable*)node->data)->name)[0] == '_') {
 	  SNPRINTF_REALLOC(snprintf(s+i, j-i, "pop rdx\n%s", prepend),
 			   snprintf(s+i, j-i, "pop rdx\n%s", prepend));
 	} else {
-	  SNPRINTF_REALLOC(snprintf(s+i, j-i, "pop rdx\nmov [%s], rdx\n%s", (t = valueToLlvmString(node->data, prefix, NULL)), prepend),
+	  SNPRINTF_REALLOC(snprintf(s+i, j-i, "pop rdx\nmov [%s], rdx\n%s", t, prepend),
 			   snprintf(s+i, j-i, "pop rdx\nmov [%s], rdx\n%s", t, prepend));
+	}
+	for (globalnode = globalstart; globalnode != NULL; globalnode = globalnode->next) {
+	  if (globalnode->data && ((GlobalVar*)globalnode->data)->var == ((Variable*)node->data)->name)
+	    break;
+	}
+	if (globalnode == NULL && node->data) {
+	  gvar = malloc(sizeof(GlobalVar));
+	  gvar->var = ((Variable*)node->data)->name;
+	  gvar->val = t;
+	  addToListBeginning(globalvarlist, gvar);
+	} else {
 	  free(t);
 	}
 	b += k;
@@ -160,12 +187,24 @@ void printFunc(List* arglist, List* statementlist) {
 	prepend = malloc(b+1);
 	k = 0;
 	while (( prepend[k] = s[i+k] )) k++;
+	t = valueToLlvmString(node->data, prefix, NULL);
 	if (((Value*)node->data)->type == 'v' && (((Variable*)node->data)->name)[0] == '_') {
 	  SNPRINTF_REALLOC(snprintf(s+i, j-i, "pop rdx\n%s", prepend),
 			   snprintf(s+i, j-i, "pop rdx\n%s", prepend));
 	} else {
-	  SNPRINTF_REALLOC(snprintf(s+i, j-i, "pop rdx\nmov [%s], rdx\n%s", (t = valueToLlvmString(node->data, prefix, NULL)), prepend),
+	  SNPRINTF_REALLOC(snprintf(s+i, j-i, "pop rdx\nmov [%s], rdx\n%s", t, prepend),
 			   snprintf(s+i, j-i, "pop rdx\nmov [%s], rdx\n%s", t, prepend));
+	}
+	for (globalnode = globalstart; globalnode != NULL; globalnode = globalnode->next) {
+	  if (globalnode->data && ((GlobalVar*)globalnode->data)->var == ((Variable*)node->data)->name)
+	    break;
+	}
+	if (globalnode == NULL && node->data) {
+	  gvar = malloc(sizeof(GlobalVar));
+	  gvar->var = ((Variable*)node->data)->name;
+	  gvar->val = t;
+	  addToListBeginning(globalvarlist, gvar);
+	} else {
 	  free(t);
 	}
 	b += k;
@@ -266,13 +305,14 @@ char* valueToLlvmString(Value* v, char* prefix, List* localvars) {
 	      break;
 	  }
 	}
+	t = valueToLlvmString(fv->arglist->next->data, prefix, localvars);
 	if (node == NULL && constlist != NULL) {
 	  addToListEnd(constlist, fv->arglist->next->data);
 	} else {
 	  s[0] = '\0';
+	  free(t);
 	  return s;
 	}
-	t = valueToLlvmString(fv->arglist->next->data, prefix, localvars);
 	SNPRINTF_REALLOC(snprintf(s+i, j-i, "mov [%s], rax", t),
 			 snprintf(s+i, j-i, "mov [%s], rax", t));
       } else {
@@ -281,7 +321,7 @@ char* valueToLlvmString(Value* v, char* prefix, List* localvars) {
 	    if (((Value*)node->data)->data == ((Value*)fv->arglist->next->data)->data)
 	      break;
 	  }
-	  if (node == NULL && localvars != NULL) {
+	  if (node == NULL) {
 	    addToListEnd(localvars, fv->arglist->next->data);
 	  }
 	}
@@ -507,6 +547,8 @@ char* valueToLlvmString(Value* v, char* prefix, List* localvars) {
 	    SNPRINTF_REALLOC(snprintf(s+i, j-i, "mov [%s], rbx\n%s", t, argpush),
 			     snprintf(s+i, j-i, "mov [%s], rbx\n%s", t, argpush));
 	  }
+	  free(t);
+	  free(argpush);
 	}
       }
       i--;
@@ -634,7 +676,7 @@ char* valueToLlvmString(Value* v, char* prefix, List* localvars) {
   case 'l':
     j = 256;
     s = malloc(j);
-    snprintf(s+i, j-i, "{ ");
+    snprintf(s+i, j-i, "# { ");
     i += 2;
     m = 0;
     if (v->data && (node = ((List*)v->data)->data)) {
@@ -708,6 +750,7 @@ char* valueToLlvmString(Value* v, char* prefix, List* localvars) {
     freeList(submatches);
     SNPRINTF_REALLOC(snprintf(s+i, j-i, "push 0\n"),
 		     snprintf(s+i, j-i, "push 0\n"));
+    break;
   default:
     s = valueToString(v);
     break;

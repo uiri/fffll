@@ -55,6 +55,7 @@ void yyerror(const char* msg) {
  List* jmplist;
  List* localvarlist;
  List* globalvarlist;
+ List* moduleinitlist;
  VarTree* globalvars;
 
  short curl_init = 0;
@@ -140,6 +141,7 @@ int addTreeKeysToList(List* l, VarTree* vt) {
 statementlist	: statementlist EOFSYM	{
 					  List* results;
 					  Value* v;
+					  ModuleInit* mi;
 					  addToListBeginning(varlist, NULL);
 					  v = evaluateStatements(parseTreeList->data);
 					  if (v != NULL && v != falsevalue) {
@@ -151,6 +153,12 @@ statementlist	: statementlist EOFSYM	{
 					  addTreeKeysToList(results->data, varlist->data);
 					  varlist->next->data = insertInTree(varlist->next->data, $2, newValue('l', results));
 					  varlist = deleteFromListBeginning(varlist);
+					  if (!repl && parseTreeList->next) {
+					    mi = malloc(sizeof(ModuleInit));
+					    mi->prefix = $2;
+					    mi->data = parseTreeList->data;
+					    addToListEnd(moduleinitlist, mi);
+					  }
 					  parseTreeList = deleteFromListBeginning(parseTreeList);
 					}
 		| statementlist funcall	{
@@ -635,6 +643,7 @@ int main(int argc, char** argv) {
   signal(SIGINT, siginfo);
   signal(SIGTERM, siginfo);
   globalvarlist = newList();
+  moduleinitlist = newList();
   parseTreeList = newList();
   yyinlist = newList();
   if (!repl) {
@@ -941,12 +950,22 @@ int main(int argc, char** argv) {
   } else {
     printf("_start:\ncall _init_heap\ncall _init_list\n");
     /* v = evaluateStatements(parseTreeList->data); */
+    v = malloc(sizeof(Value));
+    v->type = 'd';
+    for (sl = moduleinitlist; sl != NULL; sl = sl->next) {
+      if (!sl->data) continue;
+      localvarlist = newList();
+      v->data = ((ModuleInit*)sl->data)->data;
+      printf("%s\n", (s = valueToLlvmString(v, ((ModuleInit*)sl->data)->prefix, localvarlist)));
+      free(s);
+      freeList(localvarlist);
+    }
+    free(v);
     localvarlist = newList();
     for (sl = parseTreeList->data;sl != NULL;sl = sl->next) {
-      if (sl->data) {
-	printf("%s\n", (s = valueToLlvmString(sl->data, NULL, localvarlist)));
-	free(s);
-      }
+      if (!sl->data) continue;
+      printf("%s\n", (s = valueToLlvmString(sl->data, NULL, localvarlist)));
+      free(s);
     }
     globalstart = globalvarlist;
     for (sl = varnames;sl != NULL;sl = sl->next) {

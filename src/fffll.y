@@ -547,10 +547,8 @@ int main(int argc, char** argv) {
 	92, 98, 104, 110, 116, 122, 128, 134}; /* 140 next */
   int i;
   Value* v;
-  Variable* var;
-  List* sl, *globalnode, *globalstart;
+  List* sl;
   char* s;
-  GlobalVar* gvar;
   /* if (argc != 2) { */
   /*   printf("This program takes exactly one argument. The file to interpret\n"); */
   /*   return 1; */
@@ -961,30 +959,12 @@ int main(int argc, char** argv) {
       freeList(localvarlist);
     }
     free(v);
+    v = NULL;
     localvarlist = newList();
     for (sl = parseTreeList->data;sl != NULL;sl = sl->next) {
       if (!sl->data) continue;
       printf("%s\n", (s = valueToLlvmString(sl->data, NULL, localvarlist)));
       free(s);
-    }
-    globalstart = globalvarlist;
-    for (sl = varnames;sl != NULL;sl = sl->next) {
-      if (!sl->data) continue;
-      if (((void*)(constants-1) < sl->data) && (sl->data < (void*)(constants+140))) continue;
-      for (globalnode = globalstart; globalnode != NULL; globalnode = globalnode->next) {
-	if (globalnode->data && ((GlobalVar*)globalnode->data)->var == sl->data)
-	  break;
-      }
-      if (globalnode == NULL && sl->data) {
-	gvar = malloc(sizeof(GlobalVar));
-	gvar->var = sl->data;
-	var = newVariable(sl->data);
-	gvar->val = valueToLlvmString((Value*)var, NULL, NULL);
-	free(var->indextype);
-	free(var->index);
-	free(var);
-	addToListBeginning(globalvarlist, gvar);
-      }
     }
     freeList(localvarlist);
     printf("call _safe_exit\n\n");
@@ -1015,7 +995,7 @@ int main(int argc, char** argv) {
 	   /* "	.lcomm	sbrk	8\n" */
 	   );
     for (sl = globalvarlist; sl != NULL; sl = sl->next) {
-      if (sl->data) {
+      if (sl->data && (((GlobalVar*)sl->data)->var < constants || constants+140 < ((GlobalVar*)sl->data)->var)) {
 	printf(".lcomm %s 12\n", ((GlobalVar*)sl->data)->val);
 	free(((GlobalVar*)sl->data)->val);
 	free(sl->data);

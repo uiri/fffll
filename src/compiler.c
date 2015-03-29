@@ -722,14 +722,40 @@ char* valueToLlvmString(Value* v, char* prefix, List* localvars) {
   case 'x':
     j = 256;
     s = malloc(j);
-    SNPRINTF_REALLOC(snprintf(s+i, j-i, "pop rax\n"),
-		     snprintf(s+i, j-i, "pop rax\n"));
+    b = regexnum++;
+    regexnum++;
+    SNPRINTF_REALLOC(snprintf(s+i, j-i, "pop rax\n_regex_%d:\ncmp byte ptr [rax], 0\nje _regex_%d\n", b, b+1),
+		     snprintf(s+i, j-i, "_regex_%d:\npop rax\ninc rax\npush rax\ndec rax\ncmp byte ptr [rax], 0\nje _regex_%d\n", b, b+1));
     t = ((String*)v->data)->val;
     submatches = newList();
-    /* generate assembly to check regular expression here */
+    andor = 0;
+    for (m = 0;t[m];m++) {
+      if (andor && t[m] == '\\') {
+	andor = !andor;
+      } else if (t[m+1] == '?') {
+	c = regexnum++;
+	SNPRINTF_REALLOC(snprintf(s+i, j-i, "cmp byte ptr [rax], '%c'\njne _regex_%d\ninc rax\n_regex_%d:\n", t[m], c, c),
+			 snprintf(s+i, j-i, "cmp byte ptr [rax], '%c'\njne _regex_%d\ninc rax\n_regex_%d:\n", t[m], c, c));
+	m++;
+      } else if (t[m+1] == '+' || t[m+1] == '*') {
+	if (t[m+1] == '+') {
+	  SNPRINTF_REALLOC(snprintf(s+i, j-i, "cmp byte ptr [rax], '%c'\njne _regex_%d\ninc rax\n", t[m], b),
+			   snprintf(s+i, j-i, "cmp byte ptr [rax], '%c'\njne _regex_%d\ninc rax\n", t[m], b));
+	}
+	c = regexnum++;
+	n = regexnum++;
+	SNPRINTF_REALLOC(snprintf(s+i, j-i, "_regex_%d:\ncmp byte ptr [rax], '%c'\njne _regex_%d\ninc rax\njmp _regex_%d\n_regex_%d:\n", t[m], c, n, c, n),
+			 snprintf(s+i, j-i, "_regex_%d:\ncmp byte ptr [rax], '%c'\njne _regex_%d\ninc rax\njmp _regex_%d\n_regex_%d:\n", t[m], c, n, c, n));
+	m++;
+      } else {
+	SNPRINTF_REALLOC(snprintf(s+i, j-i, "cmp byte ptr [rax], '%c'\njne _regex_%d\ninc rax\n", t[m], b),
+			 snprintf(s+i, j-i, "cmp byte ptr [rax], '%c'\njne _regex_%d\ninc rax\n", t[m], b));
+      }
+    }
     freeList(submatches);
-    SNPRINTF_REALLOC(snprintf(s+i, j-i, "push 0\n"),
-		     snprintf(s+i, j-i, "push 0\n"));
+    c = regexnum++;
+    SNPRINTF_REALLOC(snprintf(s+i, j-i, "mov rax, 1\njmp _regex_%d\n_regex_%d:\nmov rax, 0\n_regex_%d:\npush 0\n", c, b+1, c),
+		     snprintf(s+i, j-i, "mov rax, 1\njmp _regex_%d\n_regex_%d:\nmov rax, 0\n_regex_%d:\npush 0\n", c, b+1, c));
     break;
   default:
     s = valueToString(v);

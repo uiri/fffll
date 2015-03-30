@@ -5,7 +5,8 @@ import sys
 
 class MyRegex:
 
-    def __init__(self, regex):
+    def __init__(self, regex, k=0):
+        self.index = k
         self.quant = ''
         if len(regex) == 1:
             self.char = regex
@@ -15,9 +16,8 @@ class MyRegex:
         i = 0
         parencount = 0
         substart = None
-        subend = 0
-        offset = -1  
         while i < len(regex):
+            k += 1
             if regex[i] == '(':
                 if parencount == 0:
                     substart = i+1
@@ -25,8 +25,7 @@ class MyRegex:
             elif regex[i] == ')':
                 parencount -= 1
                 if parencount == 0:
-                    self.expr[-1].append(MyRegex(regex[substart:i]))
-                    subend = i+1
+                    self.expr[-1].append(MyRegex(regex[substart:i], k))
             elif parencount == 0:
                 if regex[i] == '|':
                     self.expr.append([])
@@ -37,7 +36,7 @@ class MyRegex:
                 elif regex[i] == '+':
                     self.expr[-1][-1].p()
                 else:
-                    self.expr[-1].append(MyRegex(regex[i]))
+                    self.expr[-1].append(MyRegex(regex[i], k))
             i += 1
 
     def __str__(self):
@@ -62,6 +61,46 @@ class MyRegex:
 
     def p(self):
         self.quant = '+'
+
+    def alt_match(self, teststr, k=None, indices=[]):
+        print k
+        if self.char:
+            if k != None:
+                return self.char == teststr[k]
+            for i in xrange(len(teststr)):
+                if self.char == teststr[i]:
+                    return True
+            return False
+        if k == None:
+            k = 0
+        l = len(teststr)
+        while k < l:
+            if 0 not in indices:
+                indices.append(0)
+            for sub in self.expr:
+                if self.index in indices:
+                    if self.quant == '' or self.quant == '?':
+                        indices.remove(self.index)
+                    matchnext = False
+                    for subsub in sub:
+                        if matchnext:
+                            if subsub.alt_match(teststr, k, indices):
+                                indices.append(subsub.index)
+                            if subsub.quant != '*' and subsub.quant != '?':
+                                matchnext = False
+                        elif subsub.index in indices:
+                            matchnext = True
+                            if subsub.quant == '' or subsub.quant == '?' or not subsub.alt_match(teststr, k, indices):
+                                indices.remove(subsub.index)
+                    if matchnext:
+                        return True
+                    if sub[0].alt_match(teststr, k, indices):
+                        indices.append(sub[0].index)
+            k += 1
+        for sub in self.expr:
+            if sub[-1].index in indices:
+                return True
+        return False
 
     def match(self, teststr,  k=None, indices=None):
         next_indices = []
@@ -98,3 +137,4 @@ myr = MyRegex(sys.argv[1])
 print myr
 if len(sys.argv) > 2:
     print myr.match(sys.argv[2])
+    print myr.alt_match(sys.argv[2])

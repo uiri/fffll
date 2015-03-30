@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "compiler.h"
+#include "regex.h"
 #include "tree.h"
 
 extern char* constants;

@@ -997,9 +997,9 @@ int main(int argc, char** argv) {
     for (sl = globalvarlist; sl != NULL; sl = sl->next) {
       if (sl->data && (((GlobalVar*)sl->data)->var < constants || constants+140 < ((GlobalVar*)sl->data)->var)) {
 	printf(".lcomm %s 12\n", ((GlobalVar*)sl->data)->val);
-	free(((GlobalVar*)sl->data)->val);
-	free(sl->data);
       }
+      free(((GlobalVar*)sl->data)->val);
+      free(sl->data);
     }
   }
   freeList(globalvarlist);

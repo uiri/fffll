@@ -6,5 +6,5 @@ struct regexstate {
   char quant;
 };
 
-RegexState* newRegexSub(char* regex, int k);
 RegexState* newRegex(char* regex);
+void freeRegex(RegexState* restate);

@@ -20,6 +20,7 @@ RegexState* newRegexSub(char* regex, int k) {
   restate->c = '\0';
   expr = newList();
   restate->expr = expr;
+  expr->data = newList();
   parencount = 0;
   substart = -1;
   for (i = 0;i<l;i++) {
@@ -68,4 +69,18 @@ RegexState* newRegexSub(char* regex, int k) {
 
 RegexState* newRegex(char* regex) {
   return newRegexSub(regex, 0);
+}
+
+void freeRegex(RegexState* restate) {
+  List* node, *sub;
+  if (restate == NULL) return;
+  for (node = restate->expr;node != NULL;node = node->next) {
+    if (!node->data) continue;
+    for (sub = node->data; sub != NULL; sub = sub->next) {
+      freeRegex(sub->data);
+    }
+    freeList(node->data);
+  }
+  freeList(restate->expr);
+  free(restate);
 }

@@ -191,6 +191,7 @@ char* valueToLlvmString(Value* v, char* prefix, List* localvars) {
   FuncDef* fd;
   FuncVal* fv;
   BoolExpr* be;
+  RegexState* restate;
   Value* u;
   List* node, *submatches, *globalnode;
   int i = 0, j, k, m, n, b, c, andor;
@@ -723,11 +724,12 @@ char* valueToLlvmString(Value* v, char* prefix, List* localvars) {
   case 'x':
     j = 256;
     s = malloc(j);
+    t = ((String*)v->data)->val;
+    restate = newRegex(t);
     b = regexnum++;
     regexnum++;
     SNPRINTF_REALLOC(snprintf(s+i, j-i, "pop rax\n_regex_%d:\ncmp byte ptr [rax], 0\nje _regex_%d\n", b, b+1),
 		     snprintf(s+i, j-i, "_regex_%d:\npop rax\ninc rax\npush rax\ndec rax\ncmp byte ptr [rax], 0\nje _regex_%d\n", b, b+1));
-    t = ((String*)v->data)->val;
     submatches = newList();
     andor = 0;
     for (m = 0;t[m];m++) {
@@ -757,6 +759,7 @@ char* valueToLlvmString(Value* v, char* prefix, List* localvars) {
     c = regexnum++;
     SNPRINTF_REALLOC(snprintf(s+i, j-i, "mov rax, 1\njmp _regex_%d\n_regex_%d:\nmov rax, 0\n_regex_%d:\npush 0\n", c, b+1, c),
 		     snprintf(s+i, j-i, "mov rax, 1\njmp _regex_%d\n_regex_%d:\nmov rax, 0\n_regex_%d:\npush 0\n", c, b+1, c));
+    freeRegex(restate);
     break;
   default:
     s = valueToString(v);

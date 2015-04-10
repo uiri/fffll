@@ -1,7 +1,7 @@
 #!/usr/bin/env python2
 
 import sys
-
+from collections import OrderedDict
 
 class MyRegex:
 
@@ -10,6 +10,7 @@ class MyRegex:
         self.quant = ''
         if len(regex) == 1:
             self.char = regex
+            self.findex = k
             return
         self.char = None
         self.expr = [[]]
@@ -26,6 +27,7 @@ class MyRegex:
                 parencount -= 1
                 if parencount == 0:
                     self.expr[-1].append(MyRegex(regex[substart:i], k))
+                    k = self.expr[-1][-1].findex
             elif parencount == 0:
                 if regex[i] == '|':
                     self.expr.append([])
@@ -37,7 +39,9 @@ class MyRegex:
                     self.expr[-1][-1].p()
                 else:
                     self.expr[-1].append(MyRegex(regex[i], k))
+                    k = self.expr[-1][-1].findex
             i += 1
+        self.findex = k
 
     def __str__(self):
         if self.char:
@@ -62,69 +66,90 @@ class MyRegex:
     def p(self):
         self.quant = '+'
 
-    def valid_starts(self):
+    def state_machine(self, recur=False):
+        sm = OrderedDict()
         if self.char:
-            return [self.char]
-        valid = []
+            sm[self.index] = {}
+            sm[self.index][self.char] = [-1]
+            if recur:
+                return sm, [-1]
+            else:
+                return sm
+        endindices = []
         for sub in self.expr:
-            valid.append(sub[0].valid_starts())
-        return valid
+            indices = [self.index]
+            for subsub in sub:
+                subm, subind = subsub.state_machine(True)
+                for i in xrange(len(subind)):
+                    if subind[i] == -1:
+                        subind[i] = subsub.index
+                _k, v = subm.popitem(last=False)
+                for (k, a) in v.iteritems():
+                    for i in xrange(len(a)):
+                        if v[k][i] == -1:
+                            v[k][i] = subsub.index
+                for i in indices:
+                    try:
+                        sm[i].update(v)
+                    except KeyError:
+                        sm[i] = v
+                    if subsub.quant == '+' or subsub.quant == '*':
+                        try:
+                            sm[i][''].append(i)
+                        except KeyError:
+                            sm[i][''] = [i]
+                    if subsub.quant == '?' or subsub.quant == '*':
+                        try:
+                            sm[i][''] += subind
+                        except KeyError:
+                            sm[i][''] = subind
+                sm.update(subm)
+                indices = subind
+            endindices += indices
+        if recur:
+            return sm, endindices
+        else:
+            for i in endindices:
+                try:
+                    sm[i].update({'': [-1]})
+                except KeyError:
+                    sm[i] = {'': [-1]}
+            return sm
 
     def match(self, teststr, k=None, indices=None):
         if indices == None:
-            indices = []
-        if self.char:
-            if k == None:
-                for c in teststr:
-                    if c == self.char:
-                        indices.append(self.index)
-                return indices
-            if self.char == teststr[k]:
-                return [self.index]
-            return []
+            indices = [0]
+        sm = self.state_machine()
         if k == None:
             l = len(teststr)
             k = 0
-            while k < l:
-                indices = self.match(teststr, k, indices)
-                k += 1
-            return indices
-        rem_zero = False
-        if 0 not in indices:
-            rem_zero = True
-            indices.append(0)
-        for sub in self.expr:
-            matchnext = False
-            prev_index = None
-            for subsub in sub:
-                if matchnext:
-                    rem = False
-                    if subsub.index not in indices:
-                        rem = True
-                        indices.append(subsub.index)
-                    indices += subsub.match(teststr, k, indices)
-                    if rem and subsub.index in indices:
-                        indices.remove(subsub.index)
-                    if subsub.quant != '*' and subsub.quant != '?':
-                        matchnext = False
-                elif subsub.index in indices:
-                    matchnext = True
-                    prev_index = subsub.index
-                    if subsub.quant == '' or subsub.quant == '?' or [] == subsub.match(teststr, k, indices):
-                        indices.remove(subsub.index)
-            if matchnext:
-                if self.index in indices:
-                    indices.remove(self.index)
-                if prev_index:
-                    indices.append(prev_index)
-                return indices
-            if self.index in indices and sub[0].match(teststr, k, indices):
-                indices.append(sub[0].index)
-        if self.index in indices:
-            indices.remove(self.index)
-        if rem_zero and 0 in indices:
-            indices.remove(0)
-        return indices
+        while len(indices):
+            next_indices = []
+            # try:
+            #     print teststr[k], indices, sm
+            # except IndexError:
+            #     print indices, sm
+            next_indices = []
+            for i in indices:
+                if i == -1:
+                    return True
+                try:
+                    for key in sm[i].keys():
+                        if teststr[k] == key:
+                            next_indices += sm[i][key]
+                except IndexError:
+                    pass
+                try:
+                    next_indices += sm[i]['']
+                except KeyError:
+                    pass
+            if k < l:
+                next_indices.append(0)
+            elif indices == next_indices:
+                break
+            indices = next_indices
+            k += 1
+        return False
 
 tests = [
     ("Single char not present", "a", "dshdlhjkldfh", False),
@@ -227,7 +252,7 @@ tests = [
     ("String OR required char repetition partly present end", "a(b|d)+c", "dshdlhjkldfhac", False),
     ("String OR string neither present", "a(bcd|efg)h", "dshdlhjkldfh", False),
     ("String OR string first present start", "a(bcd|efg)h", "abcdhshdlhjkldfh", True),
-    ("String OR string first present middle", "a(bcd|efg)h", "dshdlhabdhcjkldfh", True),
+    ("String OR string first present middle", "a(bcd|efg)h", "dshdlhabcdhcjkldfh", True),
     ("String OR string first present end", "a(bcd|efg)h", "dshdlhjkldfhabcdh", True),
     ("String OR string second present start", "a(bcd|efg)h", "aefghdshdlhjkldfh", True),
     ("String OR string second present middle", "a(bcd|efg)h", "dshdlhaefghjkldfh", True),
@@ -278,5 +303,6 @@ tests = [
 for (test_name, test_re, test_str, test_bool) in tests:
     myr = MyRegex(test_re)
     match_res = myr.match(test_str)
-    if bool(match_res) != test_bool:
+    if match_res != test_bool:
         print "FAILING:", test_name, test_re, test_str, match_res
+MyRegex("a(bcd|efg)*hi?jk").state_machine()

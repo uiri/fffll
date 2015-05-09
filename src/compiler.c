@@ -192,6 +192,7 @@ char* valueToLlvmString(Value* v, char* prefix, List* localvars) {
   FuncVal* fv;
   BoolExpr* be;
   RegexState* restate;
+  Range* r;
   Value* u;
   List* node, *submatches, *globalnode;
   int i = 0, j, k, m, n, b, c, andor;
@@ -364,12 +365,15 @@ char* valueToLlvmString(Value* v, char* prefix, List* localvars) {
       SNPRINTF_REALLOC(snprintf(s+i, j-i, "_branch_%d:\n", c),
 		       snprintf(s+i, j-i, "_branch_%d:\n", c));
     } else if (fvname == constants+48) {
-      c = -1;
       b = branchnum++;
+      c = branchnum++;
       if (fv->arglist->data) {
 	var = ((List*)fv->arglist->data)->next->data;
-	SNPRINTF_REALLOC(snprintf(s+i, j-i, "%s\npush rax\n_branch_%d:\npop rax\npush 0\npush rax\ncall _list_next\npush rax\nmov [%s], rax\n", (t = valueToLlvmString(findInTree(((List*)fv->arglist->data)->data, var->name), prefix, localvars)), b, var->name),
-			 snprintf(s+i, j-i, "%s\npush rax\n_branch_%d:\npop rax\npush 0\npush rax\ncall _list_next\npush rax\nmov [%s], rax\n", t, b, var->name));
+	SNPRINTF_REALLOC(snprintf(s+i, j-i, "%s\npush rax\n_branch_%d:\npop rax\npush rax\nmov rax, [rax+8]\ntest rax, rax\njz _branch_%d\n", (t = valueToLlvmString(findInTree(((List*)fv->arglist->data)->data, var->name), prefix, localvars)), b, c),
+			 snprintf(s+i, j-i, "%s\npush rax\n_branch_%d:\npop rax\ntest rax, rax\njz _branch_%d\n", t, b, c));
+	free(t);
+	SNPRINTF_REALLOC(snprintf(s+i, j-i, "push rax\nmov rax, [rax]\nmov [%s], rax\npop rax\nmov rax, [rax+8]\npush rax\n", (t = valueToLlvmString(((Value*)var), prefix, localvars))),
+			 snprintf(s+i, j-i, "push rax\nmov rax, [rax]\nmov [%s], rax\npop rax\nmov rax, [rax+8]\npush rax\n", t));
 	free(t);
       } else {
 	SNPRINTF_REALLOC(snprintf(s+i, j-i, "_branch_%d:\n", b),
@@ -378,7 +382,6 @@ char* valueToLlvmString(Value* v, char* prefix, List* localvars) {
       node = fv->arglist->next;
       t = NULL;
       if (fv->arglist->next->next) {
-	c = branchnum++;
 	SNPRINTF_REALLOC(snprintf(s+i, j-i, "%s\ncmp qword ptr [rax+4], 0x0\nje _branch_%d\n", (t = valueToLlvmString(node->data, prefix, localvars)), c),
 			 snprintf(s+i, j-i, "%s\ncmp qword ptr [rax+4], 0x0\nje _branch_%d\n", t, c));
 	node = fv->arglist->next->next;
@@ -658,45 +661,82 @@ char* valueToLlvmString(Value* v, char* prefix, List* localvars) {
   case 'l':
     j = 256;
     s = malloc(j);
-    snprintf(s+i, j-i, "# { ");
-    i += 2;
-    m = 0;
-    if (v->data && (node = ((List*)v->data)->data)) {
-      for (node = node->next; node != NULL; node = node->next) {
-	var = node->data;
-	k = snprintf(s+i, j-i, "%s: %s, ", var->name, (t = valueToLlvmString(findInTree(((List*)((List*)v->data)->data)->data, var->name), prefix, localvars)));
-	if (i+k >= j) {
-	  j *= 2;
-	  s = realloc(s, j);
-	  snprintf(s+i, j-i, "%s: %s, ", var->name, t);
-	}
-	i += k;
-	free(t);
-      }
-      i -= 2;
-    }
+    SNPRINTF_REALLOC(snprintf(s+i, j-i, "call _alloc_list\npush rax\n"),
+		     snprintf(s+i, j-i, "call _alloc_list\npush rax\n"));
     if (v->data) {
       for (node = ((List*)v->data)->next; node != NULL; node = node->next) {
-	k = snprintf(s+i, j-i, "%d: %s, ", m++, (t = valueToLlvmString(node->data, prefix, localvars)));
-	if (i+k >= j) {
-	  j *= 2;
-	  s = realloc(s, j);
-	  snprintf(s+i, j-i, "%d: %s, ", m-1, t);
+	switch (((Value*)node->data)->type) {
+	case 'n':
+	case 's':
+	  if (node->next) {
+	    SNPRINTF_REALLOC(snprintf(s+i, j-i, "mov rbx, rax\ncall _alloc_list\npush rax\nmov rax, offset %s\nmov [rbx], rax\nadd rbx, 8\npop rax\nmov [rbx], rax\n", (t = valueToLlvmString(node->data, prefix, localvars))),
+			     snprintf(s+i, j-i, "mov rbx, rax\ncall _alloc_list\npush rax\nmov rax, offset %s\nmov [rbx], rax\nadd rbx, 8\npop rax\nmov [rbx], rax\n", t));
+	  } else {
+	    SNPRINTF_REALLOC(snprintf(s+i, j-i, "mov rbx, rax\nmov rax, offset %s\nmov [rbx], rax\n", (t = valueToLlvmString(node->data, prefix, localvars))),
+			     snprintf(s+i, j-i, "mov rbx, rax\nmov rax, offset %s\nmov [rbx], rax\n", t));
+	  }
+	  break;
+	case 'r':
+	default:
+	  if (node->next) {
+	    SNPRINTF_REALLOC(snprintf(s+i, j-i, "mov rbx, rax\ncall _alloc_list\npush rax\npush rbx\n%s\npop rbx\nmov [rbx], rax\nadd rbx, 8\npop rax\nmov [rbx], rax\n", (t = valueToLlvmString(node->data, prefix, localvars))),
+			     snprintf(s+i, j-i, "mov rbx, rax\ncall _alloc_list\npush rax\npush rbx\n%s\npop rbx\nmov [rbx], rax\nadd rbx, 8\npop rax\nmov [rbx], rax\n", t));
+	  } else {
+	    SNPRINTF_REALLOC(snprintf(s+i, j-i, "push rax\n%s\npop rbx\n mov [rbx], rax\n", (t = valueToLlvmString(node->data, prefix, localvars))),
+			     snprintf(s+i, j-i, "push rax\n%s\npop rbx\n mov [rbx], rax\n", t));
+	  }
+	  break;
 	}
-	i += k;
 	free(t);
       }
     }
-    if (m) {
-      i -= 2;
-    }
-    snprintf(s+i, j-i, "}");
+    SNPRINTF_REALLOC(snprintf(s+i, j-i, "pop rax\n"),
+		     snprintf(s+i, j-i, "pop rax\n"));
     break;
   case 'r':
+    r = (Range*)v;
     j = 256;
     s = malloc(j);
-    k = snprintf(s+i, j-i, "0x0 # Range");
-    i += k;
+    SNPRINTF_REALLOC(snprintf(s+i, j-i, "call _allocstr\n"),
+		     snprintf(s+i, j-i, "call _allocstr\n"));
+    if (r->computed && r->computed->type != '0') {
+      t = valueToLlvmString(r->computed, prefix, NULL);
+    } else {
+      t = "zero-4";
+    }
+    SNPRINTF_REALLOC(snprintf(s+i, j-i, "mov rbx, [%s+4]\nmov [rax], rbx\n", t),
+		     snprintf(s+i, j-i, "mov rbx, [%s+4]\nmov [rax], rbx\n", t));
+    if (r->computed && r->computed->type != '0')
+      free(t);
+    if (r->start && r->start->type != '0') {
+      t = valueToLlvmString(r->start, prefix, NULL);
+    } else {
+      t = "zero-4";
+    }
+    SNPRINTF_REALLOC(snprintf(s+i, j-i, "mov rbx, [%s+4]\nmov [rax+8], rbx\n", t),
+		     snprintf(s+i, j-i, "mov rbx, [%s+4]\nmov [rax+8], rbx\n", t));
+    if (r->start && r->start->type != '0')
+      free(t);
+    if (r->increment && r->increment->type != '0') {
+      t = valueToLlvmString(r->increment, prefix, NULL);
+    } else {
+      t = "zero-4";
+    }
+    SNPRINTF_REALLOC(snprintf(s+i, j-i, "mov rbx, [%s+4]\nmov [rax+16], rbx\n", t),
+		     snprintf(s+i, j-i, "mov rbx, [%s+4]\nmov [rax+16], rbx\n", t));
+    if (r->increment && r->increment->type != '0')
+      free(t);
+    if (r->end && r->end->type != '0') {
+      t = valueToLlvmString(r->end, prefix, NULL);
+    } else {
+      t = "zero-4";
+    }
+    SNPRINTF_REALLOC(snprintf(s+i, j-i, "mov rbx, [%s+4]\nmov [rax+24], rbx\n", t),
+		     snprintf(s+i, j-i, "mov rbx, [%s+4]\nmov [rax+24], rbx\n", t));
+    if (r->end && r->end->type != '0')
+      free(t);
+    SNPRINTF_REALLOC(snprintf(s+i, j-i, "push rax\ncall _allocvar\npop rbx\nmov dword ptr [rax], 0x72\nmov [rax+4], rbx\n"),
+		     snprintf(s+i, j-i, "push rax\ncall _allocvar\npop rbx\nmov dword ptr [rax], 0x72\nmov [rax+4], rbx\n"));
     break;
   case 'n':
     for (node = numlist;node != NULL;node = node->next) {

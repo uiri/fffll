@@ -351,6 +351,7 @@ __num_digit_exp_loop:
 	dec edx
 	cmp edx, 0
 	jne __num_digit_exp_loop
+	mov byte ptr [rbx], 0
 	ret
 
 .bss

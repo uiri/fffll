@@ -343,26 +343,65 @@ range		: value '.' '.' value '.'  '.' value	{
 		| value '.' IND '.' '.' value	{
 					  double* d;
 					  Value* inc;
+					  List* node;
 					  d = malloc(sizeof(double));
 					  *d = $3;
 					  inc = newValue('n', d);
+					  if (!repl) {
+					    for (node = numlist; node != NULL; node = node->next) {
+					      if (node->data && *(double*)node->data == *d) {
+						break;
+					      }
+					    }
+					    if (node == NULL)
+					      addToListEnd(numlist, d);
+					  }
 					  $$ = newRange($1, $6, inc);
 					}
 		| value '.' '.' value '.' IND	{
 					  double* d;
 					  Value* end;
+					  List* node;
 					  d = malloc(sizeof(double));
 					  *d = $6;
+					  if (!repl) {
+					    for (node = numlist; node != NULL; node = node->next) {
+					      if (node->data && *(double*)node->data == *d) {
+						break;
+					      }
+					    }
+					    if (node == NULL)
+					      addToListEnd(numlist, d);
+					  }
 					  end = newValue('n', d);
 					  $$ = newRange($1, end, $4);
 					}
 		| value '.' IND '.' IND	{
 					  double* d, *e;
 					  Value* end, *inc;
+					  List* node;
 					  d = malloc(sizeof(double));
 					  e = malloc(sizeof(double));
 					  *d = $3;
 					  *e = $5;
+					  if (!repl) {
+					    for (node = numlist; node != NULL; node = node->next) {
+					      if (node->data && *(double*)node->data == *d) {
+						break;
+					      }
+					    }
+					    if (node == NULL)
+					      addToListEnd(numlist, d);
+					  }
+					  if (!repl) {
+					    for (node = numlist; node != NULL; node = node->next) {
+					      if (node->data && *(double*)node->data == *e) {
+						break;
+					      }
+					    }
+					    if (node == NULL)
+					      addToListEnd(numlist, e);
+					  }
 					  inc = newValue('n', d);
 					  end = newValue('n', e);
 					  $$ = newRange($1, end, inc);
@@ -373,8 +412,18 @@ range		: value '.' '.' value '.'  '.' value	{
 		| value '.' IND		{
 					  double* d;
 					  Value* end;
+					  List* node;
 					  d = malloc(sizeof(double));
 					  *d = $3;
+					  if (!repl) {
+					    for (node = numlist; node != NULL; node = node->next) {
+					      if (node->data && *(double*)node->data == *d) {
+						break;
+					      }
+					    }
+					    if (node == NULL)
+					      addToListEnd(numlist, d);
+					  }
 					  end = newValue('n', d);
 					  $$ = newRange($1, end, NULL);
 					}

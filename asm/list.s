@@ -3,7 +3,7 @@
 	.globl	_init_list
 	.globl	_alloc_list
 	.globl	_free_list
-	.globl  _list_push
+	.globl	_list_push
 	.globl	_list_get
 	.globl	_list_set
 
@@ -83,7 +83,6 @@ _list_pop:
 __list_pop_ret:
 	mov rax, [rax]
 	ret
-
 
 _list_push:
 	push rax

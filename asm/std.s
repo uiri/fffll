@@ -2,6 +2,7 @@
 .text
 	.globl	_deref_var
 	.globl	_allocvar
+	.globl	_allocstr
 	.globl	_safe_exit
 	.globl	_init_heap
 	.globl	_add
@@ -14,10 +15,11 @@
 	.globl	var_stderr
 	.globl	brk
 	.globl	sbrk
+	.globl	zero
 
 _allocvar:
 	mov rax, [brkvar]
-	cmp rax, 0xffffffffffffffff
+	cmp qword ptr [rax], 0xffffffffffffffff
 	jne __allocvar_ret
 	call _allocstr
 	mov qword ptr [rax+24], 0xffffffffffffffff
@@ -250,14 +252,15 @@ _push:
 _rcp:
 	push rbp
 	mov rbp, rsp
-	mov rbx, rbp
-	add rbx, 16
+	mov rax, rbp
+	add rax, 16
 	call _deref_var
 	cmp byte ptr [rax], 'n' # check for number
 	jne _safe_exit
+	mov rbx, rax
 	mov rax, offset one
 	fld qword ptr [rax]
-	fdiv qword ptr [rax+4]
+	fdiv qword ptr [rbx+4]
 	call _allocvar
 	mov byte ptr [rax], 'n'
 	fstp qword ptr [rax+4]
@@ -463,5 +466,7 @@ var_stdout:	.long	0x66, 0x1, 0x0
 var_stderr:	.long	0x66, 0x2, 0x0
 false:		.asciz	"false"
 true:		.asciz	"true"
-brkvar:		.long	0xffffffff, 0xffffffff
+__brkvar_init:	.long	0xffffffff, 0xffffffff
+brkvar:		.long	__brkvar_init
 one:		.long	0x00000000, 0x3ff00000
+zero:		.long	0x00000000, 0x00000000

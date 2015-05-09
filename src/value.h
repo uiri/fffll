@@ -81,7 +81,6 @@ struct rangelist {
   Value* start;
   Value* increment;
   Value* end;
-  int index;
 };
 
 typedef struct variable Variable;

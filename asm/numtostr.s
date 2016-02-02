@@ -10,8 +10,8 @@ __num_negsign:
 	push rax
 	push rdx
 	mov ecx, offset neg_sign
-	mov al, [ecx]
-	mov [ebx], al
+	mov al, [rcx]
+	mov [rbx], al
 	inc ebx
 	pop rdx
 	pop rax
@@ -30,8 +30,8 @@ __num_inf:
 	mov ecx, offset inf
 	mov edx, 8
 __num_inf_loop:
-	mov al, [ecx]
-	mov [ebx], al
+	mov al, [rcx]
+	mov [rbx], al
 	inc ebx
 	inc ecx
 	dec edx
@@ -44,12 +44,12 @@ __num_nan:
 	mov ecx, offset nan
 	mov edx, 3
 __num_nan_loop:
-	mov al, [ecx]
-	mov [ebx], al
-	inc ebx
-	inc ecx
-	dec edx
-	cmp edx, 0
+	mov al, [rcx]
+	mov [rbx], al
+	inc rbx
+	inc rcx
+	dec rdx
+	cmp rdx, 0
 	jne __num_nan_loop
 	ret
 
@@ -57,7 +57,7 @@ __num_exp_negsign:
 	cmp ax, 1023
 	jg __num_exp_negsign_ret
 	inc ecx
-	mov byte ptr [ecx], '-'
+	mov byte ptr [rcx], '-'
 	inc ecx
 
 __num_exp_negsign_ret:
@@ -67,7 +67,7 @@ __num_digit_loop:
 	dec ecx
 	div ebx		# divide by 10
 	add dl, 48
-	mov [ecx], dl	# write div remainder
+	mov [rcx], dl	# write div remainder
 	xor rdx, rdx
 	cmp rax, 0
 	jne __num_digit_loop
@@ -137,22 +137,22 @@ __num_tinycond:
 	jmp __num_tinycond
 
 _numtostr:
-	add eax, 4
+	add rax, 4
 	push rbx
 	xor rcx, rcx
-	mov edx, [eax]
-	add eax, 4
-	mov ebx, [eax]
-	and ebx, 0x000FFFFF
-	add ebx, 0x00100000
-	add eax, 2
-	mov cx, [eax]
+	mov rdx, [rax]
+	add rax, 4
+	mov rbx, [rax]
+	and rbx, 0x000FFFFF
+	add rbx, 0x00100000
+	add rax, 2
+	mov cx, [rax]
 	shr cx, 4
 	pop rax
 	xchg rbx, rax
 	call __num_negsign
 	xchg rdx, rax
-	cmp byte ptr [ebx], '-'
+	cmp byte ptr [rbx], '-'
 	jne __num_no_equals
 	inc ebx
 __num_no_equals:
@@ -177,7 +177,7 @@ __num_zero:
 	xor rdx, rdx
 	mov dl, 48
 	pop rbx
-	mov [ebx], dl
+	mov [rbx], dl
 	ret
 
 __num_nonzero:
@@ -187,7 +187,7 @@ __num_nonzero:
 	xor rax, rax
 	mov ax, cx
 	mov ecx, offset wnb+28
-	mov byte ptr [ecx], 'e'
+	mov byte ptr [rcx], 'e'
 	call __num_exp_negsign
 	pop rdx
 	pop rax
@@ -264,32 +264,32 @@ __num_digit:
 
 __num_digit_skip:
 	inc ecx
-	cmp byte ptr [ecx], 48
+	cmp byte ptr [rcx], 48
 	je __num_digit_skip
 	mov edx, offset wnb+27
 	sub edx, ecx
 	add dx, [eexp]
 	push rdx
 	xor rdx, rdx
-	mov dl, [ecx]
-	mov byte ptr [ecx], '.'
+	mov dl, [rcx]
+	mov byte ptr [rcx], '.'
 	dec ecx
-	mov [ecx], dl
+	mov [rcx], dl
 	cmp ecx, offset wnb+25
 	jne __num_digit_notone
 	inc ecx
-	mov byte ptr [ecx], '0'
+	mov byte ptr [rcx], '0'
 	dec ecx
-	mov byte ptr [ecx], '.'
+	mov byte ptr [rcx], '.'
 	dec ecx
-	mov [ecx], dl
+	mov [rcx], dl
 
 __num_digit_notone:
 	mov edx, offset wnb+27
 	sub edx, ecx
 __num_digit_notone_loop:
-	mov al, [ecx]
-	mov [ebx], al
+	mov al, [rcx]
+	mov [rbx], al
 	inc ebx
 	inc ecx
 	dec edx
@@ -310,7 +310,7 @@ __num_digit_exp_len:
 	pop rdx
 	push rdx
 	inc ecx
-	cmp byte ptr [ecx], '-'
+	cmp byte ptr [rcx], '-'
 	jne __num_digit_exp_len_possign
 	inc ecx
 	pop rdx
@@ -331,11 +331,11 @@ __num_digit_exp:
 	xor rdx, rdx
 	div ebx
 	add dl, 48
-	mov [ecx], dl
+	mov [rcx], dl
 	dec ecx
 	cmp eax, 0
 	jne __num_digit_exp
-	cmp byte ptr [ecx], '-'
+	cmp byte ptr [rcx], '-'
 	jne __num_digit_exp_possign
 	dec ecx
 
@@ -344,8 +344,8 @@ __num_digit_exp_possign:
 	sub edx, ecx
 	pop rbx
 __num_digit_exp_loop:
-	mov al, [ecx]
-	mov [ebx], al
+	mov al, [rcx]
+	mov [rbx], al
 	inc ebx
 	inc ecx
 	dec edx

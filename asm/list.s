@@ -3,6 +3,7 @@
 	.globl	_init_list
 	.globl	_alloc_list
 	.globl	_free_list
+	.globl	_list_pop
 	.globl	_list_push
 	.globl	_list_get
 	.globl	_list_set
@@ -93,7 +94,14 @@ __list_push_traverse:
 	mov rax, [rax]
 	jmp __list_push_traverse
 __list_push_ret:
+	push rbx
+	push rax
+	call _alloc_list
+	pop rbx
+	xchg rax, rbx
+	mov [rax], rbx
 	sub rax, 8
+	pop rbx
 	mov [rax], rbx
 	pop rax
 	ret

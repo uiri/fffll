@@ -7,6 +7,8 @@
 	.globl	_init_heap
 	.globl	_add
 	.globl	_mul
+	.globl	_pop
+	.globl 	_push
 	.globl	_rcp
 	.globl	_read
 	.globl	_write
@@ -235,17 +237,35 @@ __mul_ret:
 
 
 _pop:
+	push rbp
+	mov rbp, rsp
+	mov rax, rbp
+	add rax, 16
 	cmp byte ptr [rax], 'l'
 	jne _safe_exit
-	push rax
+	call _list_pop
+	mov rsp, rbp
+	pop rbp
 	ret
 
 
 _push:
+	push rbp
+	mov rbp, rsp
+	mov rax, rbp
+	add rax, 16
+	push rax
+	add rax, 8
+	call _deref_var
+	mov rbx, rax
+	pop rax
+	call _deref_var
 	cmp byte ptr [rax], 'l'
 	jne _safe_exit
 	mov rax, [rax+4]
 	call _list_push
+	mov rsp, rbp
+	pop rbp
 	ret
 
 

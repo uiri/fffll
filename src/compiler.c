@@ -28,6 +28,7 @@ extern List* buffernames;
   case 'c':\
   case 'b':\
   case 'x':\
+  case 'l':\
     SNPRINTF_REALLOC(snprintf(s+i, j-i, "%s\nmov rax, [rax+4]\n", (t = valueToLlvmString(data, prefix, localvars))),\
 		     snprintf(s+i, j-i, "%s\nmov rax, [rax+4]\n", t));\
     break;\
@@ -665,23 +666,13 @@ char* valueToLlvmString(Value* v, char* prefix, List* localvars) {
 	switch (((Value*)node->data)->type) {
 	case 'n':
 	case 's':
-	  if (node->next) {
-	    SNPRINTF_REALLOC(snprintf(s+i, j-i, "mov rbx, rax\ncall _alloc_list\npush rax\nmov rax, offset %s\nmov [rbx], rax\nadd rbx, 8\npop rax\nmov [rbx], rax\n", (t = valueToLlvmString(node->data, prefix, localvars))),
-			     snprintf(s+i, j-i, "mov rbx, rax\ncall _alloc_list\npush rax\nmov rax, offset %s\nmov [rbx], rax\nadd rbx, 8\npop rax\nmov [rbx], rax\n", t));
-	  } else {
-	    SNPRINTF_REALLOC(snprintf(s+i, j-i, "mov rbx, rax\nmov rax, offset %s\nmov [rbx], rax\n", (t = valueToLlvmString(node->data, prefix, localvars))),
-			     snprintf(s+i, j-i, "mov rbx, rax\nmov rax, offset %s\nmov [rbx], rax\n", t));
-	  }
+	  SNPRINTF_REALLOC(snprintf(s+i, j-i, "mov rbx, rax\ncall _alloc_list\npush rax\nmov rax, offset %s\nmov [rbx], rax\nadd rbx, 8\npop rax\nmov [rbx], rax\n", (t = valueToLlvmString(node->data, prefix, localvars))),
+			   snprintf(s+i, j-i, "mov rbx, rax\ncall _alloc_list\npush rax\nmov rax, offset %s\nmov [rbx], rax\nadd rbx, 8\npop rax\nmov [rbx], rax\n", t));
 	  break;
 	case 'r':
 	default:
-	  if (node->next) {
-	    SNPRINTF_REALLOC(snprintf(s+i, j-i, "mov rbx, rax\ncall _alloc_list\npush rax\npush rbx\n%s\npop rbx\nmov [rbx], rax\nadd rbx, 8\npop rax\nmov [rbx], rax\n", (t = valueToLlvmString(node->data, prefix, localvars))),
-			     snprintf(s+i, j-i, "mov rbx, rax\ncall _alloc_list\npush rax\npush rbx\n%s\npop rbx\nmov [rbx], rax\nadd rbx, 8\npop rax\nmov [rbx], rax\n", t));
-	  } else {
-	    SNPRINTF_REALLOC(snprintf(s+i, j-i, "push rax\n%s\npop rbx\n mov [rbx], rax\n", (t = valueToLlvmString(node->data, prefix, localvars))),
-			     snprintf(s+i, j-i, "push rax\n%s\npop rbx\n mov [rbx], rax\n", t));
-	  }
+	  SNPRINTF_REALLOC(snprintf(s+i, j-i, "mov rbx, rax\ncall _alloc_list\npush rax\npush rbx\n%s\npop rbx\nmov [rbx], rax\nadd rbx, 8\npop rax\nmov [rbx], rax\n", (t = valueToLlvmString(node->data, prefix, localvars))),
+			   snprintf(s+i, j-i, "mov rbx, rax\ncall _alloc_list\npush rax\npush rbx\n%s\npop rbx\nmov [rbx], rax\nadd rbx, 8\npop rax\nmov [rbx], rax\n", t));
 	  break;
 	}
 	free(t);

@@ -3,6 +3,7 @@
 	.globl	_init_list
 	.globl	_alloc_list
 	.globl	_free_list
+	.globl	_list_next
 	.globl	_list_pop
 	.globl	_list_push
 	.globl	_list_get
@@ -62,6 +63,48 @@ __alloc_list_nextblock:
 	mov [listmanager], rax
 __alloc_list_ret:
 	add qword ptr [listmanager], 16
+	ret
+
+
+__list_next_zero:
+	pop rbx
+	ret
+__list_next_compute:
+	mov [rax], rbx
+	pop rax
+	pop rbx
+	ret
+_list_next:
+	push rax
+	mov rax, [rax]
+	test rax, rax
+	jz __list_next_zero
+	cmp byte ptr [rax], 0x72
+	jne __list_next_next
+	push rax
+	mov rax, [rax+4]
+	mov rbx, [rax]
+	test rbx, rbx
+	jnz __list_next_incr
+	mov rbx, [rax+8]
+	jmp __list_next_end
+__list_next_incr:
+	fld qword ptr [rax]
+	fadd qword ptr [rax+16]
+	fstp qword ptr [rax]
+	mov rbx, [rax]
+__list_next_end:
+	cmp rbx, [rax+24]
+	jne __list_next_compute
+	xor rbx, rbx
+	mov [rax], rbx
+	pop rax
+	pop rbx
+	mov rax, [rbx+8]
+	jmp _list_next
+__list_next_next:
+	pop rbx
+	mov rbx, [rbx+8]
 	ret
 
 _list_get:

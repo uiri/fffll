@@ -370,8 +370,8 @@ char* valueToLlvmString(Value* v, char* prefix, List* localvars) {
 	var = ((List*)fv->arglist->data)->next->data;
 	u = findInTree(((List*)fv->arglist->data)->data, var->name);
 	BOOL_REALLOC(u);
-	SNPRINTF_REALLOC(snprintf(s+i, j-i, "push rax\n_branch_%d:\npop rax\npush rax\nmov rax, [rax]\ntest rax, rax\njz _branch_%d\nmov [%s], rax\npop rax\nmov rax, [rax+8]\npush rax\n", b, c, (t = valueToLlvmString(((Value*)var), prefix, localvars))),
-			 snprintf(s+i, j-i, "push rax\n_branch_%d:\npop rax\npush rax\nmov rax, [rax]\ntest rax, rax\njz _branch_%d\nmov [%s], rax\npop rax\nmov rax, [rax+8]\npush rax\n", b, c, t));
+	SNPRINTF_REALLOC(snprintf(s+i, j-i, "push rax\n_branch_%d:\npop rax\ncall _list_next\ntest rax, rax\njz _branch_%d\nmov [%s], rax\npush rbx\n", b, c, (t = valueToLlvmString(((Value*)var), prefix, localvars))),
+			 snprintf(s+i, j-i, "push rax\n_branch_%d:\npop rax\ncall _list_next\ntest rax, rax\njz _branch_%d\nmov [%s], rax\npush rbx\n", b, c, t));
 	free(t);
       } else {
 	SNPRINTF_REALLOC(snprintf(s+i, j-i, "_branch_%d:\n", b),
@@ -708,7 +708,7 @@ char* valueToLlvmString(Value* v, char* prefix, List* localvars) {
     if (r->increment && r->increment->type != '0') {
       t = valueToLlvmString(r->increment, prefix, NULL);
     } else {
-      t = "zero-4";
+      t = "one-4";
     }
     SNPRINTF_REALLOC(snprintf(s+i, j-i, "mov rbx, [%s+4]\nmov [rax+16], rbx\n", t),
 		     snprintf(s+i, j-i, "mov rbx, [%s+4]\nmov [rax+16], rbx\n", t));

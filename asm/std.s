@@ -18,6 +18,7 @@
 	.globl	brk
 	.globl	sbrk
 	.globl	zero
+	.globl	one
 
 __checknum_range:
 	cmp byte ptr [rax], 'r'

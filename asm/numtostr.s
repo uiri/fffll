@@ -136,8 +136,16 @@ __num_tinycond:
 	dec word ptr [eexp]
 	jmp __num_tinycond
 
+__num_get_range_addr:
+	mov rax, [rax+4]
+	jmp __num_get_range_addr_ret
+
 _numtostr:
+	cmp byte ptr [rax], 'r'
+	je __num_get_range_addr
 	add rax, 4
+
+__num_get_range_addr_ret:
 	push rbx
 	xor rcx, rcx
 	mov rdx, [rax]

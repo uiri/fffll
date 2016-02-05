@@ -19,6 +19,18 @@
 	.globl	sbrk
 	.globl	zero
 
+__checknum_range:
+	cmp byte ptr [rax], 'r'
+	jne _safe_exit
+	mov rax, [rax+4]
+	ret
+
+__checknum:
+	cmp byte ptr [rax], 'n' # check for number
+	jne __checknum_range
+	add rax, 4
+	ret
+
 _allocvar:
 	mov rax, [brkvar]
 	cmp qword ptr [rax], 0xffffffffffffffff
@@ -175,9 +187,8 @@ _add:
 	add rax, 16
 	mov rbx, rax
 	call _deref_var
-	cmp byte ptr [rax], 'n' # check for number
-	jne _safe_exit
-	fld qword ptr [rax+4]
+	call __checknum
+	fld qword ptr [rax]
 __add_next_arg:
 	add rbx, 8
 	cmp qword ptr [rbx], 0
@@ -188,9 +199,10 @@ __add_next_arg:
 	call _deref_var
 	mov rbx, rax
 	pop rax
-	cmp byte ptr [rbx], 'n' # check for number
-	jne _safe_exit
-	fadd qword ptr [rbx+4]
+	xchg rax, rbx
+	call __checknum
+	xchg rax, rbx
+	fadd qword ptr [rbx]
 	pop rbx
 	jmp __add_next_arg
 __add_ret:
@@ -209,9 +221,8 @@ _mul:
 	add rax, 16
 	mov rbx, rax
 	call _deref_var
-	cmp byte ptr [rax], 'n' # check for number
-	jne _safe_exit
-	fld qword ptr [rax+4]
+	call __checknum
+	fld qword ptr [rax]
 __mul_next_arg:
 	add rbx, 8
 	cmp qword ptr [rbx], 0
@@ -222,9 +233,10 @@ __mul_next_arg:
 	call _deref_var
 	mov rbx, rax
 	pop rax
-	cmp byte ptr [rbx], 'n' # check for number
-	jne _safe_exit
-	fmul qword ptr [rbx+4]
+	xchg rax, rbx
+	call __checknum
+	xchg rax, rbx
+	fmul qword ptr [rbx]
 	pop rbx
 	jmp __mul_next_arg
 __mul_ret:
@@ -275,12 +287,11 @@ _rcp:
 	mov rax, rbp
 	add rax, 16
 	call _deref_var
-	cmp byte ptr [rax], 'n' # check for number
-	jne _safe_exit
+	call __checknum
 	mov rbx, rax
 	mov rax, offset one
 	fld qword ptr [rax]
-	fdiv qword ptr [rbx+4]
+	fdiv qword ptr [rbx]
 	call _allocvar
 	mov byte ptr [rax], 'n'
 	fstp qword ptr [rax+4]
@@ -405,7 +416,10 @@ __write_arg:
 	xor rdx, rdx
 	call _deref_var
 	cmp byte ptr [rax], 'n'	# check for number
+	je __write_num
+	cmp byte ptr [rax], 'r' # check for range
 	jne __write_bool
+__write_num:
 	push rbx
 	push rax
 	call _allocstr

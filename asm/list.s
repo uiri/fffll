@@ -84,7 +84,7 @@ _list_next:
 	push rax
 	mov rax, [rax+4]
 	mov rbx, [rax]
-	test rbx, rbx
+	cmp rbx, [range_nan]
 	jnz __list_next_incr
 	mov rbx, [rax+8]
 	jmp __list_next_end
@@ -96,7 +96,7 @@ __list_next_incr:
 __list_next_end:
 	cmp rbx, [rax+24]
 	jne __list_next_compute
-	xor rbx, rbx
+	mov rbx, [range_nan]
 	mov [rax], rbx
 	pop rax
 	pop rbx

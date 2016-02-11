@@ -19,6 +19,7 @@
 	.globl	sbrk
 	.globl	zero
 	.globl	one
+	.globl	range_nan
 
 __checknum_range:
 	cmp byte ptr [rax], 'r'
@@ -578,3 +579,4 @@ __brkvar_init:	.long	0xffffffff, 0xffffffff
 brkvar:		.long	__brkvar_init
 one:		.long	0x00000000, 0x3ff00000
 zero:		.long	0x00000000, 0x00000000
+range_nan:	.long	0xffffffff, 0x7fffffff

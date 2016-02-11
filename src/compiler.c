@@ -691,7 +691,7 @@ char* valueToLlvmString(Value* v, char* prefix, List* localvars) {
     if (r->computed && r->computed->type != '0') {
       t = valueToLlvmString(r->computed, prefix, NULL);
     } else {
-      t = "zero-4";
+      t = "range_nan-4";
     }
     SNPRINTF_REALLOC(snprintf(s+i, j-i, "mov rbx, [%s+4]\nmov [rax], rbx\n", t),
 		     snprintf(s+i, j-i, "mov rbx, [%s+4]\nmov [rax], rbx\n", t));

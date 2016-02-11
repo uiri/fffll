@@ -213,7 +213,8 @@ char* valueToLlvmString(Value* v, char* prefix, List* localvars) {
     } else {
       s = malloc(strlen(var->name) + m + c + 2);
     }
-    if (var->name[0] == '_')
+    for (k = 0;var->indextype[k] != '0';k++);
+    if ((!k && var->name[0] == '_') || (var->indextype[k-1] == 'u' && *((char*)(var->index[k-1])) == '_'))
       while (( s[i] = underscore[i] )) i++;
     else
       while (( s[i] = varprefix[i] )) i++;

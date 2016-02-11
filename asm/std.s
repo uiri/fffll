@@ -391,6 +391,74 @@ __write_outnl:
 	je __write_newline
 	mov rax, 1
 	ret
+__write_list:
+	push rax
+	push rdx
+	mov rcx, offset rnb
+	mov byte ptr [rcx], '['
+	mov rdx, 1
+	mov rdi, rbx
+	mov rsi, rcx
+	mov rax, 1
+	syscall
+	pop rdx
+	pop rax
+	push rax
+	push rbx
+	mov rax, [rax+4]
+	call _list_next
+	test rax, rax
+	jz __write_list_end
+	mov rcx, rbx
+	pop rbx
+	push rbx
+	push rcx
+	push rax
+	push rdx
+	call __write_bare_arg
+	pop rdx
+	pop rax
+	jmp __write_list_loop_init
+__write_list_loop:
+	cmp rdi, 0x0001
+	je __write_list_skip_comma
+	cmp rdi, 0x0002
+	je __write_list_skip_comma
+	push rax
+	push rdx
+	mov rcx, offset rnb
+	mov byte ptr [rcx], ','
+	mov byte ptr [rcx+1], ' '
+	mov rdx, 2
+	mov rsi, rcx
+	mov rax, 1
+	syscall
+	pop rdx
+	pop rax
+__write_list_skip_comma:
+	call __write_bare_arg
+__write_list_loop_init:
+	pop rax
+	call _list_next
+	test rax, rax
+	jz __write_list_end
+	mov rcx, rbx
+	pop rbx
+	push rbx
+	push rcx
+	jmp __write_list_loop
+__write_list_end:
+	push rdx
+	mov rcx, offset rnb
+	mov byte ptr [rcx], ']'
+	mov rdx, 1
+	mov rsi, rcx
+	mov rax, 1
+	syscall
+	pop rdx
+	pop rbx
+	pop rax
+	ret
 __write_newline:
 	mov rcx, offset rnb	# use write buf
 	mov byte ptr [rcx], 10
@@ -408,14 +476,19 @@ __write_arg:
 	## Check for 'f' or 'h'
 	# cmp byte ptr [rdx], 'h'
 	# je _write_http
+	push rdx
 	cmp byte ptr [rdx], 'f'
 	jne _safe_exit
 	add rdx, 4
 	xor rbx, rbx
 	mov [rnb], rbx
 	mov bl, [rdx]
-	xor rdx, rdx
+	pop rdx
 	call _deref_var
+__write_bare_arg:
+	cmp byte ptr [rax], 'l'
+	je __write_list
+	xor rdx, rdx
 	cmp byte ptr [rax], 'n'	# check for number
 	je __write_num
 	cmp byte ptr [rax], 'r' # check for range

@@ -55,7 +55,7 @@ __num_nan_loop:
 
 __num_exp_negsign:
 	cmp ax, 1023
-	jg __num_exp_negsign_ret
+	jge __num_exp_negsign_ret
 	inc ecx
 	mov byte ptr [rcx], '-'
 	inc ecx

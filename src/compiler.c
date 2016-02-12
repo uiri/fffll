@@ -274,11 +274,15 @@ char* valueToLlvmString(Value* v, char* prefix, List* localvars) {
     s = malloc(j);
     if (fvname == constants+38) {
       digit = ((Value*)fv->arglist->next->next->data)->type;
+      t = valueToLlvmString(fv->arglist->next->next->data, prefix, localvars);
       if (digit == 'c' || digit == 'b' || digit == 'l') {
-	SNPRINTF_REALLOC(snprintf(s+i, j-i, "%s\n", (t = valueToLlvmString(fv->arglist->next->next->data, prefix, localvars))),
+	SNPRINTF_REALLOC(snprintf(s+i, j-i, "%s\n", t),
 			 snprintf(s+i, j-i, "%s\n", t));
+      } else if (digit == 'v') {
+	SNPRINTF_REALLOC(snprintf(s+i, j-i, "mov rax, [%s]\n", t),
+			 snprintf(s+i, j-i, "mov rax, [%s]\n", t));
       } else {
-	SNPRINTF_REALLOC(snprintf(s+i, j-i, "mov rax, offset %s\n", (t = valueToLlvmString(fv->arglist->next->next->data, prefix, localvars))),
+	SNPRINTF_REALLOC(snprintf(s+i, j-i, "mov rax, offset %s\n", t),
 			 snprintf(s+i, j-i, "mov rax, offset %s\n", t));
       }
       free(t);
@@ -418,6 +422,7 @@ char* valueToLlvmString(Value* v, char* prefix, List* localvars) {
 	    switch (u->type) {
 	    case 'c':
 	    case 'b':
+	    case 'l':
 	      SNPRINTF_REALLOC(snprintf(s+i, j-i, "%s\nmov [%s], rax\n", t, argpush),
 			       snprintf(s+i, j-i, "%s\nmov [%s], rax\n", t, argpush));
 	      break;
@@ -458,6 +463,7 @@ char* valueToLlvmString(Value* v, char* prefix, List* localvars) {
 	    switch (digit) {
 	    case 'c':
 	    case 'b':
+	    case 'l':
 	      SNPRINTF_REALLOC(snprintf(s+i, j-i, "%s\npush rax\n%s", t, argpush),
 			       snprintf(s+i, j-i, "%s\npush rax\n%s", t, argpush));
 	      break;

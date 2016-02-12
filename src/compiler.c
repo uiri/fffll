@@ -815,35 +815,11 @@ char* stringToHexString(char* t) {
 }
 
 char* doubleToHexString(double* d) {
-  int i = 0, j, b, c, neg;
-  char* s, *t, digit;
+  int i = 0, j;
+  char* s, *t;
   j = 24;
   s = malloc(j);
-  neg = (*d < 0.0);
   t = (char*)d;
-  i += snprintf(s+i, j-i, "0x");
-  c = 1;
-  for (b=5;c || b != 5;b++) {
-    if (b == 9) {
-      i += snprintf(s+i, j-i, ", 0x");
-      b = 1;
-      c = 0;
-    }
-    digit = (t[8-b]/16)+48;
-    if (digit < 48) digit += 16;
-    if (b == 1 && neg) {
-      digit -= 1;
-    }
-    if (57 < digit)
-      i += snprintf(s+i, j-i, "%c", digit+39);
-    else
-      i += snprintf(s+i, j-i, "%c", digit);
-    digit = (t[8-b]%16)+48;
-    if (digit < 48) digit += 16;
-    if (57 < digit)
-      i += snprintf(s+i, j-i, "%c", digit+39);
-    else
-      i += snprintf(s+i, j-i, "%c", digit);
-  }
+  i += snprintf(s+i, j-i, "0x%x, 0x%x", *(unsigned int*)t, *(unsigned int*)(t+4));
   return s;
 }

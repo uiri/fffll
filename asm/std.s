@@ -18,7 +18,6 @@
 	.globl	brk
 	.globl	sbrk
 	.globl	zero
-	.globl	one
 	.globl	range_nan
 
 __checknum_range:

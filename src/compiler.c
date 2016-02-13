@@ -715,7 +715,7 @@ char* valueToLlvmString(Value* v, char* prefix, List* localvars) {
     if (r->increment && r->increment->type != '0') {
       t = valueToLlvmString(r->increment, prefix, NULL);
     } else {
-      t = "one-4";
+      t = "zero-4";
     }
     SNPRINTF_REALLOC(snprintf(s+i, j-i, "mov rbx, [%s+4]\nmov [rax+16], rbx\n", t),
 		     snprintf(s+i, j-i, "mov rbx, [%s+4]\nmov [rax+16], rbx\n", t));

@@ -69,7 +69,28 @@ __alloc_list_ret:
 __list_next_zero:
 	pop rbx
 	ret
+__list_next_end_down:
+	mov rbx, [rax+8]
+	shr rbx, 48
+	test rbx, 0x8000
+	jnz __list_next_end_down_neg
+	mov rbx, [rax+24]
+	shr rbx, 48
+	test rbx, 0x8000
+	jnz __list_next_end_valid
+	jmp __list_next_end_down_same_sign
+__list_next_end_down_neg:
+	mov rbx, [rax+24]
+	shr rbx, 48
+	test rbx, 0x8000
+	jz __list_next_invalid_range
+__list_next_end_down_same_sign:
+	mov rbx, [rax+8]
+	cmp rbx, [rax+24]
+	jle __list_next_invalid_range
+	jmp __list_next_end_valid
 __list_next_compute:
+	pop rcx
 	mov [rax], rbx
 	pop rax
 	pop rbx
@@ -86,6 +107,33 @@ _list_next:
 	mov rbx, [rax]
 	cmp rbx, [range_nan]
 	jnz __list_next_incr
+	mov rbx, [rax+16]
+	cmp rbx, 0
+	jne __list_next_init
+	mov rbx, [rax+8]
+	xor rbx, [rax+24]
+	shr rbx, 48
+	test rbx, 0x8000
+	jz __list_next_init_same_sign
+	mov rbx, [rax+24]
+	shr rbx, 48
+	and rbx, 0x8000
+	or rbx, 0x3ff0
+	shl rbx, 48
+	jmp __list_next_init_set
+__list_next_init_same_sign:
+	mov rbx, [rax+8]
+	cmp rbx, [rax+24]
+	jg __list_next_init_neg
+	mov rbx, 0x3ff0
+	shl rbx, 48
+	jmp __list_next_init_set
+__list_next_init_neg:
+	mov rbx, 0xbff0
+	shl rbx, 48
+__list_next_init_set:
+	mov [rax+16], rbx
+__list_next_init:
 	mov rbx, [rax+8]
 	jmp __list_next_end
 __list_next_incr:
@@ -94,14 +142,50 @@ __list_next_incr:
 	fstp qword ptr [rax]
 	mov rbx, [rax]
 __list_next_end:
+	push rbx
+	mov rbx, [rax+16]
+	cmp rbx, 0
+	jl __list_next_end_down
+	mov rbx, [rax+8]
+	shr rbx, 48
+	test rbx, 0x8000
+	jz __list_next_end_up_pos
+	mov rbx, [rax+24]
+	shr rbx, 48
+	test rbx, 0x8000
+	jz __list_next_end_valid
+	jmp __list_next_end_up_same_sign
+__list_next_end_up_pos:
+	mov rbx, [rax+24]
+	shr rbx, 48
+	test rbx, 0x8000
+	jnz __list_next_invalid_range
+__list_next_end_up_same_sign:
+	mov rbx, [rax+8]
 	cmp rbx, [rax+24]
-	jne __list_next_compute
+	jge __list_next_invalid_range
+__list_next_end_valid:
+	pop rbx
+	push rcx
+	mov rcx, rbx
+	xor rcx, [rax+24]
+	shr rcx, 48
+	test rcx, 0x8000
+	jnz __list_next_compute
+	cmp rbx, [rax+24]
+	jl __list_next_compute
+__list_next_end_up:
+	pop rcx
 	mov rbx, [range_nan]
 	mov [rax], rbx
 	pop rax
 	pop rbx
 	mov rax, [rbx+8]
 	jmp _list_next
+__list_next_invalid_range:
+	pop rbx
+	pop rax
+	xor rax, rax
 __list_next_next:
 	pop rbx
 	mov rbx, [rbx+8]

@@ -99,7 +99,7 @@ String* addToStringList(String* s) {
     }
   }
   if (j != i) {
-    addToListBeginning(stringlist, s);
+    addToListEnd(stringlist, s);
   }
   return s;
 }

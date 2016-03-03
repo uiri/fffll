@@ -381,7 +381,6 @@ __read_ret:
 	pop rbp
 	ret
 
-
 _write:
 	push rbp
 	mov rbp, rsp
@@ -400,13 +399,13 @@ __write_arg_loop:
 	jmp __write_arg_loop
 __write_outnl:
 	cmp byte ptr [rcx], 10
-	je __write_ret
+	je __write_outret
 	cmp rbx, 0x0001
 	je __write_newline
 	cmp rbx, 0x0002
 	je __write_newline
 	mov rax, 1
-	ret
+	jmp __write_outret
 __write_list:
 	push rax
 	push rdx

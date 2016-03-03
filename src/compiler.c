@@ -377,9 +377,13 @@ char* valueToLlvmString(Value* v, char* prefix, List* localvars) {
     } else if (fvname == constants+48) {
       b = branchnum++;
       c = branchnum++;
+      var = NULL;
       if (fv->arglist->data) {
 	var = ((List*)fv->arglist->data)->next->data;
 	u = findInTree(((List*)fv->arglist->data)->data, var->name);
+	SNPRINTF_REALLOC(snprintf(s+i, j-i, "mov rax, [%s]\npush rax\n", (t = valueToLlvmString(((Value*)var), prefix, localvars))),
+			 snprintf(s+i, j-i, "mov rax, [%s]\npush rax\n", t));
+	free(t);
 	BOOL_REALLOC(u);
 	SNPRINTF_REALLOC(snprintf(s+i, j-i, "push rax\n_branch_%d:\npop rax\ncall _list_next\ntest rax, rax\njz _branch_%d\nmov [%s], rax\npush rbx\n", b, c, (t = valueToLlvmString(((Value*)var), prefix, localvars))),
 			 snprintf(s+i, j-i, "push rax\n_branch_%d:\npop rax\ncall _list_next\ntest rax, rax\njz _branch_%d\nmov [%s], rax\npush rbx\n", b, c, t));
@@ -404,6 +408,11 @@ char* valueToLlvmString(Value* v, char* prefix, List* localvars) {
       if (c >= 0) {
 	SNPRINTF_REALLOC(snprintf(s+i, j-i, "_branch_%d:", c),
 			 snprintf(s+i, j-i, "_branch_%d:", c));
+      }
+      if (fv->arglist->data && var) {
+	SNPRINTF_REALLOC(snprintf(s+i, j-i, "pop rax\nmov [%s], rax\n", (t = valueToLlvmString(((Value*)var), prefix, localvars))),
+			 snprintf(s+i, j-i, "pop rax\nmov [%s], rax\n", t));
+	free(t);
       }
     } else {
       n = i;

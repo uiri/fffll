@@ -6,6 +6,7 @@
 	.globl	_safe_exit
 	.globl	_init_heap
 	.globl	_add
+	.globl	_die
 	.globl	_mul
 	.globl	_pop
 	.globl 	_push
@@ -214,6 +215,21 @@ __add_ret:
 	pop rbp
 	ret
 
+_die:
+	push rbp
+	mov rbp, rsp
+	mov rax, rbp
+	add rax, 16
+	call _deref_var
+	push rax
+	mov rax, [jmplist]
+	call _list_next
+	mov [jmplist], rbx
+	mov rbx, rax
+	pop rax
+	mov rbp, [rbx]
+	mov rsp, [rbx+8]
+	ret
 
 _mul:
 	push rbp

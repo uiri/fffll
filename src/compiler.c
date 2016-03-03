@@ -317,17 +317,23 @@ char* valueToLlvmString(Value* v, char* prefix, List* localvars) {
       SNPRINTF_REALLOC(snprintf(s+i, j-i, "mov [%s], rax", t),
 		       snprintf(s+i, j-i, "mov [%s], rax", t));
       free(t);
-    } else if (fvname == constants+128) {
-      SNPRINTF_REALLOC(snprintf(s+i, j-i, "throw %s", (t = valueToLlvmString(fv->arglist->next->data, prefix, localvars))),
-		       snprintf(s+i, j-i, "throw %s", t));
-      free(t);
     } else if (fvname == constants+134) {
       var = ((List*)fv->arglist->data)->next->data;
-      SNPRINTF_REALLOC(snprintf(s+i, j-i, "try {\n%s} catch (%s) {\nvar __fffll_%s = %s;\n", (t = valueToLlvmString(fv->arglist->next->data, prefix, localvars)), var->name, var->name, var->name),
-		       snprintf(s+i, j-i, "try {\n%s} catch (%s) {\nvar __fffll_%s = %s;\n", t, var->name, var->name, var->name));
+      b = branchnum++;
+      c = branchnum++;
+      SNPRINTF_REALLOC(snprintf(s+i, j-i, "call _alloc_list\nmov rdx, [jmplist]\nmov [rax+8], rdx\nmov [jmplist], rax\nmov rbx, rax\ncall _alloc_list\nmov [rbx], rax\nmov [rax], rbp\nmov rdx, offset _branch_%d\npush rdx\nmov [rax+8], rsp\n%s\njmp _branch_%d\n_branch_%d:\n", b, (t = valueToLlvmString(fv->arglist->next->data, prefix, localvars)), c, b),
+		       snprintf(s+i, j-i, "call _alloc_list\nmov rdx, [jmplist]\nmov [rax+8], rdx\nmov [jmplist], rax\nmov rbx, rax\ncall _alloc_list\nmov [rbx], rax\nmov [rax], rbp\nmov rdx, offset _branch_%d\npush rdx\nmov [rax+8], rsp\n%s\njmp _branch_%d\n_branch_%d:\n", b, t, c, b));
       free(t);
-      SNPRINTF_REALLOC(snprintf(s+i, j-i, "%s\nif (__fffll_%s == %s) throw %s;\n}\n", (t = valueToLlvmString(findInTree(((List*)fv->arglist->data)->data, var->name), prefix, localvars)), var->name, var->name, var->name),
-		       snprintf(s+i, j-i, "%s\nif (__fffll_%s == %s) throw %s;\n}\n", t, var->name, var->name, var->name));
+      t = valueToLlvmString(((List*)fv->arglist->data)->next->data, prefix, localvars);
+      SNPRINTF_REALLOC(snprintf(s+i, j-i, "mov rbx, [%s]\npush rbx\npush rax\nmov [%s], rax\n", t, t),
+		       snprintf(s+i, j-i, "mov rbx, [%s]\npush rbx\npush rax\nmov [%s], rax\n", t, t));
+      free(t);
+      SNPRINTF_REALLOC(snprintf(s+i, j-i, "%s\n", (t = valueToLlvmString(findInTree(((List*)fv->arglist->data)->data, var->name), prefix, localvars))),
+		       snprintf(s+i, j-i, "%s\n", t));
+      free(t);
+      t = valueToLlvmString(((List*)fv->arglist->data)->next->data, prefix, localvars);
+      SNPRINTF_REALLOC(snprintf(s+i, j-i, "pop rax\nmov rdx, [%s]\npop rbx\nmov [%s], rbx\ncmp rax, rdx\njne _branch_%d\ncall _die\n_branch_%d:\n", t, t, c, c),
+		       snprintf(s+i, j-i, "pop rax\nmov rdx, [%s]\npop rbx\nmov [%s], rbx\ncmp rax, rdx\njne _branch_%d\ncall _die\n_branch_%d:\n", t, t, c, c));
       free(t);
     } else if (fvname == constants+44) {
       c = branchnum++;

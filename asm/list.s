@@ -8,6 +8,7 @@
 	.globl	_list_push
 	.globl	_list_get
 	.globl	_list_set
+	.globl	jmplist
 
 _init_list:
 	push r9
@@ -27,6 +28,8 @@ _init_list:
 	test ax, 0x0FFF
 	jnz _safe_exit
 	mov [listmanager], rax
+	call _alloc_list
+	mov [jmplist], rax
 	pop rdi
 	pop rsi
 	pop rdx
@@ -249,3 +252,4 @@ __list_set_ret:
 
 .bss
 	.comm listmanager 8
+	.comm jmplist 8

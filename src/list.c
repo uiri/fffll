@@ -233,6 +233,9 @@ List deleteFromListData(List *list, void *data) {
     freeListNode(rmptr);
     return *headptr;
   }
+  if (list->next == NULL) {
+    return *headptr;
+  }
   while (list->next->data != data) {
     list = list->next;
     if (list->next == NULL)

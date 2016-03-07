@@ -8,6 +8,7 @@
 	.globl	_add
 	.globl	_die
 	.globl	_mul
+	.globl	_open
 	.globl	_pop
 	.globl 	_push
 	.globl	_rcp
@@ -178,8 +179,19 @@ _deref_var:
 
 
 _safe_exit:
-	mov rdi, rax	# move return value
-	mov rax,60	# sys_exit
+	mov rbx, rax
+	mov rdx, [closelist]
+_safe_exit_closeloop:
+	mov rax, 3
+	mov rdi, [rdx]
+	mov rdx, [rdx+8]
+	test rdi, rdi
+	jz _safe_exit_ret
+	syscall
+	jmp _safe_exit_closeloop
+_safe_exit_ret:
+	mov rdi, rbx
+	mov rax, 60	# sys_exit
 	syscall
 
 _add:
@@ -264,6 +276,32 @@ __mul_ret:
 	pop rbp
 	ret
 
+_open:
+	push rbp
+	mov rbp, rsp
+	mov rax, rbp
+	add rax, 16
+	mov rax, [rax]
+	mov rdi, [rax+4]
+	mov rsi, 02102
+	mov rdx, 0666
+	mov rax, 2
+	syscall
+	push rax
+	call _allocvar
+	pop rbx
+	mov [rax+4], rbx
+	mov dword ptr [rax], 0x66
+	push rax
+	call _alloc_list
+	mov rdx, [closelist]
+	mov [rax+8], rdx
+	mov [rax], rbx
+	mov [closelist], rax
+	pop rax
+	mov rsp, rbp
+	pop rbp
+	ret
 
 _pop:
 	push rbp
@@ -323,6 +361,7 @@ _read:
 	mov rax, rbp
 	add rax, 16
 	mov rbx, rax
+	mov rax, [rax]
 	add rbx, 8
 	## cmp byte ptr [rax], 'h'
 	## je __read_http		# check for http stream
@@ -387,6 +426,7 @@ _write:
 	mov rdx, rbp
 	add rdx, 16
 	mov rax, rdx
+	mov rdx, [rdx]
 __write_arg_loop:
 	add rax, 8
 	cmp qword ptr [rax], 0
@@ -584,9 +624,12 @@ __write_freestr:
 	.lcomm	sbrk	8
 
 .data
-var_stdin:	.long	0x66, 0x0, 0x0
-var_stdout:	.long	0x66, 0x1, 0x0
-var_stderr:	.long	0x66, 0x2, 0x0
+stdin:		.long	0x66, 0x0, 0x0
+stdout:		.long	0x66, 0x1, 0x0
+stderr:		.long	0x66, 0x2, 0x0
+var_stdin:	.quad	offset stdin
+var_stdout:	.quad	offset stdout
+var_stderr:	.quad	offset stderr
 false:		.asciz	"false"
 true:		.asciz	"true"
 __brkvar_init:	.long	0xffffffff, 0xffffffff

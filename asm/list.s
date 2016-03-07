@@ -9,6 +9,7 @@
 	.globl	_list_get
 	.globl	_list_set
 	.globl	jmplist
+	.globl closelist
 
 _init_list:
 	push r9
@@ -30,6 +31,8 @@ _init_list:
 	mov [listmanager], rax
 	call _alloc_list
 	mov [jmplist], rax
+	call _alloc_list
+	mov [closelist], rax
 	pop rdi
 	pop rsi
 	pop rdx
@@ -253,3 +256,4 @@ __list_set_ret:
 .bss
 	.comm listmanager 8
 	.comm jmplist 8
+	.comm closelist 8

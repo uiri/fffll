@@ -6,6 +6,7 @@
 	.globl	_safe_exit
 	.globl	_init_heap
 	.globl	_add
+	.globl	_cat
 	.globl	_die
 	.globl	_mul
 	.globl	_open
@@ -223,6 +224,77 @@ __add_ret:
 	call _allocvar
 	mov byte ptr [rax], 'n'
 	fstp qword ptr [rax+4]
+	mov rsp, rbp
+	pop rbp
+	ret
+
+_cat:
+	push rbp
+	mov rbp, rsp
+	mov rbx, rbp
+	add rbx, 8
+	call _allocstr
+	mov rcx, 32
+	mov r8, rax
+	push rbx
+__cat_argloop:
+	pop rbx
+	add rbx, 8
+	push rbx
+	mov rbx, [rbx]
+	test rbx, rbx
+	jz __cat_ret
+	cmp byte ptr [rbx], 's'
+	jne __cat_notstr
+	mov rdx, [rbx+4]
+	jmp __cat_realloc_loop
+__cat_notstr:
+#	cmp byte ptr [rbx], 'b'
+#	jne __cat_notbool
+#__cat_notbool:
+#	cmp byte ptr [rbx], 'l'
+#	jne __cat_notlist
+#__cat_notlist:
+	cmp byte ptr [rbx], 'n'
+	jne __cat_notnum
+	cmp rcx, 32
+	jge __cat_num_ge
+	xchg r8, rax
+	call _reallocstr
+	xchg r8, rax
+	add rcx, 32
+__cat_num_ge:
+	push rbx
+	push rcx
+	push rax
+	xchg rax, rbx
+	call _numtostr
+	pop rax
+	mov rdx, rax
+	pop rbx
+	pop rcx
+	jmp __cat_realloc_loop
+__cat_notnum:
+	call _safe_exit
+__cat_realloc_loop:
+	mov bl, [rdx]
+	test bl, bl
+	je __cat_argloop
+	inc rdx
+	mov [rax], bl
+	inc rax
+	dec rcx
+	test rcx, rcx
+	jne __cat_realloc_loop
+	xchg r8, rax
+	call _reallocstr
+	xchg r8, rax
+	add rcx, 32
+	jmp __cat_realloc_loop
+__cat_ret:
+	call _allocvar
+	mov byte ptr [rax], 's'
+	mov [rax+4], r8
 	mov rsp, rbp
 	pop rbp
 	ret

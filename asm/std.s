@@ -8,6 +8,7 @@
 	.globl	_add
 	.globl	_cat
 	.globl	_die
+	.globl	_len
 	.globl	_mul
 	.globl	_open
 	.globl	_pop
@@ -313,6 +314,50 @@ _die:
 	pop rax
 	mov rbp, [rbx]
 	mov rsp, [rbx+8]
+	ret
+
+_len:
+	push rbp
+	mov rbp, rsp
+	mov rax, rbp
+	add rax, 8
+	xor rcx, rcx
+	push rax
+__len_argloop:
+	pop rax
+	add rax, 8
+	cmp qword ptr [rax], 0
+	je __len_end
+	push rax
+	call _deref_var
+	cmp byte ptr [rax], 's'
+	je __len_str
+	mov rax, [rax+4]
+__len_list:
+	call _list_next
+	test rax, rax
+	jz __len_argloop
+	inc rcx
+	mov rax, rbx
+	jmp __len_list
+__len_str:
+	mov rax, [rax+4]
+__len_strloop:
+	cmp byte ptr [rax], 0
+	je __len_argloop
+	inc rax
+	inc rcx
+	jmp __len_strloop
+__len_end:
+	mov rax, offset lennumbuf
+	mov qword ptr [rax], rcx
+	fild qword ptr [rax]
+	call _allocvar
+	mov byte ptr [rax], 'n'
+	fstp qword ptr [rax+4]
+__len_ret:
+	mov rsp, rbp
+	pop rbp
 	ret
 
 _mul:
@@ -691,9 +736,10 @@ __write_freestr:
 	jmp __write_freestr_ret
 
 .bss
-	.lcomm	rnb	4
-	.lcomm	brk	8
-	.lcomm	sbrk	8
+	.lcomm	lennumbuf	8
+	.lcomm	rnb		4
+	.lcomm	brk		8
+	.lcomm	sbrk		8
 
 .data
 stdin:		.long	0x66, 0x0, 0x0

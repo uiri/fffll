@@ -8,6 +8,7 @@
 	.globl	_add
 	.globl	_cat
 	.globl	_die
+	.globl	_head
 	.globl	_len
 	.globl	_mul
 	.globl	_open
@@ -15,6 +16,7 @@
 	.globl 	_push
 	.globl	_rcp
 	.globl	_read
+	.globl	_tail
 	.globl	_write
 	.globl	var_stdin
 	.globl	var_stdout
@@ -316,6 +318,18 @@ _die:
 	mov rsp, [rbx+8]
 	ret
 
+_head:
+	push rbp
+	mov rbp, rsp
+	mov rax, rbp
+	add rax, 16
+	call _deref_var
+	mov rax, [rax+4]
+	mov rax, [rax]
+	mov rsp, rbp
+	pop rbp
+	ret
+
 _len:
 	push rbp
 	mov rbp, rsp
@@ -533,6 +547,21 @@ __read_ret:
 	add rax, 4
 	mov [rax], rdx
 	sub rax, 4
+	mov rsp, rbp
+	pop rbp
+	ret
+_tail:
+	push rbp
+	mov rbp, rsp
+	mov rax, rbp
+	add rax, 16
+	call _deref_var
+	mov rax, [rax+4]
+	mov rax, [rax+8]
+	mov rdx, rax
+	call _allocvar
+	mov byte ptr [rax], 'l'
+	mov [rax+4], rdx
 	mov rsp, rbp
 	pop rbp
 	ret

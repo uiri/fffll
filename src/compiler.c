@@ -688,9 +688,12 @@ char* valueToLlvmString(Value* v, char* prefix, List* localvars) {
 	switch (((Value*)node->data)->type) {
 	case 'n':
 	case 's':
-	case 'v':
 	  SNPRINTF_REALLOC(snprintf(s+i, j-i, "mov rbx, rax\ncall _alloc_list\npush rax\nmov rax, offset %s\nmov [rbx], rax\nadd rbx, 8\npop rax\nmov [rbx], rax\n", (t = valueToLlvmString(node->data, prefix, localvars))),
 			   snprintf(s+i, j-i, "mov rbx, rax\ncall _alloc_list\npush rax\nmov rax, offset %s\nmov [rbx], rax\nadd rbx, 8\npop rax\nmov [rbx], rax\n", t));
+	  break;
+	case 'v':
+	  SNPRINTF_REALLOC(snprintf(s+i, j-i, "mov rbx, rax\ncall _alloc_list\npush rax\nmov rax, [%s]\nmov [rbx], rax\nadd rbx, 8\npop rax\nmov [rbx], rax\n", (t = valueToLlvmString(node->data, prefix, localvars))),
+			   snprintf(s+i, j-i, "mov rbx, rax\ncall _alloc_list\npush rax\nmov rax, [%s]\nmov [rbx], rax\nadd rbx, 8\npop rax\nmov [rbx], rax\n", t));
 	  break;
 	case 'r':
 	default:

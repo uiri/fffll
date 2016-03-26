@@ -561,7 +561,22 @@ _tail:
 	mov rdx, rax
 	call _allocvar
 	mov byte ptr [rax], 'l'
-	mov [rax+4], rdx
+	mov rbx, rax
+	call _alloc_list
+	mov [rbx+4], rax
+__tail_alloc_loop:
+	push rdx
+	mov rdx, [rdx]
+	mov [rax], rdx
+	pop rdx
+	mov rdx, [rdx+8]
+	mov [rax+8], rdx
+	test rdx, rdx
+	jz __tail_ret
+	call _alloc_list
+	jmp __tail_alloc_loop
+__tail_ret:
+	mov rax, rbx
 	mov rsp, rbp
 	pop rbp
 	ret

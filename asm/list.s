@@ -52,6 +52,7 @@ _free_list:
 	ret
 
 _alloc_list:
+	push rdx
 	mov rax, [listmanager]
 	mov rdx, rax
 	add rdx, 8
@@ -59,6 +60,7 @@ _alloc_list:
 	je __alloc_list_nextblock
 	mov rdx, [rdx]
 	mov [listmanager], rdx
+	pop rdx
 	ret
 
 __alloc_list_nextblock:
@@ -69,6 +71,7 @@ __alloc_list_nextblock:
 	mov [listmanager], rax
 __alloc_list_ret:
 	add qword ptr [listmanager], 16
+	pop rdx
 	ret
 
 

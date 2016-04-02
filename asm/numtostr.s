@@ -194,7 +194,7 @@ __num_nonzero:
 	push rdx
 	xor rax, rax
 	mov ax, cx
-	mov ecx, offset wnb+28
+	mov ecx, offset wnb+27
 	mov byte ptr [rcx], 'e'
 	call __num_exp_negsign
 	pop rdx
@@ -253,7 +253,7 @@ __num_full:
 	jg __num_divint
 
 __num_fin:
-	mov ecx, offset wnb+27
+	mov ecx, offset wnb+26
 	mov rbx, 10000000
 
 __num_digit:
@@ -274,7 +274,7 @@ __num_digit_skip:
 	inc ecx
 	cmp byte ptr [rcx], 48
 	je __num_digit_skip
-	mov edx, offset wnb+27
+	mov edx, offset wnb+26
 	sub edx, ecx
 	add dx, [eexp]
 	push rdx
@@ -283,7 +283,7 @@ __num_digit_skip:
 	mov byte ptr [rcx], '.'
 	dec ecx
 	mov [rcx], dl
-	cmp ecx, offset wnb+25
+	cmp ecx, offset wnb+24
 	jne __num_digit_notone
 	inc ecx
 	mov byte ptr [rcx], '0'
@@ -293,7 +293,7 @@ __num_digit_skip:
 	mov [rcx], dl
 
 __num_digit_notone:
-	mov edx, offset wnb+27
+	mov edx, offset wnb+26
 	sub edx, ecx
 __num_digit_notone_loop:
 	mov al, [rcx]

@@ -28,8 +28,20 @@
 
 __checknum_range:
 	cmp byte ptr [rax], 'r'
+	jne __checknum_list
 	jne _safe_exit
 	mov rax, [rax+4]
+	ret
+
+__checknum_list:
+	cmp byte ptr [rax], 'l'
+	jne _safe_exit
+	push rbx
+	push 0
+	push rax
+	call _len
+	add rsp, 16
+	pop rbx
 	ret
 
 __checknum:
@@ -559,6 +571,9 @@ _tail:
 	mov rax, [rax+4]
 	mov rax, [rax+8]
 	mov rdx, rax
+	mov rbx, rax
+	test rax, rax
+	jz __tail_ret
 	call _allocvar
 	mov byte ptr [rax], 'l'
 	mov rbx, rax

@@ -76,7 +76,7 @@ void printFunc(List* arglist, List* statementlist) {
 	prepend = valueToLlvmString(node->data, prefix, localvarlist);
 	v = findInTree(((List*)arglist->data)->data, ((Variable*)node->data)->name);
 	t = valueToLlvmString(v, prefix, NULL);
-	printf("mov rdx, [%s]\npush rdx\n", prepend);
+	printf("mov rdx, [%s]\npush rdx\nmov dl, [%s+8]\ntest dl, 0x80\njnz _block_%d_skip_%s\n", prepend, prepend, blocknum, prepend);
 	switch (v->type) {
 	case 'c':
 	case 'b':
@@ -90,6 +90,7 @@ void printFunc(List* arglist, List* statementlist) {
 	  printf("mov rax, [%s]\nmov [%s], rax\n", t, prepend);
 	  break;
 	}
+	printf("jmp _block_%d_noskip_%s\n_block_%d_skip_%s:\nand dl, 0x7F\nmov byte ptr [%s+8], dl\n_block_%d_noskip_%s:\n", blocknum, prepend, blocknum, prepend, prepend, blocknum, prepend);
 	free(t);
 	free(prepend);
 	prepend = NULL;
